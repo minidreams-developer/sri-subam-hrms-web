@@ -4,7 +4,14 @@ import SearchIcon from "../assets/images/User Manage/search.svg";
 import MicIcon from "../assets/images/Dashboard Images/Group.svg";
 import theme from "../theme/theme";
 
-const SearchInputComponent = ({ placeholder = "Search", onSearchChange, value, width = "100%", height = "57px", showMic = false }) => {
+const SearchInputComponent = ({
+  placeholder = "Search",
+  onSearchChange,
+  value,
+  width = "100%",
+  height = "57px",
+  showMic = false,
+}) => {
   return (
     <SearchInputWrapper $width={width} $height={height} $hasMic={showMic}>
       <img src={SearchIcon} alt="search" />
@@ -43,7 +50,8 @@ const SearchInput = styled.input`
   width: 100%;
   font-size: 0.875rem;
   color: ${theme.colors.searchInputText};
-  font-family: "Metropolis-Medium", sans-serif;
+  font-family: "Inter", sans-serif;
+  font-weight: 500;
   border: none;
   outline: none;
   padding: 0 0.625rem;
@@ -51,7 +59,8 @@ const SearchInput = styled.input`
 
   ::placeholder {
     color: ${theme.colors.placeholder};
-    font-family: "Metropolis-Regular";
+    font-family: "Inter", sans-serif;
+    font-weight: 400;
     opacity: 1;
   }
   &:focus {

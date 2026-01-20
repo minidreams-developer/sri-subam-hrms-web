@@ -116,8 +116,8 @@ const ReusableTable = ({
                             ? "none"
                             : `1px solid #B4B4B4`,
                         color: "#5C5C5C",
-                        fontFamily:
-                          "Metropolis-Medium, Noto Sans Tamil, Tamil Sangam MN, Latha, sans-serif",
+                        fontFamily: "'Inter', sans-serif",
+                        fontWeight: 500,
                         fontSize: "0.875rem",
                         alignSelf: "flex-start",
                         textAlign: "left",
@@ -250,7 +250,8 @@ const StyledTable = styled.table`
   border-collapse: separate;
   border-spacing: 0;
   border-bottom: 1px solid ${theme.colors.white};
-  font-family: "Metropolis-Regular", sans-serif;
+  font-family: "Inter", sans-serif;
+  font-weight: 400;
 `;
 
 const TableHead = styled.thead`
@@ -283,8 +284,8 @@ const TableCell = styled.td`
   padding: 0.75rem 0.625rem;
   color: ${theme.colors.textColor};
   font-size: 0.875rem;
-  font-family: "Metropolis-Medium", "Noto Sans Tamil", "Tamil Sangam MN",
-    "Latha", sans-serif;
+  font-family: "Inter", sans-serif;
+  font-weight: 500;
   white-space: ${(props) => (props.noWrap ? "nowrap" : "normal")};
   /* width: ${100 / 7}%; Removed fixed width */
   min-width: 100px;
@@ -301,7 +302,7 @@ const PaginationWrapper = styled.div`
   position: ${(props) => (props.$sticky ? "sticky" : "static")};
   bottom: ${(props) => (props.$sticky ? "0" : "auto")};
   background-color: ${theme.colors.white};
-]  border-top: ${(props) => (props.$border ? "1px solid #EAECF0" : "none")};
+  ]border-top: ${(props) => (props.$border ? "1px solid #EAECF0" : "none")};
 `;
 
 const Button = styled.button`
@@ -331,8 +332,8 @@ const ActionCell = styled.td`
   color: ${theme.colors.textColor};
   cursor: pointer;
   text-align: left;
-  font-family: "Metropolis-Medium", "Noto Sans Tamil", "Tamil Sangam MN",
-    "Latha", sans-serif;
+  font-family: "Inter", sans-serif;
+  font-weight: 500;
   min-width: 100px;
 
   &:hover {
@@ -353,8 +354,8 @@ const StatusBadge = styled.div`
 const StatusBadgeText = styled.p`
   text-transform: capitalize;
   font-size: 0.75rem;
-  font-family: "Metropolis-Regular", "Noto Sans Tamil", "Tamil Sangam MN",
-    "Latha", sans-serif;
+  font-family: "Inter", sans-serif;
+  font-weight: 400;
   margin: 0;
   color: ${theme.colors.textColor};
 `;
@@ -368,8 +369,8 @@ const PageNumber = styled.div`
   border-radius: 4px;
   cursor: ${(props) => (props.$isDots ? "default" : "pointer")};
   font-size: 0.875rem;
-  font-family: "Metropolis-Regular", "Noto Sans Tamil", "Tamil Sangam MN",
-    "Latha", sans-serif;
+  font-family: "Inter", sans-serif;
+  font-weight: 400;
   background-color: ${(props) =>
     props.$isActive ? theme.colors.primary : "transparent"};
   color: ${(props) =>
@@ -381,8 +382,8 @@ const PageNumber = styled.div`
       props.$isDots
         ? "transparent"
         : props.$isActive
-        ? theme.colors.primary
-        : theme.colors.secondaryWhite};
+          ? theme.colors.primary
+          : theme.colors.secondaryWhite};
   }
 `;
 
@@ -407,8 +408,8 @@ const EmptyStateText = styled.p`
   max-width: 18rem;
   text-align: center;
   line-height: 160%;
-  font-family: "Metropolis-Medium", "Noto Sans Tamil", "Tamil Sangam MN",
-    "Latha", sans-serif;
+  font-family: "Inter", sans-serif;
+  font-weight: 500;
   font-size: 1rem;
   color: ${theme.colors.textColor};
 `;
@@ -445,8 +446,8 @@ const LoadingSpinner = styled.div`
 `;
 
 const LoadingText = styled.p`
-  font-family: "Metropolis-Medium", "Noto Sans Tamil", "Tamil Sangam MN",
-    "Latha", sans-serif;
+  font-family: "Inter", sans-serif;
+  font-weight: 500;
   font-size: 1rem;
   color: ${theme.colors.textColor};
 `;

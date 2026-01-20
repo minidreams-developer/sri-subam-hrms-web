@@ -13,7 +13,7 @@ const StyledButton = styled.button`
   color: ${(props) => props.color || theme.colors.secondary};
   font-size: 0.75rem;
   font-weight: 500;
-  font-family: "Metropolis-Medium", sans-serif;
+  font-family: "Inter", sans-serif;
   line-height: 160%;
   border: ${(props) => props.border || "none"};
   border-radius: 6px;
@@ -32,7 +32,8 @@ const StyledButton = styled.button`
   }
 `;
 
-const Button = ({ type = "button",
+const Button = ({
+  type = "button",
   text,
   icon,
   onClick,

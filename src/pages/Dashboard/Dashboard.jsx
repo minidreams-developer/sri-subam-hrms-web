@@ -19,7 +19,7 @@ const Container = styled.div`
 `;
 
 const WelcomeText = styled.h1`
-  font-family: "Metropolis-Bold", "Noto Sans Tamil", sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: 1.5rem;
   font-weight: 700;
   color: ${theme.colors.primary};

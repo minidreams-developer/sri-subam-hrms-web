@@ -6,7 +6,7 @@ const TimeDropdown = ({
   setFieldValue,
   fieldName,
   selectedDate,
-  initialTime
+  initialTime,
 }) => {
   const [hours, setHours] = useState("");
   const [minutes, setMinutes] = useState("");
@@ -18,13 +18,13 @@ const TimeDropdown = ({
       const date = new Date(initialTime);
       let hours = date.getHours();
       const minutes = date.getMinutes();
-      
+
       // Convert to 12-hour format
       const period = hours >= 12 ? "PM" : "AM";
       hours = hours % 12 || 12; // Convert 0 to 12
-      
-      setHours(hours.toString().padStart(2, '0'));
-      setMinutes(minutes.toString().padStart(2, '0'));
+
+      setHours(hours.toString().padStart(2, "0"));
+      setMinutes(minutes.toString().padStart(2, "0"));
       setPeriod(period);
     }
   }, [initialTime]);
@@ -33,14 +33,14 @@ const TimeDropdown = ({
   useEffect(() => {
     if (hours && minutes && selectedDate) {
       let hour24 = parseInt(hours);
-      
+
       // Convert to 24-hour format
       if (period === "PM" && hour24 !== 12) {
         hour24 += 12;
       } else if (period === "AM" && hour24 === 12) {
         hour24 = 0;
       }
-      
+
       const dateWithTime = new Date(selectedDate);
       dateWithTime.setHours(hour24);
       dateWithTime.setMinutes(parseInt(minutes));
@@ -118,10 +118,10 @@ const TimeInput = styled.input`
   outline: none;
   text-align: center;
   font-size: 0.875rem;
-  font-family: "Metropolis-Medium", sans-serif;
+  font-family: "Inter", sans-serif;
   font-weight: 500;
   color: #333;
-  
+
   &::placeholder {
     color: #999;
   }
@@ -136,7 +136,7 @@ const PeriodSelect = styled.select`
   border: none;
   outline: none;
   font-size: 0.875rem;
-  font-family: "Metropolis-Medium", sans-serif;
+  font-family: "Inter", sans-serif;
   font-weight: 500;
   color: #333;
   background: transparent;

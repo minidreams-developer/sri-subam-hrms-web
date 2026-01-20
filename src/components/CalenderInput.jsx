@@ -52,7 +52,8 @@ const CalenderInput = ({ onDateSelect, initialDate }) => {
 const StyledDatePicker = styled(DatePicker)`
   width: 100%;
   font-size: 0.875rem;
-  font-family: "Metropolis-Medium", sans-serif;
+  font-family: "Inter", sans-serif;
+  font-weight: 500;
   padding: 0.875rem;
   border: none;
   outline: none;
@@ -61,7 +62,7 @@ const StyledDatePicker = styled(DatePicker)`
 
 const Label = styled.p`
   font-size: 0.875rem;
-  font-family: "Metropolis-Medium", sans-serif;
+  font-family: "Inter", sans-serif;
   font-weight: 500;
   line-height: 160%;
   color: ${theme.colors.primaryGreen};
@@ -107,8 +108,8 @@ const InputWrapper = styled.div`
 const Input = styled.input`
   width: 100%;
   font-size: 0.875rem;
-  font-family: "Metropolis-Medium", sans-serif;
-  font-weight: 400;
+  font-family: "Inter", sans-serif;
+  font-weight: 500;
   line-height: 160%;
   color: ${theme.colors.textColor};
   padding: 0.875rem;
@@ -117,7 +118,8 @@ const Input = styled.input`
   outline: none;
 
   ::placeholder {
-    font-family: "Metropolis-Medium", sans-serif;
+    font-family: "Inter", sans-serif;
+    font-weight: 500;
     opacity: 1;
   }
 `;
@@ -125,8 +127,8 @@ const Input = styled.input`
 const Textarea = styled.textarea`
   width: 100%;
   font-size: 0.875rem;
-  font-family: "Metropolis-Medium", sans-serif;
-  font-weight: 400;
+  font-family: "Inter", sans-serif;
+  font-weight: 500;
   line-height: 160%;
   color: ${theme.colors.textColor};
   padding: 0.875rem;
@@ -137,7 +139,8 @@ const Textarea = styled.textarea`
   min-height: 5rem;
 
   ::placeholder {
-    font-family: "Metropolis-Medium", sans-serif;
+    font-family: "Inter", sans-serif;
+    font-weight: 500;
     opacity: 1;
   }
 `;

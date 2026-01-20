@@ -1,8 +1,6 @@
-import React, { useState } from "react";
+import React from "react";
 import theme from "../theme/theme";
 import styled from "styled-components";
-import MicSvg from "../assets/images/Dashboard Images/Group.svg";
-import SpeechToTextModal from "./SpeechToTextModal";
 
 const InputComponent = ({
   label = "",
@@ -12,21 +10,6 @@ const InputComponent = ({
   showMic = false,
   ...rest
 }) => {
-  const [showModal, setShowModal] = useState(false);
-
-  const handleMicOpen = () => {
-    setShowModal(true);
-  };
-
-  const handleTranscript = (text) => {
-    if (rest?.onChange && rest?.name) {
-      rest.onChange({
-        target: { name: rest.name, value: text || "" },
-      });
-    }
-    setShowModal(false);
-  };
-
   return (
     <FieldWrapper>
       {label && <Label>{label}</Label>}
@@ -36,18 +19,6 @@ const InputComponent = ({
         ) : (
           <Input placeholder={placeholder} {...rest} $showmic={showMic} />
         )}
-        {showMic && (
-          <MicButton type="button" onClick={handleMicOpen}>
-            <img src={MicSvg} alt="mic" />
-          </MicButton>
-        )}
-        {showMic && (
-          <SpeechToTextModal
-            isOpen={showModal}
-            onClose={() => setShowModal(false)}
-            onTranscript={handleTranscript}
-          />
-        )}
       </InputWrapper>
     </FieldWrapper>
   );
@@ -55,8 +26,7 @@ const InputComponent = ({
 
 const Label = styled.p`
   font-size: 0.875rem;
-  font-family: "Metropolis-Medium", "Noto Sans Tamil", "Tamil Sangam MN",
-    "Latha", sans-serif;
+  font-family: "Inter", sans-serif;
   font-weight: 500;
   line-height: 160%;
   color: #0c0c0c;
@@ -67,6 +37,10 @@ const FieldWrapper = styled.div`
   display: flex;
   flex-direction: column;
   width: 100%;
+
+  &:focus-within ${Label} {
+    color: ${theme.colors.primary};
+  }
 `;
 
 const InputWrapper = styled.div`
@@ -90,7 +64,7 @@ const InputWrapper = styled.div`
 const Input = styled.input`
   width: 100%;
   font-size: 0.875rem;
-  font-family: "Metropolis-Medium", sans-serif;
+  font-family: "Inter", sans-serif;
   font-weight: 400;
   line-height: 160%;
   color: ${theme.colors.textColor};
@@ -101,7 +75,7 @@ const Input = styled.input`
   outline: none;
 
   ::placeholder {
-    font-family: "Metropolis-Medium", sans-serif;
+    font-family: "Inter", sans-serif;
     opacity: 1;
   }
 `;
@@ -109,8 +83,7 @@ const Input = styled.input`
 const Textarea = styled.textarea`
   width: 100%;
   font-size: 0.875rem;
-  font-family: "Metropolis-Medium", "Noto Sans Tamil", "Tamil Sangam MN",
-    "Latha", sans-serif;
+  font-family: "Inter", sans-serif;
   font-weight: 400;
   line-height: 160%;
   color: ${theme.colors.textColor};
@@ -123,29 +96,8 @@ const Textarea = styled.textarea`
   min-height: 5rem;
 
   ::placeholder {
-    font-family: "Metropolis-Medium", "Noto Sans Tamil", "Tamil Sangam MN",
-      "Latha", sans-serif;
+    font-family: "Inter", sans-serif;
     opacity: 1;
-  }
-`;
-
-const MicButton = styled.button`
-  position: absolute;
-  right: 0.75rem;
-  top: 50%;
-  transform: translateY(-50%);
-  background: none;
-  border: none;
-  padding: 0;
-  cursor: pointer;
-  opacity: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  img {
-    width: 1rem;
-    height: 1rem;
   }
 `;
 

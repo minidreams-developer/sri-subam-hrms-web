@@ -34,14 +34,16 @@ const Chart = () => {
           dataKey="name"
           tick={{
             fontSize: 14,
-            fontFamily: "Metropolis-SemiBold, sans-serif",
+            fontFamily: "Inter, sans-serif",
+            fontWeight: 600,
             fill: `${theme.colors.textColor}`,
           }}
         />
         <YAxis
           tick={{
             fontSize: 14,
-            fontFamily: "Metropolis-SemiBold, sans-serif",
+            fontFamily: "Inter, sans-serif",
+            fontWeight: 600,
             fill: `${theme.colors.textColor}`,
           }}
         />

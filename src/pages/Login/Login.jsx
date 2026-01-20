@@ -2,9 +2,8 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import theme from "../../theme/theme";
-import RiceMillLogo from "../../assets/images/Login/logo2.svg";
+import RiceMillLogo from "../../assets/images/Dashboard Images/main_logo.svg";
 import BGImage from "../../assets/images/Login/loginImage.jpg";
-import EllipseSeparator from "../../assets/images/Login/Ellipse 11.svg";
 import InputComponent from "../../components/InputComponent";
 import { Spinner } from "reactstrap";
 import { Formik, Form } from "formik";
@@ -31,78 +30,78 @@ export const Login = () => {
           <LogoSection>
             <LogoAndName>
               <Logo src={RiceMillLogo} alt="Rice Mill Logo" />
-              <CompanyName>A Project</CompanyName>
             </LogoAndName>
           </LogoSection>
-          <HeadText>Admin Login</HeadText>
-          <SubText>
-            Login to enjoy
-          </SubText>
+          <FormSection>
+            <HeadText>Login Into Airtable</HeadText>
+            <SubText>
+              Enter your email and password to access your account{" "}
+            </SubText>
 
-          <Formik
-            initialValues={{
-              username: "admin@ricemill",
-              password: "admin1234",
-            }}
-            validationSchema={validationSchema}
-            onSubmit={handleLoginSubmit}
-          >
-            {({
-              values,
-              handleChange,
-              handleBlur,
-              handleSubmit,
-              isSubmitting,
-              errors,
-              touched,
-              status,
-            }) => (
-              <StyledForm onSubmit={handleSubmit}>
-                <InputWraper>
-                  <div>
-                    <InputComponent
-                      name="username"
-                      label="Username"
-                      placeholder="Enter username"
-                      value={values.username}
-                      type="text"
-                      language="en"
-                      onChange={handleChange}
-                      onBlur={handleBlur}
-                    />
-                    {touched.username && errors.username && (
-                      <ErrorText>{errors.username}</ErrorText>
-                    )}
-                  </div>
-                  <div>
-                    <InputComponent
-                      name="password"
-                      label="Password"
-                      placeholder="Password"
-                      type="password"
-                      value={values.password}
-                      onChange={handleChange}
-                      onBlur={handleBlur}
-                    />
-                    {touched.password && errors.password && (
-                      <ErrorText>{errors.password}</ErrorText>
-                    )}
-                  </div>
-                  {status && <ErrorText>{status}</ErrorText>}
-                </InputWraper>
-                <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? <Spinner size="sm" /> : "Login"}
-                </Button>
-              </StyledForm>
-            )}
-          </Formik>
+            <Formik
+              initialValues={{
+                username: "admin@ricemill",
+                password: "admin1234",
+              }}
+              validationSchema={validationSchema}
+              onSubmit={handleLoginSubmit}
+            >
+              {({
+                values,
+                handleChange,
+                handleBlur,
+                handleSubmit,
+                isSubmitting,
+                errors,
+                touched,
+                status,
+              }) => (
+                <StyledForm onSubmit={handleSubmit}>
+                  <InputWraper>
+                    <div>
+                      <InputComponent
+                        name="username"
+                        label="Username"
+                        placeholder="Enter username"
+                        value={values.username}
+                        type="text"
+                        language="en"
+                        onChange={handleChange}
+                        onBlur={handleBlur}
+                      />
+                      {touched.username && errors.username && (
+                        <ErrorText>{errors.username}</ErrorText>
+                      )}
+                    </div>
+                    <div>
+                      <InputComponent
+                        name="password"
+                        label="Password"
+                        placeholder="Password"
+                        type="password"
+                        value={values.password}
+                        onChange={handleChange}
+                        onBlur={handleBlur}
+                      />
+                      {touched.password && errors.password && (
+                        <ErrorText>{errors.password}</ErrorText>
+                      )}
+                      <ForgotPasswordText>
+                        Forgot your password?
+                      </ForgotPasswordText>
+                    </div>
+                    {status && <ErrorText>{status}</ErrorText>}
+                  </InputWraper>
+                  <Button type="submit" disabled={isSubmitting}>
+                    {isSubmitting ? <Spinner size="sm" /> : "Login"}
+                  </Button>
+                </StyledForm>
+              )}
+            </Formik>
+          </FormSection>
         </RightContainer>
       </LoginContainer>
-      <FooterLinks>
-        <FooterLink href="#terms">Terms & Conditions</FooterLink>
-        <EllipseIcon src={EllipseSeparator} alt="separator" />
-        <FooterLink href="#privacy">Privacy Policy</FooterLink>
-      </FooterLinks>
+      <FooterLinks></FooterLinks>
     </ParentContainer>
   );
 };
@@ -116,7 +115,7 @@ const ParentContainer = styled.div`
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  background-color: white;
+  background-color: ${theme.colors.bgColor};
   position: relative;
   padding: 2rem;
 
@@ -127,7 +126,7 @@ const ParentContainer = styled.div`
 
 const LoginContainer = styled.div`
   display: flex;
-  align-items: center;
+  align-items: stretch;
   justify-content: center;
   width: 100%;
   max-width: 1200px;
@@ -183,16 +182,26 @@ const LeftContainer = styled.div`
 const RightContainer = styled.div`
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start;
   align-items: flex-start;
   width: 450px;
-  background-color: white;
+  background-color: ${theme.colors.bgColor};
   flex-shrink: 0;
+  position: relative;
+`;
+
+const FormSection = styled.div`
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  width: 100%;
+  margin: auto 0;
 `;
 
 const Logo = styled.img`
-  height: 1.5rem;
-  width: auto;
+  height: 2.5rem;
+  width: 11.75rem;
   margin: 0 0.75rem 0 0;
 
   @media (max-width: 768px) {
@@ -205,7 +214,7 @@ const LogoSection = styled.div`
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  margin: 0 0 48px 0;
+  margin: 0;
   width: 100%;
 
   @media (max-width: 768px) {
@@ -220,32 +229,10 @@ const LogoAndName = styled.div`
   justify-content: flex-start;
 `;
 
-const CompanyName = styled.h2`
-  font-size: 1.375rem;
-  font-weight: 700;
-  font-family:
-    "Metropolis-Bold", "Noto Sans Tamil", "Tamil Sangam MN", "Latha", sans-serif;
-  line-height: 100%;
-  margin: 0;
-  color: ${theme.colors.primary};
-  text-align: left;
-  letter-spacing: 0%;
-
-  @media (max-width: 768px) {
-    font-size: 1.125rem;
-    text-align: center;
-  }
-
-  @media (max-width: 480px) {
-    font-size: 1rem;
-  }
-`;
-
 const HeadText = styled.h1`
   font-size: 1.25rem;
   font-weight: 700;
-  font-family:
-    "Metropolis-Bold", "Noto Sans Tamil", "Tamil Sangam MN", "Latha", sans-serif;
+  font-family: "Inter", sans-serif;
   line-height: 160%;
   margin: 0 0 0.5rem 0;
   color: #0c0c0c;
@@ -261,14 +248,12 @@ const HeadText = styled.h1`
 `;
 
 const SubText = styled.p`
-  font-size: 0.875rem;
+  font-size: 14px;
   font-weight: 500;
-  font-family:
-    "Metropolis-Medium", "Noto Sans Tamil", "Tamil Sangam MN", "Latha",
-    sans-serif;
+  font-family: "Inter-Medium18", sans-serif;
   line-height: 160%;
   margin: 0 0 2rem 0;
-  color: #5c5c5c;
+  color: #b1b1b1;
 
   @media (max-width: 768px) {
     font-size: 0.8rem;
@@ -305,9 +290,7 @@ const Button = styled.button`
   box-sizing: border-box;
   font-size: 0.875rem;
   font-weight: 600;
-  font-family:
-    "Metropolis-SemiBold", "Noto Sans Tamil", "Tamil Sangam MN", "Latha",
-    sans-serif;
+  font-family: "Inter", sans-serif;
   color: #ffffff;
   line-height: 100%;
   margin: 0 0 0 0;
@@ -332,73 +315,12 @@ const Button = styled.button`
   }
 `;
 
-const Options = styled.div`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin: 0 0 1.25rem 0;
-  gap: 1rem;
-`;
-
-const Option = styled.button`
-  background: ${(props) =>
-    props.$isactive ? theme.colors.secondary : theme.colors.primary};
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.875rem;
-  font-weight: 600;
-  font-family: "Metropolis-SemiBold", sans-serif;
-  line-height: 100%;
-  margin: 0 0 0 0;
-  padding: 0.813rem 0.5rem;
-  color: ${(props) =>
-    props.$isactive ? theme.colors.primary : theme.colors.secondary};
-  border-radius: 0.625rem;
-  border: none;
-  width: 100%;
-  cursor: pointer;
-`;
-
-const ContentSpace = styled.div`
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  gap: 0.875rem;
-  border: none;
-  border-radius: 1.25rem;
-  background-color: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
-  height: 11.875rem;
-`;
-
-const Content = styled.h2`
-  font-size: 1.125rem;
-  font-weight: 600;
-  font-family: "Metropolis-SemiBold", sans-serif;
-  color: ${theme.colors.white};
-  line-height: 160%;
-  margin: 0 0 0 0;
-  text-align: center;
-`;
-
-const Description = styled.p`
-  font-size: 1.125rem;
-  font-weight: 400;
-  font-family: "Metropolis-Regular", sans-serif;
-  color: #cabaa9;
-  line-height: 160%;
-  margin: 0 0 0 0;
-  text-align: center;
-  width: 90%;
-`;
-
 const ErrorText = styled.p`
   color: #ff4d4f;
   font-size: 0.875rem;
   margin: 0.5rem 0 0;
-  font-family: "Metropolis-Regular", sans-serif;
+  font-family: "Inter", sans-serif;
+  font-weight: 400;
 `;
 
 const FooterLinks = styled.div`
@@ -435,9 +357,7 @@ const FooterLinks = styled.div`
 const FooterLink = styled.a`
   font-size: 0.875rem;
   font-weight: 400;
-  font-family:
-    "Metropolis-Regular", "Noto Sans Tamil", "Tamil Sangam MN", "Latha",
-    sans-serif;
+  font-family: "Inter", sans-serif;
   color: #666666;
   text-decoration: none;
   cursor: pointer;
@@ -466,15 +386,16 @@ const EllipseIcon = styled.img`
   }
 `;
 
-const FooterSeparator = styled.span`
-  font-size: 0.75rem;
-  color: #5c5c5c;
-  font-family: "Metropolis-Regular", sans-serif;
-  display: flex;
-  align-items: center;
-  line-height: 1;
-
-  @media (max-width: 480px) {
-    display: none;
-  }
+const ForgotPasswordText = styled.p`
+  color: ${theme.colors.primary};
+  font-weight: 500;
+  font-family: "Inter", sans-serif;
+  font-size: 0.875rem;
+  line-height: 160%;
+  text-align: right;
+  margin: 0.5rem 0 0 0;
+  cursor: pointer;
+  display: block;
+  z-index: 10;
+  position: relative;
 `;

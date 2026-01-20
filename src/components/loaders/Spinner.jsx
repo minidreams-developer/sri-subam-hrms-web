@@ -49,7 +49,8 @@ const LoadingSpinner = styled.div`
 `;
 
 const LoadingText = styled.p`
-  font-family: "Metropolis-Medium";
+  font-family: "Inter", sans-serif;
+  font-weight: 500;
   font-size: 1rem;
   color: ${theme.colors.textColor};
 `;

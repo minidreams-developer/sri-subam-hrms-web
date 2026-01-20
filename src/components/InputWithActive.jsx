@@ -19,7 +19,7 @@ const InputWithActive = ({
 
 const Label = styled.p`
   font-size: 0.875rem;
-  font-family: "Metropolis-Medium", sans-serif;
+  font-family: "Inter", sans-serif;
   font-weight: 500;
   line-height: 160%;
   color: ${theme.colors.primaryGreen};
@@ -56,7 +56,7 @@ const InputWrapper = styled.div`
 const Input = styled.input`
   width: 100%;
   font-size: 0.875rem;
-  font-family: "Metropolis-Medium", sans-serif;
+  font-family: "Inter", sans-serif;
   font-weight: 400;
   line-height: 160%;
   color: ${theme.colors.textColor};
@@ -66,7 +66,8 @@ const Input = styled.input`
   outline: none;
 
   ::placeholder {
-    font-family: "Metropolis-Medium", sans-serif;
+    font-family: "Inter", sans-serif;
+    font-weight: 400;
     opacity: 1;
   }
 `;
@@ -74,7 +75,7 @@ const Input = styled.input`
 const Textarea = styled.textarea`
   width: 100%;
   font-size: 0.875rem;
-  font-family: "Metropolis-Medium", sans-serif;
+  font-family: "Inter", sans-serif;
   font-weight: 400;
   line-height: 160%;
   color: ${theme.colors.textColor};
@@ -86,7 +87,8 @@ const Textarea = styled.textarea`
   min-height: 5rem;
 
   ::placeholder {
-    font-family: "Metropolis-Medium", sans-serif;
+    font-family: "Inter", sans-serif;
+    font-weight: 400;
     opacity: 1;
   }
 `;

@@ -10,7 +10,7 @@ const DropdownContainer = styled.div`
 
 const Label = styled.label`
   font-size: 0.875rem;
-  font-family: "Metropolis-Medium", sans-serif;
+  font-family: "Inter", sans-serif;
   font-weight: 500;
   line-height: 160%;
   color: ${(props) =>

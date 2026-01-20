@@ -130,7 +130,7 @@ const AutoSuggest = ({
 
 const Label = styled.p`
   font-size: 0.875rem;
-  font-family: "Metropolis-Medium", sans-serif;
+  font-family: "Inter", sans-serif;
   font-weight: 500;
   line-height: 160%;
   color: ${theme.colors.primary};
@@ -168,7 +168,7 @@ const InputWrapper = styled.div`
 const Input = styled.input`
   width: 100%;
   font-size: 0.875rem;
-  font-family: "Metropolis-Medium", sans-serif;
+  font-family: "Inter", sans-serif;
   font-weight: 400;
   line-height: 160%;
   color: ${theme.colors.textColor};
@@ -178,7 +178,8 @@ const Input = styled.input`
   outline: none;
 
   ::placeholder {
-    font-family: "Metropolis-Medium", sans-serif;
+    font-family: "Inter", sans-serif;
+    font-weight: 400;
     opacity: 1;
   }
 `;
@@ -209,7 +210,7 @@ const SuggestionItem = styled.li`
     font-size: 1rem;
     font-weight: 600;
     line-height: 160%;
-    font-family: "Metropolis-SemiBold", sans-serif;
+    font-family: "Inter", sans-serif;
     color: ${theme.colors.textColor};
     margin: 0 0 0.313rem 0;
   }
@@ -218,7 +219,7 @@ const SuggestionItem = styled.li`
     font-size: 0.875rem;
     font-weight: 500;
     line-height: 160%;
-    font-family: "Metropolis-Medium", sans-serif;
+    font-family: "Inter", sans-serif;
     color: #b4b4b4;
     margin: 0;
   }

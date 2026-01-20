@@ -179,7 +179,8 @@ const SpeakText = styled.div`
   font-size: 0.9rem;
   color: #333333;
   margin: 4px 0 10px 0;
-  font-family: "Noto Sans Tamil", "Metropolis-Medium", sans-serif;
+  font-family: "Inter", sans-serif;
+  font-weight: 500;
 `;
 
 const ActionsRow = styled.div`

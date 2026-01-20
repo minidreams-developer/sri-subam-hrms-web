@@ -4,7 +4,6 @@ import theme from "../theme/theme";
 import CrossIcon from "../assets/images/Dashboard Images/crosssymbol.svg";
 import { priceListConfig } from "../data/PriceList.js";
 
-
 const PriceListCard = ({ open, onClose }) => {
   if (!open) return null;
 
@@ -18,38 +17,34 @@ const PriceListCard = ({ open, onClose }) => {
           </CloseButton>
         </Header>
         <Body>
-  <CustomTable>
-    <thead>
-      <tr>
-        {priceListConfig.tableHeaders.map((header) => (
-          <th key={header.key}>{header.label}</th>
-        ))}
-      </tr>
-    </thead>
-    <tbody>
-      {priceListConfig.tableRows.map((row, rowIndex) => (
-        <tr key={rowIndex}>
-          {priceListConfig.tableHeaders.map((header) => (
-            <td key={header.key}>
-              {row[header.key] || ""}
-            </td>
-          ))}
-        </tr>
-      ))}
-    </tbody>
-    <tfoot>
-  <tr>
-    {priceListConfig.tableHeaders.map((header) => (
-      <td key={header.key}>
-        {priceListConfig.footerRow[header.key] || ""}
-      </td>
-    ))}
-  </tr>
-</tfoot>
-
-  </CustomTable>
-</Body>
-
+          <CustomTable>
+            <thead>
+              <tr>
+                {priceListConfig.tableHeaders.map((header) => (
+                  <th key={header.key}>{header.label}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {priceListConfig.tableRows.map((row, rowIndex) => (
+                <tr key={rowIndex}>
+                  {priceListConfig.tableHeaders.map((header) => (
+                    <td key={header.key}>{row[header.key] || ""}</td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr>
+                {priceListConfig.tableHeaders.map((header) => (
+                  <td key={header.key}>
+                    {priceListConfig.footerRow[header.key] || ""}
+                  </td>
+                ))}
+              </tr>
+            </tfoot>
+          </CustomTable>
+        </Body>
       </Card>
     </Overlay>
   );
@@ -82,21 +77,20 @@ const Header = styled.div`
   align-items: center;
   position: relative;
   padding: 16px 20px;
-  background-color: #EEF5E6;
-  border-bottom: 1px solid #DCE7CF;
+  background-color: #eef5e6;
+  border-bottom: 1px solid #dce7cf;
 `;
 
 const Title = styled.h2`
-  font-family: "Metropolis-Bold", "Metropolis", sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: 16px;
   font-weight: 700;
-  line-height: 1.6;          /* 160% */
+  line-height: 1.6; /* 160% */
   letter-spacing: 0;
   text-align: center;
   color: #000000;
   margin: 0;
 `;
-
 
 const CloseButton = styled.button`
   position: absolute;
@@ -110,12 +104,12 @@ const CloseButton = styled.button`
   display: flex;
   align-items: center;
   justify-content: center;
-  
+
   img {
     width: 16px;
     height: 16px;
   }
-  
+
   &:hover {
     background-color: rgba(0, 0, 0, 0.1);
     border-radius: 4px;
@@ -125,7 +119,6 @@ const CloseButton = styled.button`
 const Body = styled.div`
   flex: 1;
   overflow-y: auto;
- 
 `;
 
 const CustomTable = styled.table`
@@ -138,21 +131,20 @@ const CustomTable = styled.table`
     padding: 12px 16px;
     font-size: 14px;
     font-weight: 700;
-    border-bottom: 1px solid #E0E0E0;
+    border-bottom: 1px solid #e0e0e0;
     background-color: #fff;
-    font-family: "Metropolis", "Noto Sans Tamil", "Latha", sans-serif;
+    font-family: "Inter", sans-serif;
   }
 
   /* ---------- BODY DATA ITEMS (UPDATED) ---------- */
   tbody td {
     padding: 16px 12px;
-    font-family: "Metropolis", "Noto Sans Tamil", "Latha", sans-serif;
+    font-family: "Inter", sans-serif;
     font-size: 16px;
-    font-weight: 500;        /* Medium */
+    font-weight: 500; /* Medium */
     line-height: 160%;
     letter-spacing: 0;
     color: #000000;
-
   }
 
   /* ---------- FIRST COLUMN ---------- */
@@ -170,17 +162,17 @@ const CustomTable = styled.table`
 
   /* ---------- FOOTER (UNCHANGED) ---------- */
   tfoot td {
-    border-top: 2px solid #E0E0E0;
+    border-top: 2px solid #e0e0e0;
     padding: 16px 12px;
     font-size: 16px;
     font-weight: 500;
     line-height: 160%;
-    font-family: "Metropolis", "Noto Sans Tamil", "Latha", sans-serif;
+    font-family: "Inter", sans-serif;
   }
 
   /* ---------- VERTICAL DIVIDER ---------- */
   thead th:nth-last-child(2),
-  tbody td:nth-last-child(2), {
-    border-right: 1px solid #E0E0E0;
+  tbody td:nth-last-child(2) {
+    border-right: 1px solid #e0e0e0;
   }
 `;

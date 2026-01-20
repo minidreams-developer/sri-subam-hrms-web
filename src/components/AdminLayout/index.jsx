@@ -3,8 +3,6 @@ import styled from "styled-components";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { MdMenu } from "react-icons/md";
 import theme from "../../theme/theme";
-import ProfileImage from "../../assets/images/Dashboard Images/sampleprofile.png";
-import RiceMillLogo from "../../assets/images/Login/logo2.svg";
 import SidebarItems from "../SidebarItem";
 import { getStoredAuthUser } from "../../helpers/auth_helper";
 
@@ -46,7 +44,7 @@ const AdminLayout = () => {
           open={sidebarOpen}
           onClick={() => navigate("/admin/dashboard")}
         >
-          <Logo src={RiceMillLogo} alt="Rice Mill Logo" open={sidebarOpen} />
+          <Logo src={""} alt="Rice Mill Logo" open={sidebarOpen} />
           {sidebarOpen && <CompanyName>A Project</CompanyName>}
         </LogoSection>
         <SidebarNav>
@@ -81,7 +79,7 @@ const AdminLayout = () => {
             </TextWrap>
           </CoverLeft>
           <RightCover>
-            <Profile src={ProfileImage} alt="profile" />
+            <Profile src={""} alt="profile" />
             <TextWrap>
               <Name>{user?.name || user?.username || "Admin"}</Name>
               <Role>{user?.role || "Admin"}</Role>
@@ -103,7 +101,7 @@ const LayoutContainer = styled.div`
 
 const Sidebar = styled.div`
   width: ${(props) => (props.open ? "16.25rem" : "90px")};
-  background-color: #FFFFFF;
+  background-color: #ffffff;
   color: ${theme.colors.white};
   transition: width 0.3s ease-in-out;
   display: flex;
@@ -133,8 +131,7 @@ const Logo = styled.img`
 const CompanyName = styled.h2`
   font-size: 1.25rem;
   font-weight: 700;
-  font-family: "Metropolis-Bold", "Noto Sans Tamil", "Tamil Sangam MN", "Latha",
-    sans-serif;
+  font-family: "Inter", sans-serif;
   line-height: 140%;
   margin: 0;
   color: ${theme.colors.primary} !important;
@@ -172,7 +169,7 @@ const SidebarItem = styled.li`
   white-space: nowrap;
 
   span {
-    font-family: "Metropolis-Regular", sans-serif;
+    font-family: "Inter", sans-serif;
     font-weight: 600;
     font-size: 14px;
     line-height: 160%;
@@ -226,9 +223,9 @@ const MainContent = styled.div`
 `;
 
 const Header = styled.header`
-  background-color: ${theme.colors.white};
+  background-color: ${theme.colors.bgColor};
   padding: 1.25rem;
-  border-bottom: 1px solid #eaecf0;
+  border-bottom: 1px solid #e0e3e6;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -252,7 +249,7 @@ const Hamburger = styled.button`
 const HeaderTitle = styled.h2`
   font-size: 1.125rem;
   font-weight: 700;
-  font-family: "Metropolis-Bold", sans-serif;
+  font-family: "Inter", sans-serif;
   line-height: 160%;
   color: ${theme.colors.textColor};
   margin: 0 0 0 0;
@@ -261,7 +258,7 @@ const HeaderTitle = styled.h2`
 const Content = styled.main`
   flex-grow: 1;
   padding: 1.25rem;
-  background-color: ${theme.colors.white};
+  background-color: ${theme.colors.bgColor};
   overflow-y: auto;
   // height: 602.27px;
 `;
@@ -275,7 +272,7 @@ const TextWrap = styled.div`
 const SubHead = styled.p`
   font-size: 1rem;
   font-weight: 400;
-  font-family: "Metropolis-Regular", sans-serif;
+  font-family: "Inter", sans-serif;
   line-height: 160%;
   color: ${theme.colors.textColor};
   margin: 0 0 0 0;
@@ -296,7 +293,7 @@ const Profile = styled.img`
 const Name = styled.p`
   font-size: 1rem;
   font-weight: 600;
-  font-family: "Metropolis-SemiBold", sans-serif;
+  font-family: "Inter", sans-serif;
   line-height: 160%;
   color: ${theme.colors.textColor};
   margin: 0 0 0 0;
@@ -305,7 +302,7 @@ const Name = styled.p`
 const Role = styled.p`
   font-size: 0.875rem;
   font-weight: 500;
-  font-family: "Metropolis-Medium", sans-serif;
+  font-family: "Inter", sans-serif;
   line-height: 160%;
   color: ${theme.colors.secondaryTextColor};
   margin: 0 0 0 0;
