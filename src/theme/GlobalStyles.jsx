@@ -3,43 +3,43 @@ import { createGlobalStyle } from "styled-components";
 const GlobalStyles = createGlobalStyle`
   /* Inter (18pt base for body text) */
   @font-face {
-    font-family: 'Inter';
+    font-family: 'Inter-Thin';
     src: url('/fonts/Inter_18pt-Thin.ttf') format('truetype');
     font-weight: 100;
     font-style: normal;
   }
   @font-face {
-    font-family: 'Inter';
+    font-family: 'Inter-Light';
     src: url('/fonts/Inter_18pt-Light.ttf') format('truetype');
     font-weight: 300;
     font-style: normal;
   }
   @font-face {
-    font-family: 'Inter';
+    font-family: 'Inter-Regular';
     src: url('/fonts/Inter_18pt-Regular.ttf') format('truetype');
     font-weight: 400;
     font-style: normal;
   }
   @font-face {
-    font-family: 'Inter';
+    font-family: 'Inter-Medium';
     src: url('/fonts/Inter_18pt-Medium.ttf') format('truetype');
     font-weight: 500;
     font-style: normal;
   }
   @font-face {
-    font-family: 'Inter';
+    font-family: 'Inter-SemiBold';
     src: url('/fonts/Inter_18pt-SemiBold.ttf') format('truetype');
     font-weight: 600;
     font-style: normal;
   }
   @font-face {
-    font-family: 'Inter';
+    font-family: 'Inter-Bold';
     src: url('/fonts/Inter_18pt-Bold.ttf') format('truetype');
     font-weight: 700;
     font-style: normal;
   }
   @font-face {
-    font-family: 'Inter';
+    font-family: 'Inter-BoldItalic';
     src: url('/fonts/Inter_18pt-BoldItalic.ttf') format('truetype');
     font-weight: 700;
     font-style: italic;

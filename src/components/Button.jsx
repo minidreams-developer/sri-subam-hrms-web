@@ -16,7 +16,7 @@ const StyledButton = styled.button`
   font-family: "Inter", sans-serif;
   line-height: 160%;
   border: ${(props) => props.border || "none"};
-  border-radius: 6px;
+  border-radius: ${(props) => props.radius || "6px"};
   width: ${(props) => props.width || "auto"};
   cursor: pointer;
   transition: all 0.3s ease;
@@ -43,6 +43,7 @@ const Button = ({
   fontSize,
   width = "",
   border,
+  radius,
   loading = false,
   disabled = false,
 }) => {
@@ -55,6 +56,7 @@ const Button = ({
       fontSize={fontSize}
       width={width}
       border={border}
+      radius={radius}
       disabled={disabled || loading}
       type={type}
     >

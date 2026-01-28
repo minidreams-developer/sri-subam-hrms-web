@@ -1,7 +1,6 @@
 import React from "react";
 import styled from "styled-components";
-import SearchIcon from "../assets/images/User Manage/search.svg";
-import MicIcon from "../assets/images/Dashboard Images/Group.svg";
+import SearchIcon from "../assets/images/dashboard Images/search-alt_svgrepo.com.svg";
 import theme from "../theme/theme";
 
 const SearchInputComponent = ({
@@ -21,7 +20,6 @@ const SearchInputComponent = ({
         type="text"
         onChange={(e) => onSearchChange && onSearchChange(e.target.value)}
       />
-      {showMic && <MicImage src={MicIcon} alt="mic" />}
     </SearchInputWrapper>
   );
 };

@@ -8,11 +8,12 @@ const InputComponent = ({
   placeholder = "Enter",
   width = "100%",
   showMic = false,
+  labelMargin = "1rem 0 0.625rem 0",
   ...rest
 }) => {
   return (
     <FieldWrapper>
-      {label && <Label>{label}</Label>}
+      {label && <Label margin={labelMargin}>{label}</Label>}
       <InputWrapper width={width} $showmic={showMic}>
         {multiline ? (
           <Textarea placeholder={placeholder} {...rest} $showmic={showMic} />
@@ -30,7 +31,7 @@ const Label = styled.p`
   font-weight: 500;
   line-height: 160%;
   color: #0c0c0c;
-  margin: 1rem 0 0.625rem 0;
+  margin: ${(props) => props.margin};
 `;
 
 const FieldWrapper = styled.div`
@@ -49,7 +50,7 @@ const InputWrapper = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 6px;
+  border-radius: 0.625rem;
   border: 1px solid ${theme.colors.border};
   background-color: ${theme.colors.searchBackground};
   position: relative;
@@ -71,7 +72,7 @@ const Input = styled.input`
   padding: 0.875rem ${(props) => (props.$showmic ? "2.5rem" : "0.875rem")}
     0.875rem 0.875rem;
   border: none;
-  border-radius: 6px;
+  border-radius: 0.625rem;
   outline: none;
 
   ::placeholder {
@@ -90,7 +91,7 @@ const Textarea = styled.textarea`
   padding: 0.875rem ${(props) => (props.$showmic ? "2.5rem" : "0.875rem")}
     0.875rem 0.875rem;
   border: none;
-  border-radius: 6px;
+  border-radius: 0.625rem;
   outline: none;
   resize: vertical;
   min-height: 5rem;

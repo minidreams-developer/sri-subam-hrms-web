@@ -82,7 +82,7 @@ const ReusableTable = ({
     return (
       <LoadingWrapper>
         <LoadingSpinner />
-        <LoadingText>தரவு ஏற்றப்படுகிறது...</LoadingText>
+        <LoadingText>Loading data...</LoadingText>
       </LoadingWrapper>
     );
   }
@@ -93,9 +93,7 @@ const ReusableTable = ({
         {emptyStateImage && (
           <EmptyStateImage src={emptyStateImage} alt="empty" />
         )}
-        <EmptyStateText>
-          {emptyStateText || "தரவு கிடைக்கவில்லை"}
-        </EmptyStateText>
+        <EmptyStateText>{emptyStateText || "No data available"}</EmptyStateText>
       </EmptyStateWrapper>
     );
   }
@@ -149,11 +147,7 @@ const ReusableTable = ({
                     );
                   }
 
-                  if (
-                    col?.key === "actions" ||
-                    col?.header === "Actions" ||
-                    col?.label === "செயல்கள்"
-                  ) {
+                  if (col?.key === "actions" || col?.header === "Actions") {
                     return (
                       <ActionCell
                         key={colIndex}
@@ -167,8 +161,7 @@ const ReusableTable = ({
                     );
                   } else if (
                     col?.key === "status" ||
-                    col?.header === "Status" ||
-                    col?.label === "நிலை"
+                    col?.header === "Status"
                   ) {
                     return (
                       <TableCell key={colIndex}>
@@ -256,9 +249,8 @@ const StyledTable = styled.table`
 
 const TableHead = styled.thead`
   border-top: 1px solid ${theme.colors.white};
-  border-bottom: 1px solid ${theme.colors.white};
-  background: #e6f3df;
-  border-radius: 8px;
+  border-bottom: 1px solid ${theme.colors.border};
+  background: #ffffff;
   overflow: hidden;
 `;
 
@@ -302,7 +294,7 @@ const PaginationWrapper = styled.div`
   position: ${(props) => (props.$sticky ? "sticky" : "static")};
   bottom: ${(props) => (props.$sticky ? "0" : "auto")};
   background-color: ${theme.colors.white};
-  ]border-top: ${(props) => (props.$border ? "1px solid #EAECF0" : "none")};
+  border-top: ${(props) => (props.$border ? "1px solid #EAECF0" : "none")};
 `;
 
 const Button = styled.button`
@@ -349,6 +341,7 @@ const StatusBadge = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
+  background-color: transparent;
 `;
 
 const StatusBadgeText = styled.p`
@@ -357,7 +350,14 @@ const StatusBadgeText = styled.p`
   font-family: "Inter", sans-serif;
   font-weight: 400;
   margin: 0;
-  color: ${theme.colors.textColor};
+  color: ${({ $status }) => {
+    const s = String($status || "").toLowerCase();
+    if (s === "active") return "#16a34a";
+    if (s === "relieved") return "#dc2626";
+    if (s === "inactive" || s === "in-active" || s === "in active")
+      return "#f59e0b";
+    return theme.colors.textColor;
+  }};
 `;
 
 const PageNumber = styled.div`

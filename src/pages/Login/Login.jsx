@@ -2,7 +2,7 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import theme from "../../theme/theme";
-import RiceMillLogo from "../../assets/images/Dashboard Images/main_logo.svg";
+import HrmsLogo from "../../assets/images/Dashboard Images/main_logo.svg";
 import BGImage from "../../assets/images/Login/loginImage.jpg";
 import InputComponent from "../../components/InputComponent";
 import { Spinner } from "reactstrap";
@@ -29,7 +29,7 @@ export const Login = () => {
         <RightContainer>
           <LogoSection>
             <LogoAndName>
-              <Logo src={RiceMillLogo} alt="Rice Mill Logo" />
+              <Logo src={HrmsLogo} alt="Logo" />
             </LogoAndName>
           </LogoSection>
           <FormSection>
@@ -85,8 +85,10 @@ export const Login = () => {
                       />
                       {touched.password && errors.password && (
                         <ErrorText>{errors.password}</ErrorText>
-                      )}
-                      <ForgotPasswordText>
+                       )}
+                      <ForgotPasswordText
+                        onClick={() => navigate("/forgot-password")}
+                      >
                         Forgot your password?
                       </ForgotPasswordText>
                     </div>
@@ -271,7 +273,7 @@ const InputWraper = styled.div`
   display: flex;
   align-items: stretch;
   flex-direction: column;
-  gap: 1.25rem;
+  // gap: 0.875rem;
   width: 100%;
   margin: 0 0 2rem 0;
 

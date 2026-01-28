@@ -45,7 +45,7 @@ const DropdownComponent = ({
 
   return (
     <DropdownContainer>
-      <Label isFocused={isFocused}>{title}</Label>
+      {title && <Label isFocused={isFocused}>{title}</Label>}
       <Select
         value={value ?? ""}
         onChange={(e) => onChange(e.target.value)}

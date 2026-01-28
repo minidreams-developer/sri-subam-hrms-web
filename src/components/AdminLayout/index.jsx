@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from "react";
 import styled from "styled-components";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
-import { MdMenu } from "react-icons/md";
+import { MdMenu, MdKeyboardArrowUp, MdKeyboardArrowDown } from "react-icons/md";
 import theme from "../../theme/theme";
 import SidebarItems from "../SidebarItem";
 import { getStoredAuthUser } from "../../helpers/auth_helper";
+import MainLogo from '../../assets/images/Dashboard Images/main_logo.svg';
 
 const AdminLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [user, setUser] = useState(null);
+  const [expandedMenu, setExpandedMenu] = useState({});
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -19,19 +21,23 @@ const AdminLayout = () => {
     }
   }, []);
 
+  const toggleSubmenu = (name) => {
+    setExpandedMenu((prev) => ({
+      ...prev,
+      [name]: !prev[name],
+    }));
+  };
+
   const getPageTitle = () => {
-    const path = location.pathname;
-    if (path.includes("dashboard")) return "Dashboard";
-    if (path.includes("customer")) return "Customer Management";
-    if (path.includes("role-management")) return "Role Management";
-    if (path.includes("sales-representatives")) return "Sales Representatives";
-    if (path.includes("deliveries")) return "Deliveries";
-    if (path.includes("payments")) return "Payments";
-    if (path.includes("add-payment")) return "Add Payment";
-    if (path.includes("reports")) return "Reports";
-    if (path.includes("settings")) return "Settings";
-    if (path.includes("location")) return "Location Management";
-    return "Dashboard";
+    const path = location.pathname.replace(/\/+$/, "");
+    const segment = path.split("/").filter(Boolean).pop() || "dashboard";
+    const spaced = segment
+      .replace(/[-_]+/g, " ")
+      .replace(/([a-z])([A-Z])/g, "$1 $2");
+    const name = spaced
+      .toLowerCase()
+      .replace(/\b\w/g, (c) => c.toUpperCase());
+    return name;
   };
 
   return (
@@ -44,25 +50,74 @@ const AdminLayout = () => {
           open={sidebarOpen}
           onClick={() => navigate("/admin/dashboard")}
         >
-          <Logo src={""} alt="Rice Mill Logo" open={sidebarOpen} />
-          {sidebarOpen && <CompanyName>A Project</CompanyName>}
+          <Logo src={MainLogo} alt="Logo" open={sidebarOpen} />
+          {/* {sidebarOpen && <CompanyName>A Project</CompanyName>} */}
         </LogoSection>
         <SidebarNav>
           {SidebarItems.map((item, index) => {
-            const isActive = location.pathname === item.path;
+            const hasSubmenu = item.submenu && item.submenu.length > 0;
+            const isParentActive =
+              hasSubmenu &&
+              item.submenu.some(
+                (sub) =>
+                  location.pathname === sub.path ||
+                  location.pathname.startsWith(sub.path)
+              );
+            const isActive = item.path
+              ? location.pathname === item.path
+              : isParentActive;
+            const isExpanded = expandedMenu[item.name] || isParentActive;
+
             return (
-              <SidebarItem
-                key={index}
-                $isactive={isActive}
-                open={sidebarOpen}
-                onClick={() => navigate(item.path)}
-              >
-                <img
-                  src={isActive ? item.iconDark : item.icon}
-                  alt={item.name || "icon"}
-                />
-                <span>{item.name}</span>
-              </SidebarItem>
+              <React.Fragment key={index}>
+                <SidebarItem
+                  $isactive={isActive}
+                  open={sidebarOpen}
+                  onClick={() => {
+                    if (hasSubmenu) {
+                      toggleSubmenu(item.name);
+                    } else {
+                      navigate(item.path);
+                    }
+                  }}
+                >
+                  <ItemContent>
+                    <img
+                      src={isActive ? item.iconDark : item.icon}
+                      alt={item.name || "icon"}
+                    />
+                    <span>{item.name}</span>
+                  </ItemContent>
+                  {hasSubmenu && sidebarOpen && (
+                    <ArrowIcon>
+                      {isExpanded ? (
+                        <MdKeyboardArrowUp />
+                      ) : (
+                        <MdKeyboardArrowDown />
+                      )}
+                    </ArrowIcon>
+                  )}
+                </SidebarItem>
+                {hasSubmenu && isExpanded && sidebarOpen && (
+                  <SubMenuContainer>
+                    {item.submenu.map((subItem, subIndex) => {
+                      const current = location.pathname.replace(/\/+$/, "");
+                      const target = (subItem.path || "").replace(/\/+$/, "");
+                      const isSubActive =
+                        current === target || current.startsWith(target);
+                      return (
+                        <SubMenuItem
+                          key={subIndex}
+                          $isactive={isSubActive}
+                          onClick={() => navigate(subItem.path)}
+                        >
+                          <span>{subItem.name}</span>
+                        </SubMenuItem>
+                      );
+                    })}
+                  </SubMenuContainer>
+                )}
+              </React.Fragment>
             );
           })}
         </SidebarNav>
@@ -123,19 +178,6 @@ const Logo = styled.img`
   width: auto;
   object-fit: contain;
   transition: all 0.3s ease-in-out;
-  filter: brightness(0) saturate(100%) invert(56%) sepia(18%) saturate(1612%)
-    hue-rotate(75deg) brightness(95%) contrast(89%);
-  cursor: pointer;
-`;
-
-const CompanyName = styled.h2`
-  font-size: 1.25rem;
-  font-weight: 700;
-  font-family: "Inter", sans-serif;
-  line-height: 140%;
-  margin: 0;
-  color: ${theme.colors.primary} !important;
-  white-space: nowrap;
   cursor: pointer;
 `;
 
@@ -159,41 +201,27 @@ const SidebarNav = styled.ul`
 const SidebarItem = styled.li`
   display: flex;
   align-items: center;
+  justify-content: space-between;
   padding: 0.75rem 0.938rem;
   border: none;
   border-radius: 4px;
   margin: 0 0 0.625rem 0;
-  gap: ${(props) => (props.open ? "0.625rem" : "0")};
   cursor: pointer;
-  justify-content: ${(props) => (props.open ? "flex-start" : "center")};
   white-space: nowrap;
-
-  span {
-    font-family: "Inter", sans-serif;
-    font-weight: 600;
-    font-size: 14px;
-    line-height: 160%;
-    letter-spacing: 0%;
-    color: #000000;
-    display: ${(props) => (props.open ? "inline" : "none")};
-    transition: opacity 0.3s ease;
-  }
 
   background-color: ${(props) =>
     props.$isactive ? theme.colors.primary : "transparent"};
 
   span {
     color: ${(props) => (props.$isactive ? theme.colors.white : "#1B2436")};
+    display: ${(props) => (props.open ? "inline" : "none")};
+    transition: opacity 0.3s ease;
   }
 
   img {
-    width: 1.5rem;
-    height: 1.5rem;
-    transition: filter 0.3s ease;
     filter: ${(props) =>
-      props.$isactive
-        ? "brightness(0) invert(1)"
-        : "brightness(0) saturate(100%) invert(56%) sepia(18%) saturate(1612%) hue-rotate(75deg) brightness(95%) contrast(89%)"};
+      props.$isactive ? "brightness(0) invert(1)" : "none"};
+    transition: filter 0.3s ease;
   }
 
   &:hover {
@@ -206,9 +234,67 @@ const SidebarItem = styled.li`
 
     img {
       filter: ${(props) =>
-        props.$isactive
-          ? "brightness(0) invert(1)"
-          : "brightness(0) saturate(100%) invert(56%) sepia(18%) saturate(1612%) hue-rotate(75deg) brightness(95%) contrast(89%)"};
+        props.$isactive ? "brightness(0) invert(1)" : "none"};
+    }
+  }
+`;
+
+const ItemContent = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  width: 100%;
+
+  span {
+    font-family: "Inter", sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    line-height: 160%;
+  }
+
+  img {
+    width: 1.5rem;
+    height: 1.5rem;
+  }
+`;
+
+const ArrowIcon = styled.div`
+  display: flex;
+  align-items: center;
+  color: ${theme.colors.textColor};
+  font-size: 1.25rem;
+`;
+
+const SubMenuContainer = styled.ul`
+  list-style: none;
+  padding: 0;
+  margin: -0.5rem 0 0.5rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+`;
+
+const SubMenuItem = styled.li`
+  padding: 0.5rem 0.938rem 0.5rem 3rem;
+  cursor: pointer;
+  border-radius: 4px;
+  background-color: ${(props) =>
+    props.$isactive ? theme.colors.primary : "transparent"};
+
+  span {
+    font-family: "Inter", sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    line-height: 160%;
+    color: ${(props) => (props.$isactive ? theme.colors.white : "#1B2436")};
+  }
+
+  &:hover {
+    background-color: ${(props) =>
+      props.$isactive ? theme.colors.primary : "#f7fafc"};
+    span {
+      color: ${(props) =>
+        props.$isactive ? theme.colors.white : theme.colors.primary};
     }
   }
 `;
