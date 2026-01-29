@@ -6,6 +6,7 @@ import { Login } from "../pages/Login/Login";
 import DashboardPage from "../pages/Dashboard/Dashboard";
 import ForgotPassword from "../pages/ForgotPassword/ForgotPassword";
 import Employees from "../pages/Employees/Employees";
+import EmployeeProfile from "../pages/EmployeeProfile/EmployeeProfile";
 
 const publicRoutes = [
   { path: "/", component: <Login /> },
@@ -25,6 +26,10 @@ const privateRoutes = [
       {
         path: "peopleHub/employees",
         element: <Employees />,
+      },
+      {
+        path: "peopleHub/employees/employeeProfile",
+        element: <EmployeeProfile />,
       },
     ],
   },
