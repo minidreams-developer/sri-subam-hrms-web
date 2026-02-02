@@ -15,25 +15,34 @@ const TableToolbar = ({
   select2Options = [],
   select2Value = "",
   onSelect2Change,
+  showFilter = true,
   filterText = "Filter",
   onFilterClick,
   actionText = "",
   onActionClick,
   actionIcon,
   widths = { search: "24rem", select: "12rem" },
+  title,
+  searchPosition = "left",
 }) => {
   return (
     <Bar>
       <Left>
-        <SearchWrap $w={widths.search}>
-          <SearchInputComponent
-            placeholder={searchPlaceholder}
-            value={searchValue}
-            onSearchChange={onSearchChange}
-            width="100%"
-            height="40px"
-          />
-        </SearchWrap>
+        {title ? (
+          <Title>{title}</Title>
+        ) : (
+          searchPosition === "left" && (
+            <SearchWrap $w={widths.search}>
+              <SearchInputComponent
+                placeholder={searchPlaceholder}
+                value={searchValue}
+                onSearchChange={onSearchChange}
+                width="100%"
+                height="40px"
+              />
+            </SearchWrap>
+          )
+        )}
       </Left>
       <Right>
         {select1Options?.length > 0 && (
@@ -70,14 +79,27 @@ const TableToolbar = ({
             </select>
           </SelectWrap>
         )}
-        <FilterBtn
-          onClick={onFilterClick}
-          bg={theme.colors.white}
-          color={theme.colors.textColor}
-          border={`1px solid ${theme.colors.border}`}
-          icon={<img src={FilterIcon} alt="filter" width="16" height="16" />}
-          text={filterText}
-        />
+        {searchPosition === "right" && (
+          <SearchWrap $w={widths.search}>
+            <SearchInputComponent
+              placeholder={searchPlaceholder}
+              value={searchValue}
+              onSearchChange={onSearchChange}
+              width="100%"
+              height="40px"
+            />
+          </SearchWrap>
+        )}
+        {showFilter && (
+          <FilterBtn
+            onClick={onFilterClick}
+            bg={theme.colors.white}
+            color={theme.colors.textColor}
+            border={`1px solid ${theme.colors.border}`}
+            icon={<img src={FilterIcon} alt="filter" width="16" height="16" />}
+            text={filterText}
+          />
+        )}
         {actionText && (
           <Button
             text={actionText}
@@ -95,6 +117,14 @@ const TableToolbar = ({
 
 export default TableToolbar;
 
+const Title = styled.h2`
+  font-family: "Inter", sans-serif;
+  font-weight: 600;
+  font-size: 1.125rem;
+  color: ${theme.colors.textColor};
+  margin: 0;
+`;
+
 const Bar = styled.div`
   width: 100%;
   display: flex;
@@ -102,7 +132,6 @@ const Bar = styled.div`
   justify-content: space-between;
   gap: 0.75rem;
   margin: 0 0 0.75rem 0;
-  flex-wrap: wrap;
 `;
 
 const Left = styled.div`
@@ -117,7 +146,6 @@ const Right = styled.div`
   align-items: center;
   justify-content: flex-start;
   gap: 0.75rem;
-  flex-wrap: wrap;
 `;
 
 const SearchWrap = styled.div`

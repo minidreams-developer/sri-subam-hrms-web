@@ -1,11 +1,45 @@
-import React from "react";
+import React, { useRef } from "react";
 import styled from "styled-components";
 import theme from "../theme/theme";
 
-const CardDetails = ({ title, items = [], columns = 3 }) => {
+const CardDetails = ({
+  title,
+  items = [],
+  columns = 3,
+  showEdit = false,
+  editText = "Edit",
+  editIcon,
+  onEdit,
+  showAdd = false,
+  addText = "Add",
+  uploadIcon,
+}) => {
+
   return (
     <Wrapper>
-      {title && <TitleLine>{title}</TitleLine>}
+      {(title || showEdit || showAdd) && (
+        <Head>
+          {title && <TitleLine>{title}</TitleLine>}
+          <ButtonsRight>
+            {showEdit && (
+              <EditBtn onClick={onEdit}>
+                {editIcon && (
+                  <img src={editIcon} alt="edit" width="16" height="16" />
+                )}
+                {editText}
+              </EditBtn>
+            )}
+            {showAdd && (
+              <AddButton>
+                {uploadIcon && (
+                  <img src={uploadIcon} alt="add" width="16" height="16" />
+                )}
+                {addText}
+              </AddButton>
+            )}
+          </ButtonsRight>
+        </Head>
+      )}
       <Panel>
         <Grid $cols={columns}>
           {items
@@ -31,12 +65,62 @@ const Wrapper = styled.div`
   gap: 0.75rem;
 `;
 
+const Head = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0 0 0.5rem 0;
+`;
+
 const TitleLine = styled.p`
   font-size: 1rem;
   font-weight: 600;
   font-family: "Inter-SemiBold", sans-serif;
   color: ${theme.colors.primary};
-  margin: 0 0 0.5rem 0;
+  margin: 0;
+`;
+
+const ButtonsRight = styled.div`
+  display: inline-flex;
+  align-items: center;
+  gap: 11.88px;
+`;
+
+const EditBtn = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.625rem;
+  height: 40px;
+  padding: 0 0.875rem;
+  background: ${theme.colors.secondaryPrimary};
+  border: none;
+  border-radius: 0.5rem;
+  color: ${theme.colors.primary};
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-family: "Inter-SemiBold", sans-serif;
+  cursor: pointer;
+`;
+
+const AddButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: 40px;
+  padding: 0 0.875rem;
+  background: ${theme.colors.primary};
+  color: ${theme.colors.white};
+  border: none;
+  border-radius: 0.625rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-family: "Inter-SemiBold", sans-serif;
+  cursor: pointer;
+`;
+
+const HiddenInput = styled.input`
+  display: none;
 `;
 
 const Panel = styled.div`

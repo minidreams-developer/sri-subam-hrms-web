@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useRef } from "react";
 import styled from "styled-components";
 import theme from "../theme/theme";
 import UploadIcon from "../assets/images/employee/upload.svg";
@@ -10,26 +10,56 @@ const CardDetailsAlt = ({
   onUpload,
   uploadText = "Upload",
   showUpload = true,
+  accept = "*",
 }) => {
+  const inputRef = useRef(null);
+
+  const triggerUpload = () => {
+    if (inputRef.current) {
+      inputRef.current.click();
+    }
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (file && onUpload) {
+      onUpload(file);
+    }
+    // reset to allow same file selection again
+    e.target.value = "";
+  };
+
+  const hasChildren = React.Children.count(children) > 0;
+
   return (
     <Wrapper>
       {(title || showUpload) && (
         <Head>
           {title && <TitleLine>{title}</TitleLine>}
           {showUpload && (
-            <UploadBtn onClick={onUpload}>
+            <UploadBtn onClick={triggerUpload}>
               <img src={UploadIcon} alt="upload" width="16" height="16" />
               {uploadText}
+              <HiddenInput
+                ref={inputRef}
+                type="file"
+                accept={accept}
+                onChange={handleFileChange}
+              />
             </UploadBtn>
           )}
         </Head>
       )}
       <Panel>
-        <Grid $cols={columns}>
-          {React.Children.map(children, (child, idx) => (
-            <GridItem key={idx}>{child}</GridItem>
-          ))}
-        </Grid>
+        {hasChildren ? (
+          <Grid $cols={columns}>
+            {React.Children.map(children, (child, idx) => (
+              <GridItem key={idx}>{child}</GridItem>
+            ))}
+          </Grid>
+        ) : (
+          <EmptyText>No Files Uploaded</EmptyText>
+        )}
       </Panel>
     </Wrapper>
   );
@@ -84,7 +114,11 @@ const UploadBtn = styled.button`
   cursor: pointer;
 `;
 
+const HiddenInput = styled.input`
+  display: none;
+`;
 const Grid = styled.div`
+  display: grid;
   display: grid;
   grid-template-columns: repeat(${(p) => p.$cols || 3}, minmax(220px, 1fr));
   gap: 1rem 2rem;
@@ -100,4 +134,12 @@ const Grid = styled.div`
 const GridItem = styled.div`
   display: flex;
   align-items: stretch;
+`;
+
+const EmptyText = styled.p`
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 500;
+  font-family: "Inter", sans-serif;
+  color: ${theme.colors.secondaryTextColor};
 `;

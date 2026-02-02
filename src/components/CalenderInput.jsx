@@ -1,17 +1,16 @@
 import React, { useEffect, useRef, useState } from "react";
 import theme from "../theme/theme";
 import styled from "styled-components";
-import CalenderIcon from "../assets/images/Race Manage/calendarIcon.svg";
+import CalenderIcon from "../assets/images/Leave manage/calendar.svg";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 
-const CalenderInput = ({ onDateSelect, initialDate }) => {
+const CalenderInput = ({ onDateSelect, initialDate, label = "Date" }) => {
   const [selectedDate, setSelectedDate] = useState(null);
   const datePickerRef = useRef(null);
 
   useEffect(() => {
     if (initialDate) {
-      // Ensure we have a valid Date object
       const date = new Date(initialDate);
       if (!isNaN(date.getTime())) {
         setSelectedDate(date);
@@ -28,14 +27,13 @@ const CalenderInput = ({ onDateSelect, initialDate }) => {
 
   const handleDateChange = (date) => {
     setSelectedDate(date);
-    onDateSelect(date);
+    if (onDateSelect) onDateSelect(date);
   };
 
   return (
     <FieldWrapper>
-      <Label>Date</Label>
+      <Label>{label}</Label>
       <InputWrapper>
-        <img src={CalenderIcon} alt="icon" onClick={handleIconClick} />
         <StyledDatePicker
           ref={datePickerRef}
           selected={selectedDate}
@@ -43,7 +41,10 @@ const CalenderInput = ({ onDateSelect, initialDate }) => {
           placeholderText="Select Date"
           dateFormat="dd/MM/yyyy"
           popperPlacement="bottom-start"
+          showPopperArrow={false}
+          calendarClassName="custom-calendar"
         />
+        <img src={CalenderIcon} alt="icon" onClick={handleIconClick} />
       </InputWrapper>
     </FieldWrapper>
   );
@@ -51,13 +52,21 @@ const CalenderInput = ({ onDateSelect, initialDate }) => {
 
 const StyledDatePicker = styled(DatePicker)`
   width: 100%;
+  height: 100%;
   font-size: 0.875rem;
   font-family: "Inter", sans-serif;
   font-weight: 500;
-  padding: 0.875rem;
+  color: ${theme.colors.textColor};
+  padding: 0 0.875rem;
   border: none;
   outline: none;
   background: transparent;
+  box-sizing: border-box;
+
+  ::placeholder {
+    color: ${theme.colors.textGray || "#9ca3af"};
+    font-family: "Inter", sans-serif;
+  }
 `;
 
 const Label = styled.p`
@@ -77,71 +86,75 @@ const FieldWrapper = styled.div`
   &:focus-within ${Label} {
     color: ${theme.colors.primary};
   }
+
+  /* Custom Calendar Styles */
+  .custom-calendar {
+    font-family: "Inter", sans-serif;
+    border: 1px solid ${theme.colors.border};
+    border-radius: 0.625rem;
+    box-shadow:
+      0 4px 6px -1px rgba(0, 0, 0, 0.1),
+      0 2px 4px -1px rgba(0, 0, 0, 0.06);
+
+    .react-datepicker__header {
+      background-color: white;
+      border-bottom: 1px solid ${theme.colors.border};
+      border-top-left-radius: 0.625rem;
+      border-top-right-radius: 0.625rem;
+    }
+
+    .react-datepicker__day--selected,
+    .react-datepicker__day--keyboard-selected {
+      background-color: ${theme.colors.primary};
+      color: white;
+      border-radius: 50%;
+    }
+
+    .react-datepicker__day:hover {
+      border-radius: 50%;
+      background-color: ${theme.colors.secondaryPrimary || "#f3f4f6"};
+    }
+
+    .react-datepicker__triangle {
+      display: none;
+    }
+  }
 `;
 
 const InputWrapper = styled.div`
   position: relative;
-  /* max-width: 25rem; */
   width: 100%;
+  height: 45px;
   display: flex;
   align-items: center;
-  justify-content: flex-start;
-  border-radius: 6px;
+  border-radius: 0.625rem;
   border: 1px solid ${theme.colors.border};
-  background-color: ${theme.colors.white};
+  background-color: ${theme.colors.searchBackground};
+  transition: border 0.3s ease;
 
   &:focus-within {
-    border: 1px solid ${theme.colors.primaryGreen};
+    border: 1px solid ${theme.colors.primary};
   }
-
-  transition: border 0.3s ease;
 
   img {
     position: absolute;
-    right: 0.5rem;
-    width: 2rem;
-    height: 2rem;
+    right: 0.875rem;
+    width: 1.5rem;
+    height: 1.5rem;
     cursor: pointer;
+    z-index: 1;
   }
-`;
 
-const Input = styled.input`
-  width: 100%;
-  font-size: 0.875rem;
-  font-family: "Inter", sans-serif;
-  font-weight: 500;
-  line-height: 160%;
-  color: ${theme.colors.textColor};
-  padding: 0.875rem;
-  border: none;
-  border-radius: 6px;
-  outline: none;
-
-  ::placeholder {
-    font-family: "Inter", sans-serif;
-    font-weight: 500;
-    opacity: 1;
+  .react-datepicker-wrapper {
+    width: 100%;
+    height: 100%;
   }
-`;
 
-const Textarea = styled.textarea`
-  width: 100%;
-  font-size: 0.875rem;
-  font-family: "Inter", sans-serif;
-  font-weight: 500;
-  line-height: 160%;
-  color: ${theme.colors.textColor};
-  padding: 0.875rem;
-  border: none;
-  border-radius: 6px;
-  outline: none;
-  resize: vertical;
-  min-height: 5rem;
-
-  ::placeholder {
-    font-family: "Inter", sans-serif;
-    font-weight: 500;
-    opacity: 1;
+  .react-datepicker__input-container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
   }
 `;
 

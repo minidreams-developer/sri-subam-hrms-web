@@ -5,6 +5,13 @@ export const dashboardStats = [
   { title: "New Employee", value: "03", percent: "20.5 %", type: "up" },
 ];
 
+export const employeeStats = [
+  { title: "Leaves Today", value: "300", percent: "12 %", type: "down" },
+  { title: "Pending Request", value: "256", percent: "20.5 %", type: "up" },
+  { title: "Approved Request", value: "39", percent: "12 %", type: "down" },
+  { title: "Rejected Request", value: "03", percent: "20.5 %", type: "up" },
+];
+
 export const employeeTableColumns = [
   { header: "Employee ID", accessor: "employeeId" },
   { header: "Name", accessor: "name" },
@@ -109,6 +116,55 @@ export const staffTableData = [
     shift: "Night",
     joinedDate: "2020-04-12",
     status: "Relieved",
+    action: "...",
+  },
+];
+
+export const staffLeavesColumns = [
+  { header: "Staff ID", accessor: "staffId" },
+  { header: "Name", accessor: "name" },
+  { header: "Department", accessor: "department" },
+  { header: "Type", accessor: "type" },
+  { header: "From", accessor: "from" },
+  { header: "To", accessor: "to" },
+  { header: "Action", accessor: "action" },
+];
+
+export const staffLeavesData = [
+  {
+    staffId: "STF101",
+    name: "Alice Brown",
+    department: "Operations",
+    type: "Sick Leave",
+    from: "2026-01-05",
+    to: "2026-01-07",
+    action: "...",
+  },
+  {
+    staffId: "STF102",
+    name: "Mark Lee",
+    department: "Front Desk",
+    type: "Casual Leave",
+    from: "2026-01-10",
+    to: "2026-01-11",
+    action: "...",
+  },
+  {
+    staffId: "STF103",
+    name: "Sara Khan",
+    department: "Admin",
+    type: "Annual Leave",
+    from: "2026-01-20",
+    to: "2026-01-25",
+    action: "...",
+  },
+  {
+    staffId: "STF104",
+    name: "Vikram Rao",
+    department: "Admin",
+    type: "Permission",
+    from: "2026-01-12",
+    to: "2026-01-12",
     action: "...",
   },
 ];

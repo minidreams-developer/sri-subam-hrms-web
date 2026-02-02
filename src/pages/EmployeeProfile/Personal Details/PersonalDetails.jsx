@@ -24,6 +24,8 @@ export const PersonalDetails = () => {
     identificationMark: "Small mole on right cheek",
   };
 
+  const [docFiles, setDocFiles] = React.useState([]);
+
   return (
     <Wrapper>
       <HeaderRow>
@@ -118,10 +120,37 @@ export const PersonalDetails = () => {
           { label: "Mobile Number", value: "8987676756" },
         ]}
       />
-      <CardDetailsAlt title="Documents" columns={3}>
-        <FileUploadComponent label="Aadhaar" />
-        <FileUploadComponent label="PAN Card" />
-        <FileUploadComponent label="Address Proof" />
+      <CardDetailsAlt
+        title="Documents"
+        columns={3}
+        onUpload={(file) => {
+          const name = file?.name || "";
+          const ext = name.split(".").pop()?.toLowerCase() || "";
+          const type =
+            ext === "pdf"
+              ? "PDF"
+              : ["jpg", "jpeg", "png", "gif", "bmp", "webp"].includes(ext)
+                ? "Image"
+                : ["doc", "docx"].includes(ext)
+                  ? "Word"
+                  : ["xls", "xlsx"].includes(ext)
+                    ? "Excel"
+                    : ["txt"].includes(ext)
+                      ? "Text"
+                      : ext
+                        ? ext.toUpperCase()
+                        : "File";
+          setDocFiles((prev) => [...prev, { label: type, fileName: name }]);
+        }}
+        accept="*"
+      >
+        {docFiles.map((doc, idx) => (
+          <FileUploadComponent
+            key={idx}
+            label={doc.label}
+            fileName={doc.fileName}
+          />
+        ))}
       </CardDetailsAlt>
     </Wrapper>
   );

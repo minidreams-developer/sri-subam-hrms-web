@@ -234,7 +234,7 @@ const TableScrollContainer = styled.div`
   width: 100%;
   flex: 1;
   overflow-x: auto;
-  margin-bottom: 1.5rem;
+  margin-bottom: 0.5rem;
 `;
 
 const StyledTable = styled.table`
@@ -290,10 +290,9 @@ const PaginationWrapper = styled.div`
   align-items: center;
   justify-content: flex-start;
   gap: 0.625rem;
-  margin-top: ${(props) => (props.$sticky ? "auto" : "0")};
+  // margin-top: ${(props) => (props.$sticky ? "auto" : "0")};
   position: ${(props) => (props.$sticky ? "sticky" : "static")};
   bottom: ${(props) => (props.$sticky ? "0" : "auto")};
-  background-color: ${theme.colors.white};
   border-top: ${(props) => (props.$border ? "1px solid #EAECF0" : "none")};
 `;
 

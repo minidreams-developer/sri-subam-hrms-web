@@ -62,16 +62,28 @@ const SidebarItems = [
     iconDark: TimeIcon,
     submenu: [
       {
-        name: "A",
-        path: "/admin/time-hub/a",
+        name: "Attendance",
+        path: "/admin/time-hub/attendance",
       },
       {
-        name: "B",
-        path: "/admin/time-hub/b",
+        name: "Leave Attendance",
+        path: "/admin/time-hub/leaveAttendance",
       },
       {
-        name: "C",
-        path: "/admin/time-hub/c",
+        name: "Shift Management",
+        path: "/admin/time-hub/overtimeManagement",
+      },
+      {
+        name: "Overtime Management",
+        path: "/admin/time-hub/shiftManagement",
+      },
+      {
+        name: "Leaderboard",
+        path: "/admin/time-hub/leaderboard",
+      },
+      {
+        name: "Day Off & Holidays",
+        path: "/admin/time-hub/dayOffHolidays",
       },
     ],
   },

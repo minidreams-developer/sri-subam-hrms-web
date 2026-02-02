@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import styled from "styled-components";
 import theme from "../theme/theme";
 import EyeIcon from "../assets/images/employee/eye.svg";
@@ -7,42 +7,46 @@ import DocIcon from "../assets/images/employee/document.svg";
 const FileUploadComponent = ({
   label = "File Name",
   fileName = "",
-  accept = "*",
-  onChange,
+  fileType,
   onView,
 }) => {
-  const inputRef = useRef(null);
   const [localName, setLocalName] = useState(fileName);
+  const [labelText, setLabelText] = useState(label);
 
-  const handleBoxClick = () => {
-    inputRef.current?.click();
-  };
-
-  const handleChange = (e) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setLocalName(file.name);
-      onChange && onChange(file);
-    }
-  };
+  useEffect(() => {
+    setLocalName(fileName);
+    const ext = String(fileName || "")
+      .split(".")
+      .pop()
+      .toLowerCase();
+    let type =
+      fileType ||
+      (ext
+        ? ext === "pdf"
+          ? "PDF"
+          : ["jpg", "jpeg", "png", "gif", "bmp", "webp"].includes(ext)
+            ? "Image"
+            : ["doc", "docx"].includes(ext)
+              ? "Word"
+              : ["xls", "xlsx"].includes(ext)
+                ? "Excel"
+                : ["txt"].includes(ext)
+                  ? "Text"
+                  : ext.toUpperCase()
+        : label);
+    setLabelText(type);
+  }, [fileName]);
 
   const handleView = () => {
     if (onView) {
       onView();
-      return;
-    }
-    // fallback preview when a file was recently chosen
-    const file = inputRef.current?.files?.[0];
-    if (file) {
-      const url = URL.createObjectURL(file);
-      window.open(url, "_blank", "noopener,noreferrer");
     }
   };
 
   return (
     <Wrapper>
-      {label && <Label>{label}</Label>}
-      <Box onClick={handleBoxClick} role="button" tabIndex={0}>
+      {labelText && <Label>{labelText}</Label>}
+      <Box>
         <Left>
           <DocBadge src={DocIcon} alt="doc" width="16" height="16" />
           <FileName>{localName || "File Name"}</FileName>
@@ -56,12 +60,6 @@ const FileUploadComponent = ({
           alt="view"
           width="16"
           height="16"
-        />
-        <HiddenInput
-          ref={inputRef}
-          type="file"
-          accept={accept}
-          onChange={handleChange}
         />
       </Box>
     </Wrapper>
@@ -95,7 +93,7 @@ const Box = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  cursor: pointer;
+  cursor: default;
 `;
 
 const Left = styled.div`
@@ -127,8 +125,4 @@ const EyeButton = styled.img`
   width: 28px;
   height: 28px;
   cursor: pointer;
-`;
-
-const HiddenInput = styled.input`
-  display: none;
 `;

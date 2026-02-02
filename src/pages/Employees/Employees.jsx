@@ -14,7 +14,7 @@ import {
   employeeTableData,
   staffTableColumns,
   staffTableData,
-} from "../../utils/dashboardData";
+} from "../../utils/data";
 
 const Employees = () => {
   const stats = dashboardStats;

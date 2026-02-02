@@ -7,6 +7,8 @@ import DashboardPage from "../pages/Dashboard/Dashboard";
 import ForgotPassword from "../pages/ForgotPassword/ForgotPassword";
 import Employees from "../pages/Employees/Employees";
 import EmployeeProfile from "../pages/EmployeeProfile/EmployeeProfile";
+import LeaveAttendance from "../pages/Leave Attendance/LeaveAttendance";
+import AddLeave from "../pages/Leave Attendance/Add Leave/AddLeave";
 
 const publicRoutes = [
   { path: "/", component: <Login /> },
@@ -30,6 +32,14 @@ const privateRoutes = [
       {
         path: "peopleHub/employees/employeeProfile",
         element: <EmployeeProfile />,
+      },
+      {
+        path: "time-hub/leaveAttendance",
+        element: <LeaveAttendance />,
+      },
+      {
+        path: "time-hub/leaveAttendance/add-Leave",
+        element: <AddLeave />,
       },
     ],
   },

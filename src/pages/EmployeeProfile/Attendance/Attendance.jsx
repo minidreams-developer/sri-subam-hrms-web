@@ -1,10 +1,26 @@
+import React, { useState } from "react";
 import styled from "styled-components";
 import theme from "../../../theme/theme";
 import TopIcon from "../../../assets/images/employee/calendar.svg";
 import EditIcon from "../../../assets/images/employee/editIcon.svg";
 import CardDetails from "../../../components/CardDetails";
+import PlusIcon from "../../../assets/images/Dashboard Images/plus-large_svgrepo.com.svg";
+import TabSwitcher from "../../../components/TabSwitcher";
+import AttendanceCalendar from "../../../components/AttendanceCalendar";
+import { Spinner } from "reactstrap";
 
 export const Attendance = () => {
+  const [activeTab, setActiveTab] = useState("List View");
+  const [calendarLoading, setCalendarLoading] = useState(false);
+
+  const handleTabChange = (val) => {
+    setActiveTab(val);
+    if (val === "Calendar View") {
+      setCalendarLoading(true);
+    } else {
+      setCalendarLoading(false);
+    }
+  };
   return (
     <Wrapper>
       <HeaderRow>
@@ -42,6 +58,65 @@ export const Attendance = () => {
           },
         ]}
       />
+      <CardDetails
+        title="Current Month"
+        columns={3}
+        showEdit={true}
+        editIcon={EditIcon}
+        editText="Edit Day"
+        onEdit={() => {}}
+        showAdd={true}
+        uploadIcon={PlusIcon}
+        addText="Add Leaves"
+        items={[
+          {
+            label: "Total Working Day",
+            value: "31",
+          },
+          {
+            label: "Full Days",
+            value: "31",
+          },
+          {
+            label: "Half Days",
+            value: "2",
+          },
+          {
+            label: "Absent",
+            value: "1",
+          },
+          {
+            label: "Over Time",
+            value: "4",
+          },
+          {
+            label: "Day Off",
+            value: "2",
+          },
+          {
+            label: "Holidays",
+            value: "0",
+          },
+        ]}
+      />
+      <TabSwitcher
+        tabs={[
+          { label: "List View", value: "List View" },
+          { label: "Calendar View", value: "Calendar View" },
+        ]}
+        active={activeTab}
+        onChange={handleTabChange}
+      />
+      {activeTab === "Calendar View" && calendarLoading && (
+        <SpinnerWrap>
+          <Spinner style={{ color: theme.colors.primary }} />
+        </SpinnerWrap>
+      )}
+      {activeTab === "List View" ? (
+        <Section>List View content</Section>
+      ) : (
+        <AttendanceCalendar onReady={() => setCalendarLoading(false)} />
+      )}
     </Wrapper>
   );
 };
@@ -107,4 +182,19 @@ const EditBtn = styled.button`
   font-weight: 600;
   font-family: "Inter-SemiBold", sans-serif;
   cursor: pointer;
+`;
+
+const SpinnerWrap = styled.div`
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem 0;
+`;
+
+const Section = styled.div`
+  background: ${theme.colors.white};
+  border: 1px solid ${theme.colors.border};
+  border-radius: 8px;
+  padding: 1rem;
 `;

@@ -4,22 +4,18 @@ import styled from "styled-components";
 
 const InputComponent = ({
   label = "",
-  multiline = false,
   placeholder = "Enter",
   width = "100%",
   showMic = false,
   labelMargin = "1rem 0 0.625rem 0",
+  height,
   ...rest
 }) => {
   return (
     <FieldWrapper>
       {label && <Label margin={labelMargin}>{label}</Label>}
-      <InputWrapper width={width} $showmic={showMic}>
-        {multiline ? (
-          <Textarea placeholder={placeholder} {...rest} $showmic={showMic} />
-        ) : (
-          <Input placeholder={placeholder} {...rest} $showmic={showMic} />
-        )}
+      <InputWrapper width={width} $showmic={showMic} height={height}>
+        <Input placeholder={placeholder} {...rest} $showmic={showMic} />
       </InputWrapper>
     </FieldWrapper>
   );
@@ -47,6 +43,7 @@ const FieldWrapper = styled.div`
 const InputWrapper = styled.div`
   max-width: ${(props) => props.width};
   width: 100%;
+  height: ${(props) => props.height || "auto"};
   display: flex;
   align-items: center;
   justify-content: center;
@@ -59,11 +56,12 @@ const InputWrapper = styled.div`
     border: 2px solid ${theme.colors.primary};
   }
 
-  transition: border 0.3s ease;
+  transition: border 0.1s ease;
 `;
 
 const Input = styled.input`
   width: 100%;
+  height: 100%;
   font-size: 0.875rem;
   font-family: "Inter", sans-serif;
   font-weight: 400;
@@ -74,27 +72,8 @@ const Input = styled.input`
   border: none;
   border-radius: 0.625rem;
   outline: none;
-
-  ::placeholder {
-    font-family: "Inter", sans-serif;
-    opacity: 1;
-  }
-`;
-
-const Textarea = styled.textarea`
-  width: 100%;
-  font-size: 0.875rem;
-  font-family: "Inter", sans-serif;
-  font-weight: 400;
-  line-height: 160%;
-  color: ${theme.colors.textColor};
-  padding: 0.875rem ${(props) => (props.$showmic ? "2.5rem" : "0.875rem")}
-    0.875rem 0.875rem;
-  border: none;
-  border-radius: 0.625rem;
-  outline: none;
-  resize: vertical;
-  min-height: 5rem;
+  background: transparent;
+  box-sizing: border-box;
 
   ::placeholder {
     font-family: "Inter", sans-serif;
