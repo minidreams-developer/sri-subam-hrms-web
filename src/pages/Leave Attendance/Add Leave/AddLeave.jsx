@@ -16,13 +16,14 @@ const AddLeave = () => {
 
   const leaveOptions = [
     { value: "Permission", label: "Permission" },
-    { value: "Sick Leave", label: "Sick Leave" },
-    { value: "Casual Leave", label: "Casual Leave" },
+    { value: "Leave", label: "Leave" },
   ];
 
   const [employee, setEmployee] = useState(null);
   const [employeeId, setEmployeeId] = useState("");
   const [date, setDate] = useState(null);
+  const [fromDate, setFromDate] = useState(null);
+  const [toDate, setToDate] = useState(null);
   const [leaveType, setLeaveType] = useState(leaveOptions[0]);
   const [startTime, setStartTime] = useState(null);
   const [endTime, setEndTime] = useState(null);
@@ -123,10 +124,25 @@ const AddLeave = () => {
           />
         </Col>
         <Col>
-          <CalenderInput
-            label="Department"
-            onDateSelect={setDate}
-            initialDate={date}
+          <Label
+            htmlFor="departmentSelect"
+            style={{
+              fontSize: "0.875rem",
+              fontWeight: "500",
+              fontFamily: "Inter, sans-serif",
+              color: theme.colors.primaryGreen,
+              marginBottom: "0.625rem",
+            }}
+          >
+            Department
+          </Label>
+          <Select
+            id="employeeSelect"
+            options={options}
+            value={employee}
+            placeholder="Select Department"
+            styles={customStyles}
+            isSearchable
           />
         </Col>
       </Row>
@@ -155,30 +171,53 @@ const AddLeave = () => {
           />
         </Col>
         <Col>
-          <CalenderInput
-            label="Date"
-            onDateSelect={setDate}
-            initialDate={date}
-          />
+          {leaveType.value === "Permission" && (
+            <CalenderInput
+              label="Date"
+              onDateSelect={setDate}
+              initialDate={date}
+            />
+          )}
         </Col>
       </Row>
       <Row>
-        <Col>
-          <TimeInputComponent
-            label="From"
-            placeholder="Start Time"
-            onTimeSelect={setStartTime}
-            initialTime={startTime}
-          />
-        </Col>
-        <Col>
-          <TimeInputComponent
-            label="To"
-            placeholder="End Time"
-            onTimeSelect={setEndTime}
-            initialTime={endTime}
-          />
-        </Col>
+        {leaveType.value === "Permission" ? (
+          <>
+            <Col>
+              <TimeInputComponent
+                label="From"
+                placeholder="Start Time"
+                onTimeSelect={setStartTime}
+                initialTime={startTime}
+              />
+            </Col>
+            <Col>
+              <TimeInputComponent
+                label="To"
+                placeholder="End Time"
+                onTimeSelect={setEndTime}
+                initialTime={endTime}
+              />
+            </Col>
+          </>
+        ) : (
+          <>
+            <Col>
+              <CalenderInput
+                label="From Date"
+                onDateSelect={setFromDate}
+                initialDate={fromDate}
+              />
+            </Col>
+            <Col>
+              <CalenderInput
+                label="To Date"
+                onDateSelect={setToDate}
+                initialDate={toDate}
+              />
+            </Col>
+          </>
+        )}
       </Row>
       <Row>
         <Col>

@@ -12,6 +12,13 @@ export const employeeStats = [
   { title: "Rejected Request", value: "03", percent: "20.5 %", type: "up" },
 ];
 
+export const overTimeStats = [
+  { title: "Requested", value: "256", percent: "20.5 %", type: "up" },
+  { title: "Approved", value: "39", percent: "12 %", type: "down" },
+  { title: "Rejected", value: "03", percent: "20.5 %", type: "up" },
+  { title: "Pending", value: "03", percent: "20.5 %", type: "up" },
+];
+
 export const employeeTableColumns = [
   { header: "Employee ID", accessor: "employeeId" },
   { header: "Name", accessor: "name" },
@@ -139,6 +146,7 @@ export const staffLeavesData = [
     from: "2026-01-05",
     to: "2026-01-07",
     action: "...",
+    status: "approved",
   },
   {
     staffId: "STF102",
@@ -147,6 +155,7 @@ export const staffLeavesData = [
     type: "Casual Leave",
     from: "2026-01-10",
     to: "2026-01-11",
+    status: "approved",
     action: "...",
   },
   {

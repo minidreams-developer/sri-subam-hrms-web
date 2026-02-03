@@ -5,7 +5,7 @@ import { MdMenu, MdKeyboardArrowUp, MdKeyboardArrowDown } from "react-icons/md";
 import theme from "../../theme/theme";
 import SidebarItems from "../SidebarItem";
 import { getStoredAuthUser } from "../../helpers/auth_helper";
-import MainLogo from '../../assets/images/Dashboard Images/main_logo.svg';
+import MainLogo from "../../assets/images/Dashboard Images/main_logo.svg";
 
 const AdminLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -21,10 +21,10 @@ const AdminLayout = () => {
     }
   }, []);
 
-  const toggleSubmenu = (name) => {
+  const toggleSubmenu = (name, isExpanded) => {
     setExpandedMenu((prev) => ({
       ...prev,
-      [name]: !prev[name],
+      [name]: !isExpanded,
     }));
   };
 
@@ -34,9 +34,7 @@ const AdminLayout = () => {
     const spaced = segment
       .replace(/[-_]+/g, " ")
       .replace(/([a-z])([A-Z])/g, "$1 $2");
-    const name = spaced
-      .toLowerCase()
-      .replace(/\b\w/g, (c) => c.toUpperCase());
+    const name = spaced.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
     return name;
   };
 
@@ -61,12 +59,15 @@ const AdminLayout = () => {
               item.submenu.some(
                 (sub) =>
                   location.pathname === sub.path ||
-                  location.pathname.startsWith(sub.path)
+                  location.pathname.startsWith(sub.path),
               );
             const isActive = item.path
               ? location.pathname === item.path
               : isParentActive;
-            const isExpanded = expandedMenu[item.name] || isParentActive;
+            const isExpanded =
+              expandedMenu[item.name] !== undefined
+                ? expandedMenu[item.name]
+                : isParentActive;
 
             return (
               <React.Fragment key={index}>
@@ -75,7 +76,7 @@ const AdminLayout = () => {
                   open={sidebarOpen}
                   onClick={() => {
                     if (hasSubmenu) {
-                      toggleSubmenu(item.name);
+                      toggleSubmenu(item.name, isExpanded);
                     } else {
                       navigate(item.path);
                     }

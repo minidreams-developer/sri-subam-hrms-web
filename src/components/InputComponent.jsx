@@ -6,7 +6,6 @@ const InputComponent = ({
   label = "",
   placeholder = "Enter",
   width = "100%",
-  showMic = false,
   labelMargin = "1rem 0 0.625rem 0",
   height,
   ...rest
@@ -14,8 +13,8 @@ const InputComponent = ({
   return (
     <FieldWrapper>
       {label && <Label margin={labelMargin}>{label}</Label>}
-      <InputWrapper width={width} $showmic={showMic} height={height}>
-        <Input placeholder={placeholder} {...rest} $showmic={showMic} />
+      <InputWrapper width={width} height={height}>
+        <Input placeholder={placeholder} {...rest} />
       </InputWrapper>
     </FieldWrapper>
   );
@@ -67,8 +66,6 @@ const Input = styled.input`
   font-weight: 400;
   line-height: 160%;
   color: ${theme.colors.textColor};
-  padding: 0.875rem ${(props) => (props.$showmic ? "2.5rem" : "0.875rem")}
-    0.875rem 0.875rem;
   border: none;
   border-radius: 0.625rem;
   outline: none;

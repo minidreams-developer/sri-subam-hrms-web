@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import styled from "styled-components";
 import theme from "../theme/theme";
+import CustomButton from "./Button";
 
 // ---------------- Reusable Table Component ----------------
 const ReusableTable = ({
@@ -22,6 +23,9 @@ const ReusableTable = ({
   currentPage: serverPage = 1,
   onPageChange,
   alwaysShowPagination = false,
+  actionType = "default",
+  onApprove,
+  onReject,
 }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedRows, setSelectedRows] = useState([]);
@@ -147,7 +151,49 @@ const ReusableTable = ({
                     );
                   }
 
-                  if (col?.key === "actions" || col?.header === "Actions") {
+                  if (
+                    col?.key === "actions" ||
+                    col?.header === "Actions" ||
+                    col?.header === "Action"
+                  ) {
+                    if (actionType === "buttons") {
+                      return (
+                        <TableCell key={colIndex}>
+                          <div style={{ display: "flex", gap: "0.5rem" }}>
+                            <CustomButton
+                              text="Reject"
+                              bg="#fee2e2"
+                              color="#dc2626"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onReject && onReject(row);
+                              }}
+                              width="auto"
+                              radius="0.375rem"
+                              fontSize="0.625rem"
+                              fontWeight="600"
+                              fontFamily="Inter-SemiBold"
+                              border="none"
+                            />
+                            <CustomButton
+                              text="Approve"
+                              bg={theme.colors.primary}
+                              color={theme.colors.white}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onApprove && onApprove(row);
+                              }}
+                              width="auto"
+                              radius="0.375rem"
+                              fontSize="0.625rem"
+                              fontWeight="600"
+                              fontFamily="Inter-SemiBold"
+                              border="none"
+                            />
+                          </div>
+                        </TableCell>
+                      );
+                    }
                     return (
                       <ActionCell
                         key={colIndex}
@@ -355,6 +401,8 @@ const StatusBadgeText = styled.p`
     if (s === "relieved") return "#dc2626";
     if (s === "inactive" || s === "in-active" || s === "in active")
       return "#f59e0b";
+    if (s === "approved") return "#22AA4E";
+    if (s === "rejected") return "#FA0000";
     return theme.colors.textColor;
   }};
 `;

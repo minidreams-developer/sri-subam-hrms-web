@@ -9,6 +9,7 @@ import Employees from "../pages/Employees/Employees";
 import EmployeeProfile from "../pages/EmployeeProfile/EmployeeProfile";
 import LeaveAttendance from "../pages/Leave Attendance/LeaveAttendance";
 import AddLeave from "../pages/Leave Attendance/Add Leave/AddLeave";
+import OverTimeManage from "../pages/OverTime Management";
 
 const publicRoutes = [
   { path: "/", component: <Login /> },
@@ -40,6 +41,10 @@ const privateRoutes = [
       {
         path: "time-hub/leaveAttendance/add-Leave",
         element: <AddLeave />,
+      },
+      {
+        path: "time-hub/overTime-management",
+        element: <OverTimeManage />,
       },
     ],
   },

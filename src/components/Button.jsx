@@ -11,9 +11,9 @@ const StyledButton = styled.button`
   padding: 0.5rem 0.875rem;
   background-color: ${(props) => props.bg || theme.colors.primary};
   color: ${(props) => props.color || theme.colors.secondary};
-  font-size: 0.75rem;
-  font-weight: 500;
-  font-family: "Inter", sans-serif;
+  font-size: ${(props) => props.fontSize || "0.75rem"};
+  font-weight: ${(props) => props.fontWeight || 500};
+  font-family: ${(props) => props.fontFamily || '"Inter", sans-serif'};
   line-height: 160%;
   border: ${(props) => props.border || "none"};
   border-radius: ${(props) => props.radius || "6px"};
@@ -46,6 +46,8 @@ const Button = ({
   radius,
   loading = false,
   disabled = false,
+  fontWeight,
+  fontFamily,
 }) => {
   return (
     <StyledButton
@@ -59,6 +61,8 @@ const Button = ({
       radius={radius}
       disabled={disabled || loading}
       type={type}
+      fontWeight={fontWeight}
+      fontFamily={fontFamily}
     >
       {loading ? (
         <Spinner size="sm" color={color || theme.colors.white} />
