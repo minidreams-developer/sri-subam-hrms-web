@@ -71,7 +71,7 @@ const SidebarItems = [
       },
       {
         name: "Shift Management",
-        path: "/admin/time-hub/shift-management",
+        path: "/admin/time-hub/shiftManagement",
       },
       {
         name: "Overtime Management",

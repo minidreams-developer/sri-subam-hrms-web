@@ -24,6 +24,8 @@ const TableToolbar = ({
   widths = { search: "24rem", select: "12rem" },
   title,
   searchPosition = "left",
+  showDotIcon = false,
+  dotIcon,
 }) => {
   return (
     <Bar>
@@ -110,6 +112,7 @@ const TableToolbar = ({
             icon={actionIcon}
           />
         )}
+        {showDotIcon && <DotIcon src={dotIcon} />}
       </Right>
     </Bar>
   );
@@ -186,4 +189,10 @@ const SelectWrap = styled.div`
 
 const FilterBtn = styled(Button)`
   width: 7rem;
+`;
+
+const DotIcon = styled.img`
+  width: 40px;
+  height: 40px;
+  cursor: pointer;
 `;

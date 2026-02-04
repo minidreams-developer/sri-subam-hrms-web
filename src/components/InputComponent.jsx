@@ -50,6 +50,7 @@ const InputWrapper = styled.div`
   border: 1px solid ${theme.colors.border};
   background-color: ${theme.colors.searchBackground};
   position: relative;
+  padding: 0.75rem 1rem;
 
   &:focus-within {
     border: 2px solid ${theme.colors.primary};
