@@ -5,8 +5,10 @@ import PlusIcon from "../../assets/images/Dashboard Images/plus-large_svgrepo.co
 import actionDot from "../../assets/images/Over time/actionDot.svg";
 import ReusableTable from "../../components/ReusableTable";
 import ShiftDetailsSidebar from "./ShiftDetailsSidebar";
+import { useNavigate } from "react-router-dom";
 
 const ShiftManagement = () => {
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [leaveType, setLeaveType] = useState("All Types");
   const [selectedShift, setSelectedShift] = useState(null);
@@ -56,6 +58,7 @@ const ShiftManagement = () => {
         actionIcon={<img src={PlusIcon} alt="add" width="16" height="16" />}
         showDotIcon={true}
         dotIcon={actionDot}
+        onActionClick={() => navigate("addNewShift")}
       />
       <ReusableTable
         columns={columns}

@@ -8,6 +8,7 @@ const InputComponent = ({
   width = "100%",
   labelMargin = "1rem 0 0.625rem 0",
   height,
+  suffix,
   ...rest
 }) => {
   return (
@@ -15,10 +16,19 @@ const InputComponent = ({
       {label && <Label margin={labelMargin}>{label}</Label>}
       <InputWrapper width={width} height={height}>
         <Input placeholder={placeholder} {...rest} />
+        {suffix && <Suffix>{suffix}</Suffix>}
       </InputWrapper>
     </FieldWrapper>
   );
 };
+
+const Suffix = styled.span`
+  font-size: 0.875rem;
+  font-family: "Inter", sans-serif;
+  color: ${theme.colors.secondaryTextColor};
+  margin-left: 0.5rem;
+  white-space: nowrap;
+`;
 
 const Label = styled.p`
   font-size: 0.875rem;

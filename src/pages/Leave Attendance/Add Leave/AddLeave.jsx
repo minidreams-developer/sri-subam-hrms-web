@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import styled from "styled-components";
 import theme from "../../../theme/theme";
+import { customSelectStyles } from "../../../theme/reactSelectStyles";
 import InputComponent from "../../../components/InputComponent";
 import Select from "react-select";
 import { Label } from "reactstrap";
@@ -29,53 +30,6 @@ const AddLeave = () => {
   const [endTime, setEndTime] = useState(null);
   const [remarks, setRemarks] = useState("");
 
-  const customStyles = {
-    control: (provided, state) => ({
-      ...provided,
-      height: "45px",
-      borderRadius: "0.625rem",
-      border: state.isFocused
-        ? `1px solid ${theme.colors.primary}`
-        : `1px solid ${theme.colors.border}`,
-      boxShadow: "none",
-      fontSize: "0.875rem",
-      fontFamily: '"Inter", sans-serif',
-      color: theme.colors.textColor,
-      "&:hover": {
-        border: state.isFocused
-          ? `1px solid ${theme.colors.primary}`
-          : `1px solid ${theme.colors.border}`,
-      },
-    }),
-    placeholder: (provided) => ({
-      ...provided,
-      fontFamily: '"Inter", sans-serif',
-      color: theme.colors.textGray || "#9ca3af",
-    }),
-    option: (provided, state) => ({
-      ...provided,
-      backgroundColor: state.isSelected
-        ? theme.colors.primary
-        : state.isFocused
-          ? `${theme.colors.primary}10`
-          : "white",
-      color: state.isSelected ? "white" : theme.colors.textColor,
-      fontFamily: '"Inter", sans-serif',
-      fontSize: "0.875rem",
-      cursor: "pointer",
-    }),
-    singleValue: (provided) => ({
-      ...provided,
-      fontFamily: '"Inter", sans-serif',
-      color: theme.colors.textColor,
-    }),
-    menu: (provided) => ({
-      ...provided,
-      borderRadius: "0.625rem",
-      zIndex: 9999,
-    }),
-  };
-
   return (
     <Container>
       <Title>Employee Details</Title>
@@ -99,7 +53,7 @@ const AddLeave = () => {
             value={employee}
             onChange={setEmployee}
             placeholder="Select Employee"
-            styles={customStyles}
+            styles={customSelectStyles}
             isSearchable
           />
         </Col>
@@ -141,7 +95,7 @@ const AddLeave = () => {
             options={options}
             value={employee}
             placeholder="Select Department"
-            styles={customStyles}
+            styles={customSelectStyles}
             isSearchable
           />
         </Col>
@@ -166,7 +120,7 @@ const AddLeave = () => {
             value={leaveType}
             onChange={setLeaveType}
             placeholder="Select Leave Type"
-            styles={customStyles}
+            styles={customSelectStyles}
             isSearchable
           />
         </Col>

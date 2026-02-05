@@ -110,6 +110,7 @@ const TableToolbar = ({
             width="10rem"
             radius="0.625rem"
             icon={actionIcon}
+            onClick={onActionClick}
           />
         )}
         {showDotIcon && <DotIcon src={dotIcon} />}
