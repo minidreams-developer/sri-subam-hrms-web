@@ -40,11 +40,11 @@ const SidebarItems = [
       },
       {
         name: "Teams",
-        path: "/admin/people/teams",
+        path: "/admin/peopleHub/teams",
       },
       {
         name: "Branch",
-        path: "/admin/people/branch",
+        path: "/admin/peopleHub/branch",
       },
       {
         name: "Hierarchy",

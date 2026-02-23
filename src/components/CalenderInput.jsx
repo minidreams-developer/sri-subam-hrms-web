@@ -54,7 +54,7 @@ const StyledDatePicker = styled(DatePicker)`
   width: 100%;
   height: 100%;
   font-size: 0.875rem;
-  font-family: "Inter", sans-serif;
+  font-family: "Inter_18pt-Medium", sans-serif;
   font-weight: 500;
   color: ${theme.colors.textColor};
   padding: 0 0.875rem;
@@ -65,13 +65,13 @@ const StyledDatePicker = styled(DatePicker)`
 
   ::placeholder {
     color: ${theme.colors.textGray || "#9ca3af"};
-    font-family: "Inter", sans-serif;
+    font-family: "Inter_18pt-Medium", sans-serif;
   }
 `;
 
 const Label = styled.p`
   font-size: 0.875rem;
-  font-family: "Inter", sans-serif;
+  font-family: "Inter_18pt-Medium", sans-serif;
   font-weight: 500;
   line-height: 160%;
   color: ${theme.colors.primaryGreen};
@@ -89,7 +89,7 @@ const FieldWrapper = styled.div`
 
   /* Custom Calendar Styles */
   .custom-calendar {
-    font-family: "Inter", sans-serif;
+    font-family: "Inter_18pt-Medium", sans-serif;
     border: 1px solid ${theme.colors.border};
     border-radius: 0.625rem;
     box-shadow:

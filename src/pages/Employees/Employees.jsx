@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import ReusableTable from "../../components/ReusableTable";
 import GreenArrow from "../../assets/images/dashboard Images/green.svg";
@@ -17,6 +18,7 @@ import {
 } from "../../utils/data";
 
 const Employees = () => {
+  const navigate = useNavigate();
   const stats = dashboardStats;
 
   const [selectedDepartment, setSelectedDepartment] = useState("All");
@@ -28,6 +30,10 @@ const Employees = () => {
   const [staffSearch, setStaffSearch] = useState("");
   const [staffRole, setStaffRole] = useState("All Roles");
   const [staffShift, setStaffShift] = useState("All Shifts");
+
+  const handleRowClick = (row) => {
+    navigate("/admin/peopleHub/employees/employeeProfile");
+  };
 
   const filteredEmployeeData = employeeTableData.filter((row) => {
     const m1 =
@@ -136,6 +142,7 @@ const Employees = () => {
             data={filteredEmployeeData}
             rowsPerPage={5}
             totalResults={filteredEmployeeData.length}
+            onRowClick={handleRowClick}
           />
         </>
       ) : (
@@ -165,6 +172,7 @@ const Employees = () => {
             data={filteredStaffData}
             rowsPerPage={5}
             totalResults={filteredStaffData.length}
+            onRowClick={handleRowClick}
           />
         </>
       )}

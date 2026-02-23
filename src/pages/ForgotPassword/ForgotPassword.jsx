@@ -158,7 +158,7 @@ const Button = styled.button`
 `;
 
 const BackText = styled.p`
-  font-family: "Inter", sans-serif;
+  font-family: "Inter_18pt-Medium", sans-serif;
   font-weight: 500;
   font-size: 0.875rem;
   line-height: 160%;

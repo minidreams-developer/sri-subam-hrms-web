@@ -36,7 +36,7 @@ function App() {
                   </Authmiddleware>
                 }
               />
-            ))}
+            ))} 
           </Route>
         ))}
       </Routes>
