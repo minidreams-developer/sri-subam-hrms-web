@@ -5,10 +5,13 @@ import theme from "../../theme/theme";
 import ReusableTable from "../../components/ReusableTable";
 import PlusIcon from "../../assets/images/Dashboard Images/plus-large_svgrepo.com.svg";
 import TableToolbar from "../../components/TableToolbar";
+import BranchDetailsSidebar from "./BranchDetailsSidebar";
 
 const Branches = () => {
   const navigate = useNavigate();
   const [searchValue, setSearchValue] = useState("");
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [selectedBranch, setSelectedBranch] = useState(null);
 
   const branchesColumns = [
     { key: "no", label: "No." },
@@ -73,8 +76,12 @@ const Branches = () => {
   });
 
   const handleRowClick = (row) => {
-    // Navigate to branch details if needed
-    // navigate("/admin/peopleHub/branches/branchDetails");
+    setSelectedBranch(row);
+    setIsSidebarOpen(true);
+  };
+
+  const handleAddBranch = () => {
+    navigate("/admin/peopleHub/branch/createBranch");
   };
 
   return (
@@ -91,6 +98,7 @@ const Branches = () => {
         filterText="Filter"
         actionText="Add Branch"
         actionIcon={<img src={PlusIcon} alt="add" width="16" height="16" />}
+        onActionClick={handleAddBranch}
       />
 
       <ReusableTable
@@ -99,6 +107,12 @@ const Branches = () => {
         rowsPerPage={5}
         totalResults={filteredData.length}
         onRowClick={handleRowClick}
+      />
+
+      <BranchDetailsSidebar
+        open={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
+        data={selectedBranch}
       />
     </Container>
   );

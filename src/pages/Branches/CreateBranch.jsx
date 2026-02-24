@@ -1,0 +1,440 @@
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import styled from "styled-components";
+import theme from "../../theme/theme";
+import InputComponent from "../../components/InputComponent";
+import CalenderInput from "../../components/CalenderInput";
+import Button from "../../components/Button";
+import Select from "react-select";
+import { customSelectStyles } from "../../theme/reactSelectStyles";
+import { IoArrowBack } from "react-icons/io5";
+
+const CreateBranch = () => {
+  const navigate = useNavigate();
+  const [formData, setFormData] = useState({
+    name: "",
+    branchType: null,
+    branchStatus: null,
+    effectiveFromDate: null,
+    branchHead: null,
+    phoneNumber: "",
+    emergencyContact: "",
+    email: "",
+    address: "",
+    city: "",
+    district: null,
+    state: null,
+    pinCode: "",
+    geoLocation: "",
+    selectDepartments: null,
+    selectShifts: null,
+  });
+
+  const branchTypeOptions = [
+    { value: "main", label: "Main Branch" },
+    { value: "sub", label: "Sub Branch" },
+    { value: "regional", label: "Regional Office" },
+  ];
+
+  const statusOptions = [
+    { value: "active", label: "Active" },
+    { value: "inactive", label: "Inactive" },
+  ];
+
+  const branchHeadOptions = [
+    { value: "john_doe", label: "John Doe" },
+    { value: "jane_smith", label: "Jane Smith" },
+    { value: "mike_johnson", label: "Mike Johnson" },
+  ];
+
+  const stateOptions = [
+    { value: "california", label: "California" },
+    { value: "texas", label: "Texas" },
+    { value: "new_york", label: "New York" },
+  ];
+
+  const departmentOptions = [
+    { value: "it", label: "IT" },
+    { value: "hr", label: "HR" },
+    { value: "sales", label: "Sales" },
+    { value: "marketing", label: "Marketing" },
+  ];
+
+  const shiftOptions = [
+    { value: "morning", label: "Morning Shift" },
+    { value: "evening", label: "Evening Shift" },
+    { value: "night", label: "Night Shift" },
+  ];
+
+  const handleChange = (field, value) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleBack = () => {
+    navigate(-1);
+  };
+
+  const handleCancel = () => {
+    navigate("/admin/people/branch");
+  };
+
+  const handleNext = () => {
+    console.log("Form data:", formData);
+    // Add save logic here
+  };
+
+  return (
+    <Container>
+      <Header>
+        <BackButton onClick={handleBack}>
+          <IoArrowBack size={20} />
+        </BackButton>
+        <Title>Create New Branch</Title>
+      </Header>
+
+      <FormContainer>
+        <Section>
+          <SectionTitle>Basic Details</SectionTitle>
+          <Row>
+            <Col>
+              <InputComponent
+                label="Name"
+                placeholder="Select DOB"
+                value={formData.name}
+                onChange={(e) => handleChange("name", e.target.value)}
+                labelMargin="0 0 0.625rem 0"
+              />
+            </Col>
+            <Col>
+              <SelectWrapper>
+                <Label>Branch Type</Label>
+                <Select
+                  options={branchTypeOptions}
+                  value={formData.branchType}
+                  onChange={(value) => handleChange("branchType", value)}
+                  placeholder="Select Type"
+                  styles={customSelectStyles}
+                  isSearchable
+                />
+              </SelectWrapper>
+            </Col>
+          </Row>
+          <Row>
+            <Col>
+              <SelectWrapper>
+                <Label>Branch Status</Label>
+                <Select
+                  options={statusOptions}
+                  value={formData.branchStatus}
+                  onChange={(value) => handleChange("branchStatus", value)}
+                  placeholder="Select Department"
+                  styles={customSelectStyles}
+                  isSearchable
+                />
+              </SelectWrapper>
+            </Col>
+            <Col>
+              <CalenderInput
+                label="Effective From Date"
+                onDateSelect={(date) => handleChange("effectiveFromDate", date)}
+                initialDate={formData.effectiveFromDate}
+                labelMargin="0 0 0.625rem 0"
+              />
+            </Col>
+          </Row>
+        </Section>
+
+        <Section>
+          <SectionTitle>Contact Details</SectionTitle>
+          <Row>
+            <Col>
+              <SelectWrapper>
+                <Label>Branch Head</Label>
+                <Select
+                  options={branchHeadOptions}
+                  value={formData.branchHead}
+                  onChange={(value) => handleChange("branchHead", value)}
+                  placeholder="Select Type"
+                  styles={customSelectStyles}
+                  isSearchable
+                />
+              </SelectWrapper>
+            </Col>
+            <Col>
+              <InputComponent
+                label="Phone Number"
+                placeholder="Enter Contact Number"
+                value={formData.phoneNumber}
+                onChange={(e) => handleChange("phoneNumber", e.target.value)}
+                labelMargin="0 0 0.625rem 0"
+                suffix="+91"
+              />
+            </Col>
+          </Row>
+          <Row>
+            <Col>
+              <InputComponent
+                label="Emergency Contact Number"
+                placeholder="Enter Contact Number"
+                value={formData.emergencyContact}
+                onChange={(e) => handleChange("emergencyContact", e.target.value)}
+                labelMargin="0 0 0.625rem 0"
+                suffix="+91"
+              />
+            </Col>
+            <Col>
+              <InputComponent
+                label="Email"
+                placeholder="Select DOB"
+                value={formData.email}
+                onChange={(e) => handleChange("email", e.target.value)}
+                labelMargin="0 0 0.625rem 0"
+              />
+            </Col>
+          </Row>
+        </Section>
+
+        <Section>
+          <SectionTitle>Address</SectionTitle>
+          <Row>
+            <Col>
+              <InputComponent
+                label="Address"
+                placeholder="Enter Address"
+                value={formData.address}
+                onChange={(e) => handleChange("address", e.target.value)}
+                labelMargin="0 0 0.625rem 0"
+              />
+            </Col>
+            <Col>
+              <InputComponent
+                label="City"
+                placeholder="Enter City"
+                value={formData.city}
+                onChange={(e) => handleChange("city", e.target.value)}
+                labelMargin="0 0 0.625rem 0"
+              />
+            </Col>
+          </Row>
+          <Row>
+            <Col>
+              <SelectWrapper>
+                <Label>District</Label>
+                <Select
+                  options={stateOptions}
+                  value={formData.district}
+                  onChange={(value) => handleChange("district", value)}
+                  placeholder="Select State"
+                  styles={customSelectStyles}
+                  isSearchable
+                />
+              </SelectWrapper>
+            </Col>
+            <Col>
+              <SelectWrapper>
+                <Label>State</Label>
+                <Select
+                  options={stateOptions}
+                  value={formData.state}
+                  onChange={(value) => handleChange("state", value)}
+                  placeholder="Select State"
+                  styles={customSelectStyles}
+                  isSearchable
+                />
+              </SelectWrapper>
+            </Col>
+          </Row>
+          <Row>
+            <Col>
+              <InputComponent
+                label="Pin code"
+                placeholder="Enter Pin code"
+                value={formData.pinCode}
+                onChange={(e) => handleChange("pinCode", e.target.value)}
+                labelMargin="0 0 0.625rem 0"
+              />
+            </Col>
+            <Col>
+              <InputComponent
+                label="Geo Location"
+                placeholder="Enter Geo Location Link"
+                value={formData.geoLocation}
+                onChange={(e) => handleChange("geoLocation", e.target.value)}
+                labelMargin="0 0 0.625rem 0"
+              />
+            </Col>
+          </Row>
+        </Section>
+
+        <Section>
+          <SectionTitle>Other Details</SectionTitle>
+          <Row>
+            <Col>
+              <SelectWrapper>
+                <Label>Select Departments</Label>
+                <Select
+                  options={departmentOptions}
+                  value={formData.selectDepartments}
+                  onChange={(value) => handleChange("selectDepartments", value)}
+                  placeholder="Select State"
+                  styles={customSelectStyles}
+                  isSearchable
+                />
+              </SelectWrapper>
+            </Col>
+            <Col>
+              <SelectWrapper>
+                <Label>Select Shifts</Label>
+                <Select
+                  options={shiftOptions}
+                  value={formData.selectShifts}
+                  onChange={(value) => handleChange("selectShifts", value)}
+                  placeholder="Select State"
+                  styles={customSelectStyles}
+                  isSearchable
+                />
+              </SelectWrapper>
+            </Col>
+          </Row>
+        </Section>
+
+        <ButtonRow>
+          <Button
+            text="Back"
+            bg="transparent"
+            color={theme.colors.primary}
+            border={`1px solid ${theme.colors.primary}`}
+            width="150px"
+            radius="0.5rem"
+            fontSize="0.875rem"
+            fontWeight="600"
+            fontFamily="Inter-SemiBold"
+            onClick={handleBack}
+          />
+          <RightButtons>
+            <Button
+              text="Cancel"
+              bg="transparent"
+              color={theme.colors.primary}
+              border={`1px solid ${theme.colors.primary}`}
+              width="150px"
+              radius="0.5rem"
+              fontSize="0.875rem"
+              fontWeight="600"
+              fontFamily="Inter-SemiBold"
+              onClick={handleCancel}
+            />
+            <Button
+              text="Next"
+              bg={theme.colors.primary}
+              color={theme.colors.white}
+              width="150px"
+              radius="0.5rem"
+              fontSize="0.875rem"
+              fontWeight="600"
+              fontFamily="Inter-SemiBold"
+              onClick={handleNext}
+            />
+          </RightButtons>
+        </ButtonRow>
+      </FormContainer>
+    </Container>
+  );
+};
+
+const Container = styled.div`
+  width: 80%;
+`;
+
+const Header = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+`;
+
+const BackButton = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  cursor: pointer;
+  border: none;
+`;
+
+const Title = styled.h1`
+  font-size: 1.25rem;
+  font-weight: 600;
+  font-family: "Inter-SemiBold", sans-serif;
+  color: ${theme.colors.textColor};
+  margin: 0;
+`;
+
+const FormContainer = styled.div`
+`;
+
+const Section = styled.div`
+  margin-bottom: 2rem;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid #E0E3E6;
+
+  &:last-of-type {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: none;
+  }
+`;
+
+const SectionTitle = styled.h2`
+  font-size: 1.125rem;
+  font-family: "Inter_18pt-Medium", sans-serif;
+  font-weight: 600;
+  color: ${theme.colors.primary};
+  margin: 0 0 1.5rem 0;
+`;
+
+const Row = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-bottom: 1rem;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+`;
+
+const Col = styled.div`
+  width: 100%;
+`;
+
+const SelectWrapper = styled.div`
+  width: 100%;
+`;
+
+const Label = styled.label`
+  display: block;
+  font-size: 0.875rem;
+  font-family: "Inter_18pt-Medium", sans-serif;
+  font-weight: 500;
+  line-height: 160%;
+  color: ${theme.colors.primaryGreen};
+  margin-bottom: 0.625rem;
+`;
+
+const ButtonRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 2rem;
+  padding-top: 2rem;
+  border-top: 1px solid ${theme.colors.border};
+`;
+
+const RightButtons = styled.div`
+  display: flex;
+  gap: 1rem;
+`;
+
+export default CreateBranch;

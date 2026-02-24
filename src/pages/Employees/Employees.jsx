@@ -35,6 +35,10 @@ const Employees = () => {
     navigate("/admin/peopleHub/employees/employeeProfile");
   };
 
+  const handleNewEmployee = () => {
+    navigate("/admin/peopleHub/employees/create");
+  };
+
   const filteredEmployeeData = employeeTableData.filter((row) => {
     const m1 =
       employeeDept === "All Department" || row.department === employeeDept;
@@ -136,6 +140,7 @@ const Employees = () => {
             filterText="Filter"
             actionText="New Employee"
             actionIcon={<img src={PlusIcon} alt="add" width="16" height="16" />}
+            onActionClick={handleNewEmployee}
           />
           <ReusableTable
             columns={employeeTableColumns}

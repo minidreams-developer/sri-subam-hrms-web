@@ -65,8 +65,6 @@ const InputWrapper = styled.div`
   &:focus-within {
     border: 2px solid ${theme.colors.primary};
   }
-
-  transition: border 0.1s ease;
 `;
 
 const Input = styled.input`

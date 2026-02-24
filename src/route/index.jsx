@@ -7,9 +7,12 @@ import DashboardPage from "../pages/Dashboard/Dashboard";
 import ForgotPassword from "../pages/ForgotPassword/ForgotPassword";
 import Employees from "../pages/Employees/Employees";
 import EmployeeProfile from "../pages/EmployeeProfile/EmployeeProfile";
+import EditAttendanceDetails from "../pages/EmployeeProfile/Attendance/EditAttendanceDetails";
+import CreateEmployee from "../pages/Create Employee/CreateEmployee";
 import Teams from "../pages/Teams/Teams";
 import TeamDetails from "../pages/Teams/TeamDetails";
 import Branches from "../pages/Branches/Branches";
+import CreateBranch from "../pages/Branches/CreateBranch";
 import LeaveAttendance from "../pages/Leave Attendance/LeaveAttendance";
 import AddLeave from "../pages/Leave Attendance/Add Leave/AddLeave";
 import OverTimeManage from "../pages/OverTime Management";
@@ -36,8 +39,16 @@ const privateRoutes = [
         element: <Employees />,
       },
       {
+        path: "peopleHub/employees/create",
+        element: <CreateEmployee />,
+      },
+      {
         path: "peopleHub/employees/employeeProfile",
         element: <EmployeeProfile />,
+      },
+      {
+        path: "peopleHub/employees/attendance/edit",
+        element: <EditAttendanceDetails />,
       },
       {
         path: "peopleHub/teams",
@@ -54,6 +65,10 @@ const privateRoutes = [
       {
         path: "peopleHub/branches",
         element: <Branches />,
+      },
+      {
+        path: "peopleHub/branch/createBranch",
+        element: <CreateBranch />,
       },
       {
         path: "time-hub/leaveAttendance",

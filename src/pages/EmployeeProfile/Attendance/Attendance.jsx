@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import theme from "../../../theme/theme";
 import TopIcon from "../../../assets/images/employee/calendar.svg";
@@ -6,21 +7,21 @@ import EditIcon from "../../../assets/images/employee/editIcon.svg";
 import CardDetails from "../../../components/CardDetails";
 import PlusIcon from "../../../assets/images/Dashboard Images/plus-large_svgrepo.com.svg";
 import TabSwitcher from "../../../components/TabSwitcher";
-import AttendanceCalendar from "../../../components/AttendanceCalendar";
-import { Spinner } from "reactstrap";
+import ListView from "../../../components/ListView";
+import CalendarView from "../../../components/CalendarView";
 
 export const Attendance = () => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("List View");
-  const [calendarLoading, setCalendarLoading] = useState(false);
 
   const handleTabChange = (val) => {
     setActiveTab(val);
-    if (val === "Calendar View") {
-      setCalendarLoading(true);
-    } else {
-      setCalendarLoading(false);
-    }
   };
+
+  const handleEditDetails = () => {
+    navigate("/admin/peopleHub/employees/attendance/edit");
+  };
+
   return (
     <Wrapper>
       <HeaderRow>
@@ -30,7 +31,7 @@ export const Attendance = () => {
           </IconWrap>
           <Title>Attendance</Title>
         </LeftHead>
-        <EditBtn>
+        <EditBtn onClick={handleEditDetails}>
           <img src={EditIcon} alt="edit" width="16" height="16" />
           Edit details
         </EditBtn>
@@ -107,15 +108,10 @@ export const Attendance = () => {
         active={activeTab}
         onChange={handleTabChange}
       />
-      {activeTab === "Calendar View" && calendarLoading && (
-        <SpinnerWrap>
-          <Spinner style={{ color: theme.colors.primary }} />
-        </SpinnerWrap>
-      )}
       {activeTab === "List View" ? (
-        <Section>List View content</Section>
+        <ListView />
       ) : (
-        <AttendanceCalendar onReady={() => setCalendarLoading(false)} />
+        <CalendarView />
       )}
     </Wrapper>
   );
@@ -182,19 +178,4 @@ const EditBtn = styled.button`
   font-weight: 600;
   font-family: "Inter-SemiBold", sans-serif;
   cursor: pointer;
-`;
-
-const SpinnerWrap = styled.div`
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 1rem 0;
-`;
-
-const Section = styled.div`
-  background: ${theme.colors.white};
-  border: 1px solid ${theme.colors.border};
-  border-radius: 8px;
-  padding: 1rem;
 `;

@@ -5,7 +5,7 @@ import CalenderIcon from "../assets/images/Leave manage/calendar.svg";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 
-const CalenderInput = ({ onDateSelect, initialDate, label = "Date" }) => {
+const CalenderInput = ({ onDateSelect, initialDate, label = "Date", labelMargin = "1rem 0 0.625rem 0" }) => {
   const [selectedDate, setSelectedDate] = useState(null);
   const datePickerRef = useRef(null);
 
@@ -32,7 +32,7 @@ const CalenderInput = ({ onDateSelect, initialDate, label = "Date" }) => {
 
   return (
     <FieldWrapper>
-      <Label>{label}</Label>
+      <Label $margin={labelMargin}>{label}</Label>
       <InputWrapper>
         <StyledDatePicker
           ref={datePickerRef}
@@ -75,7 +75,7 @@ const Label = styled.p`
   font-weight: 500;
   line-height: 160%;
   color: ${theme.colors.primaryGreen};
-  margin: 1rem 0 0.625rem 0;
+  margin: ${(props) => props.$margin || "1rem 0 0.625rem 0"};
 `;
 
 const FieldWrapper = styled.div`
