@@ -5,6 +5,7 @@ import theme from "../../theme/theme";
 import Stepper from "../../components/Stepper";
 import PersonalInfo from "./PersonalInfo/PersonalInfo";
 import AddWorkDetails from "./Work Details/AddWorkDetails";
+import Documents from "./Documents/Documents";
 import Button from "../../components/Button";
 
 const CreateEmployee = () => {
@@ -42,10 +43,7 @@ const CreateEmployee = () => {
           <PersonalInfo/>
         )}
         {currentStep === 2 && (
-          <Section>
-            <SectionTitle>Document Upload</SectionTitle>
-            <p>Document upload form content goes here...</p>
-          </Section>
+          <Documents/>
         )}
         {currentStep === 3 && (
           <AddWorkDetails/>

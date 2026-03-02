@@ -108,7 +108,7 @@ const AddTeamModal = ({ isOpen, onClose, onSave }) => {
             text="Cancel"
             bg={theme.colors.white}
             color={theme.colors.primary}
-            border={`2px solid ${theme.colors.primary}`}
+            border={`1px solid ${theme.colors.primary}`}
             width="48%"
             radius="0.625rem"
             fontSize="0.875rem"

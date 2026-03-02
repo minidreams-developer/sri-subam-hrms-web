@@ -93,16 +93,20 @@ const SidebarItems = [
     iconDark: MoneyIcon,
     submenu: [
       {
-        name: "A",
-        path: "/admin/pay-hub/a",
+        name: "Payroll",
+        path: "/admin/pay-hub/payRoll",
       },
       {
-        name: "B",
-        path: "/admin/pay-hub/b",
+        name: "Paysheet",
+        path: "/admin/pay-hub/paySheet",
       },
       {
-        name: "C",
-        path: "/admin/pay-hub/c",
+        name: "Stop Payroll",
+        path: "/admin/pay-hub/stopPayroll",
+      },
+      {
+        name: "Addition & Deductions",
+        path: "/admin/pay-hub/additionDeductions",
       },
     ],
   },

@@ -18,6 +18,7 @@ import AddLeave from "../pages/Leave Attendance/Add Leave/AddLeave";
 import OverTimeManage from "../pages/OverTime Management";
 import ShiftManagement from "../pages/Shift Management/ShiftManagement";
 import AddShift from "../pages/Shift Management/AddShift";
+import OffBoarding from "../pages/OffBoarding/OffBoarding";
 
 const publicRoutes = [
   { path: "/", component: <Login /> },
@@ -89,6 +90,10 @@ const privateRoutes = [
       {
         path: "time-hub/shiftManagement/addNewShift",
         element: <AddShift />,
+      },
+      {
+        path: "people/off-boarding",
+        element: <OffBoarding />,
       },
     ],
   },

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import styled from "styled-components";
 import theme from "../theme/theme";
 import EyeIcon from "../assets/images/employee/eye.svg";
+import CrossIcon from "../assets/images/employee/cross.svg";
 import DocIcon from "../assets/images/employee/document.svg";
 
 const FileUploadComponent = ({
@@ -9,6 +10,12 @@ const FileUploadComponent = ({
   fileName = "",
   fileType,
   onView,
+  onRemove,
+  showEye = true,
+  showCross = false,
+  showKeepOriginal = false,
+  keepOriginal = false,
+  onKeepOriginalChange,
 }) => {
   const [localName, setLocalName] = useState(fileName);
   const [labelText, setLabelText] = useState(label);
@@ -43,25 +50,66 @@ const FileUploadComponent = ({
     }
   };
 
+  const handleRemove = () => {
+    if (onRemove) {
+      onRemove();
+    }
+  };
+
+  const handleCheckboxChange = (e) => {
+    if (onKeepOriginalChange) {
+      onKeepOriginalChange(e.target.checked);
+    }
+  };
+
   return (
     <Wrapper>
       {labelText && <Label>{labelText}</Label>}
-      <Box>
-        <Left>
-          <DocBadge src={DocIcon} alt="doc" width="16" height="16" />
-          <FileName>{localName || "File Name"}</FileName>
-        </Left>
-        <EyeButton
-          onClick={(e) => {
-            e.stopPropagation();
-            handleView();
-          }}
-          src={EyeIcon}
-          alt="view"
-          width="16"
-          height="16"
-        />
-      </Box>
+      <BoxWrapper>
+        <Box>
+          <Left>
+            <DocBadge src={DocIcon} alt="doc" width="16" height="16" />
+            <FileName>{localName || "File Name"}</FileName>
+          </Left>
+          {showEye && (
+            <EyeButton
+              onClick={(e) => {
+                e.stopPropagation();
+                handleView();
+              }}
+              src={EyeIcon}
+              alt="view"
+              width="16"
+              height="16"
+            />
+          )}
+        </Box>
+        {showCross && (
+          <CrossButton
+            onClick={(e) => {
+              e.stopPropagation();
+              handleRemove();
+            }}
+            src={CrossIcon}
+            alt="remove"
+            width="16"
+            height="16"
+          />
+        )}
+      </BoxWrapper>
+      {showKeepOriginal && (
+        <CheckboxWrapper>
+          <Checkbox
+            type="checkbox"
+            id={`keep-original-${fileName}`}
+            checked={keepOriginal}
+            onChange={handleCheckboxChange}
+          />
+          <CheckboxLabel htmlFor={`keep-original-${fileName}`}>
+            Keep Original
+          </CheckboxLabel>
+        </CheckboxWrapper>
+      )}
     </Wrapper>
   );
 };
@@ -72,20 +120,27 @@ const Wrapper = styled.div`
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
 `;
 
 const Label = styled.p`
-  font-size: 0.875rem;
-  font-weight: 500;
-  font-family: "Inter-Medium", sans-serif;
+  font-size: 1rem;
+  font-family: "Inter_18pt-Medium", sans-serif;
+  font-weight: 400;
+  line-height: 160%;
   color: ${theme.colors.textColor};
-  margin: 0 0 0.3rem 0;
+  margin: 0 0 0.625rem 0;
+`;
+
+const BoxWrapper = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
 `;
 
 const Box = styled.div`
-  width: 100%;
-  min-height: 48px;
+  flex: 1;
+  height: 48px;
   border: 1px solid ${theme.colors.border};
   background: #edf6f966;
   border-radius: 12px;
@@ -125,4 +180,41 @@ const EyeButton = styled.img`
   width: 28px;
   height: 28px;
   cursor: pointer;
+`;
+
+const CrossButton = styled.img`
+  width: 1.5rem;
+  height: 1.5rem;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: opacity 0.2s;
+
+  &:hover {
+    opacity: 0.7;
+  }
+`;
+
+const CheckboxWrapper = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  margin-top: 1rem;
+`;
+
+const Checkbox = styled.input`
+  width: 1.25rem;
+  height: 1.25rem;
+  cursor: pointer;
+  accent-color: ${theme.colors.primary};
+  border-radius: 4px;
+  background-color: ${theme.colors.bgColor};
+`;
+
+const CheckboxLabel = styled.label`
+  font-size: 1rem;
+  font-family: "Inter_18pt-Medium", sans-serif;
+  font-weight: 400;
+  color: ${theme.colors.textColor};
+  cursor: pointer;
+  user-select: none;
 `;
