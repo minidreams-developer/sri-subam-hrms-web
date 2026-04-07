@@ -177,3 +177,115 @@ export const staffLeavesData = [
     action: "...",
   },
 ];
+
+export const offboardingEmployeeColumns = [
+  { header: "Employee", accessor: "employee" },
+  { header: "Department", accessor: "department" },
+  { header: "Exit Type", accessor: "exitType" },
+  { header: "LWD", accessor: "lwd" },
+  { header: "FnF", accessor: "fnf" },
+  { header: "Assets", accessor: "assets" },
+  { header: "Status", accessor: "status" },
+  { header: "Action", accessor: "action" },
+];
+
+export const offboardingEmployeeData = [
+  {
+    employee: {
+      name: "John Doe",
+      role: "Software Engineer",
+      profileImage: null,
+    },
+    department: "IT",
+    exitType: "Resignation",
+    lwd: "2026-04-30",
+    fnf: "Pending",
+    assets: "Returned",
+    status: "Pending",
+    action: "...",
+  },
+  {
+    employee: {
+      name: "Jane Smith",
+      role: "HR Manager",
+      profileImage: null,
+    },
+    department: "HR",
+    exitType: "Termination",
+    lwd: "2026-04-15",
+    fnf: "Completed",
+    assets: "Pending",
+    status: "Completed",
+    action: "...",
+  },
+  {
+    employee: {
+      name: "Bob Johnson",
+      role: "Sales Executive",
+      profileImage: null,
+    },
+    department: "Sales",
+    exitType: "Resignation",
+    lwd: "2026-05-10",
+    fnf: "Pending",
+    assets: "Returned",
+    status: "Pending",
+    action: "...",
+  },
+  {
+    employee: {
+      name: "Emily Richards",
+      role: "QA Engineer",
+      profileImage: null,
+    },
+    department: "IT",
+    exitType: "Retirement",
+    lwd: "2026-03-31",
+    fnf: "Completed",
+    assets: "Returned",
+    status: "Completed",
+    action: "...",
+  },
+];
+
+export const offboardingStaffColumns = [
+  { header: "Staff", accessor: "staff" },
+  { header: "Department", accessor: "department" },
+  { header: "Exit Type", accessor: "exitType" },
+  { header: "LWD", accessor: "lwd" },
+  { header: "FnF", accessor: "fnf" },
+  { header: "Assets", accessor: "assets" },
+  { header: "Status", accessor: "status" },
+  { header: "Action", accessor: "action" },
+];
+
+export const offboardingStaffData = [
+  {
+    staff: {
+      name: "Alice Brown",
+      role: "Office Admin",
+      profileImage: null,
+    },
+    department: "Operations",
+    exitType: "Resignation",
+    lwd: "2026-04-20",
+    fnf: "Pending",
+    assets: "Returned",
+    status: "Pending",
+    action: "...",
+  },
+  {
+    staff: {
+      name: "Mark Lee",
+      role: "Receptionist",
+      profileImage: null,
+    },
+    department: "Front Desk",
+    exitType: "Termination",
+    lwd: "2026-04-10",
+    fnf: "Completed",
+    assets: "Returned",
+    status: "Completed",
+    action: "...",
+  },
+];

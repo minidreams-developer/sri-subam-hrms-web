@@ -23,6 +23,7 @@ const TableToolbar = ({
   actionIcon,
   widths = { search: "24rem", select: "12rem" },
   title,
+  titleIcon,
   searchPosition = "left",
   showDotIcon = false,
   dotIcon,
@@ -31,7 +32,10 @@ const TableToolbar = ({
     <Bar>
       <Left>
         {title ? (
-          <Title>{title}</Title>
+          <TitleWrapper>
+            {titleIcon && <TitleIcon src={titleIcon} alt="title icon" />}
+            <Title>{title}</Title>
+          </TitleWrapper>
         ) : (
           searchPosition === "left" && (
             <SearchWrap $w={widths.search}>
@@ -120,6 +124,17 @@ const TableToolbar = ({
 };
 
 export default TableToolbar;
+
+const TitleWrapper = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+`;
+
+const TitleIcon = styled.img`
+  width: 2.5rem;
+  height: 2.5rem;
+`;
 
 const Title = styled.h2`
   font-family: "Inter", sans-serif;

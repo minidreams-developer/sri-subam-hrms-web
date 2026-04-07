@@ -48,11 +48,11 @@ const SidebarItems = [
       },
       {
         name: "Hierarchy",
-        path: "/admin/people/hierarchy",
+        path: "/admin/peopleHub/hierarchy",
       },
       {
         name: "Off-Boarding",
-        path: "/admin/people/off-boarding",
+        path: "/admin/peopleHub/off-boarding",
       },
     ],
   },

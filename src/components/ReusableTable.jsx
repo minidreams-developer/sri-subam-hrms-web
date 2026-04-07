@@ -397,6 +397,8 @@ const StatusBadgeText = styled.p`
   margin: 0;
   color: ${({ $status }) => {
     const s = String($status || "").toLowerCase();
+    if (s === "completed") return "#22AA4E";
+    if (s === "pending") return "#FA0000";
     if (s === "active") return "#16a34a";
     if (s === "relieved") return "#dc2626";
     if (s === "inactive" || s === "in-active" || s === "in active")

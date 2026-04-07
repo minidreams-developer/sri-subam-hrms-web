@@ -11,14 +11,17 @@ import EditAttendanceDetails from "../pages/EmployeeProfile/Attendance/EditAtten
 import CreateEmployee from "../pages/Create Employee/CreateEmployee";
 import Teams from "../pages/Teams/Teams";
 import TeamDetails from "../pages/Teams/TeamDetails";
+import Hierarchy from "../pages/Hierarchy/Hierarchy";
 import Branches from "../pages/Branches/Branches";
 import CreateBranch from "../pages/Branches/CreateBranch";
 import LeaveAttendance from "../pages/Leave Attendance/LeaveAttendance";
 import AddLeave from "../pages/Leave Attendance/Add Leave/AddLeave";
+import EditLeave from "../pages/Leave Attendance/Edit Leave/EditLeave";
 import OverTimeManage from "../pages/OverTime Management";
 import ShiftManagement from "../pages/Shift Management/ShiftManagement";
 import AddShift from "../pages/Shift Management/AddShift";
 import OffBoarding from "../pages/OffBoarding/OffBoarding";
+import EmployeeOffboardDetails from "../pages/OffBoarding/EmployeeOffboardDetails";
 
 const publicRoutes = [
   { path: "/", component: <Login /> },
@@ -60,6 +63,10 @@ const privateRoutes = [
         element: <TeamDetails />,
       },
       {
+        path: "peopleHub/hierarchy",
+        element: <Hierarchy />,
+      },
+      {
         path: "peopleHub/branch",
         element: <Branches />,
       },
@@ -80,6 +87,10 @@ const privateRoutes = [
         element: <AddLeave />,
       },
       {
+        path: "time-hub/leaveAttendance/edit-Leave",
+        element: <EditLeave />,
+      },
+      {
         path: "time-hub/overTime-management",
         element: <OverTimeManage />,
       },
@@ -92,8 +103,12 @@ const privateRoutes = [
         element: <AddShift />,
       },
       {
-        path: "people/off-boarding",
+        path: "peopleHub/off-boarding",
         element: <OffBoarding />,
+      },
+      {
+        path: "peopleHub/off-boarding/EmployeeOffBoardingDetails",
+        element: <EmployeeOffboardDetails />,
       },
     ],
   },

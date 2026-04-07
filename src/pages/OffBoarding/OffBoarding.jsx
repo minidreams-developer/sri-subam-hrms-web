@@ -9,12 +9,13 @@ import Button from "../../components/Button";
 import TableToolbar from "../../components/TableToolbar";
 import PlusIcon from "../../assets/images/Dashboard Images/plus-large_svgrepo.com.svg";
 import TabSwitcher from "../../components/TabSwitcher";
+import ProfileImage from "../../assets/images/employee/sampleProfile.jpg";
 import {
   dashboardStats,
-  employeeTableColumns,
-  employeeTableData,
-  staffTableColumns,
-  staffTableData,
+  offboardingEmployeeColumns,
+  offboardingEmployeeData,
+  offboardingStaffColumns,
+  offboardingStaffData,
 } from "../../utils/data";
 
 const OffBoarding = () => {
@@ -32,31 +33,73 @@ const OffBoarding = () => {
   const [staffShift, setStaffShift] = useState("All Shifts");
 
   const handleRowClick = (row) => {
-    navigate("/admin/peopleHub/employees/employeeProfile");
+    navigate("/admin/peopleHub/off-boarding/EmployeeOffBoardingDetails");
   };
 
   const handleNewOffBoarding = () => {
-    // Navigate to create offboarding page when needed
     console.log("Create new offboarding");
   };
 
-  const filteredEmployeeData = employeeTableData.filter((row) => {
+  const filteredEmployeeData = offboardingEmployeeData.filter((row) => {
     const m1 =
       employeeDept === "All Department" || row.department === employeeDept;
     const m2 = employeeShift === "All Shifts" || row.shift === employeeShift;
     const m3 =
       !employeeSearch ||
-      row.name.toLowerCase().includes(employeeSearch.toLowerCase());
+      row.employee.name.toLowerCase().includes(employeeSearch.toLowerCase());
     return m1 && m2 && m3;
   });
 
-  const filteredStaffData = staffTableData.filter((row) => {
+  const filteredStaffData = offboardingStaffData.filter((row) => {
     const m1 = staffRole === "All Roles" || row.role === staffRole;
     const m2 = staffShift === "All Shifts" || row.shift === staffShift;
     const m3 =
       !staffSearch ||
-      row.name.toLowerCase().includes(staffSearch.toLowerCase());
+      row.staff.name.toLowerCase().includes(staffSearch.toLowerCase());
     return m1 && m2 && m3;
+  });
+
+  // Custom columns with employee renderer
+  const employeeColumnsWithRenderer = offboardingEmployeeColumns.map((col) => {
+    if (col.accessor === "employee") {
+      return {
+        ...col,
+        render: (row) => (
+          <EmployeeCell>
+            <EmployeeAvatar
+              src={row.employee.profileImage || ProfileImage}
+              alt={row.employee.name}
+            />
+            <EmployeeInfo>
+              <EmployeeName>{row.employee.name}</EmployeeName>
+              <EmployeeRole>{row.employee.role}</EmployeeRole>
+            </EmployeeInfo>
+          </EmployeeCell>
+        ),
+      };
+    }
+    return col;
+  });
+
+  const staffColumnsWithRenderer = offboardingStaffColumns.map((col) => {
+    if (col.accessor === "staff") {
+      return {
+        ...col,
+        render: (row) => (
+          <EmployeeCell>
+            <EmployeeAvatar
+              src={row.staff.profileImage || ProfileImage}
+              alt={row.staff.name}
+            />
+            <EmployeeInfo>
+              <EmployeeName>{row.staff.name}</EmployeeName>
+              <EmployeeRole>{row.staff.role}</EmployeeRole>
+            </EmployeeInfo>
+          </EmployeeCell>
+        ),
+      };
+    }
+    return col;
   });
 
   return (
@@ -144,7 +187,7 @@ const OffBoarding = () => {
             onActionClick={handleNewOffBoarding}
           />
           <ReusableTable
-            columns={employeeTableColumns}
+            columns={employeeColumnsWithRenderer}
             data={filteredEmployeeData}
             rowsPerPage={5}
             totalResults={filteredEmployeeData.length}
@@ -174,7 +217,7 @@ const OffBoarding = () => {
             actionIcon={<img src={PlusIcon} alt="add" width="16" height="16" />}
           />
           <ReusableTable
-            columns={staffTableColumns}
+            columns={staffColumnsWithRenderer}
             data={filteredStaffData}
             rowsPerPage={5}
             totalResults={filteredStaffData.length}
@@ -269,6 +312,44 @@ const Controls = styled.div`
 
 const FilterSelect = styled.div`
   width: 12rem;
+`;
+
+const EmployeeCell = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+`;
+
+const EmployeeAvatar = styled.img`
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+`;
+
+const EmployeeInfo = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+`;
+
+const EmployeeName = styled.p`
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-family: "Inter-SemiBold", sans-serif;
+  color: ${theme.colors.textColor};
+  margin: 0;
+  line-height: 1.2;
+`;
+
+const EmployeeRole = styled.p`
+  font-size: 0.75rem;
+  font-weight: 400;
+  font-family: "Inter-Regular", sans-serif;
+  color: ${theme.colors.secondaryText};
+  margin: 0;
+  line-height: 1.2;
 `;
 
 export default OffBoarding;

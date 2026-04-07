@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
-import theme from "../../theme/theme";
 import ReusableTable from "../../components/ReusableTable";
 import PlusIcon from "../../assets/images/Dashboard Images/plus-large_svgrepo.com.svg";
+import TeamsIcon from "../../assets/images/Team/teams.svg";
 import TableToolbar from "../../components/TableToolbar";
 import AddTeamModal from "../../components/AddTeamModal";
 
@@ -72,6 +72,7 @@ const Teams = () => {
     <Container>
        <TableToolbar
         title={"All Teams"}
+        titleIcon={TeamsIcon}
         searchPosition="right"
         searchPlaceholder="Search Teams"
         searchValue={searchValue}
