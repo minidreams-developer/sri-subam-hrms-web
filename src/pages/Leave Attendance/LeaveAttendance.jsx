@@ -6,6 +6,7 @@ import GreenArrow from "../../assets/images/Dashboard Images/green.svg";
 import RedArrow from "../../assets/images/Dashboard Images/red.svg";
 import { employeeStats } from "../../utils/data";
 import TabSwitcher from "../../components/TabSwitcher";
+import EmployeeLeaves from "./Employee Leaves/EmployeeLeaves";
 import StaffLeaves from "./Staff Leaves/StaffLeaves";
 import Permissions from "./Permissions/Permissions";
 
@@ -62,9 +63,7 @@ const LeaveAttendance = () => {
         active={activeTab}
         onChange={setActiveTab}
       />
-      {activeTab === "Employee Leaves" && (
-        <Section>Employee Leaves content</Section>
-      )}
+      {activeTab === "Employee Leaves" && <EmployeeLeaves />}
       {activeTab === "Staffs Leaves" && <StaffLeaves />}
       {activeTab === "Permissions" && <Permissions />}
     </Container>
@@ -78,12 +77,6 @@ const Container = styled.div`
   padding: 1.5rem 0;
 `;
 
-const Section = styled.div`
-  background: ${theme.colors.white};
-  border: 1px solid ${theme.colors.border};
-  border-radius: 8px;
-  padding: 1rem;
-`;
 const Top = styled.div`
   width: 100%;
   display: flex;

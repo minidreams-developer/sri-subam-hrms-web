@@ -37,7 +37,7 @@ const OffBoarding = () => {
   };
 
   const handleNewOffBoarding = () => {
-    console.log("Create new offboarding");
+    navigate("/admin/peopleHub/off-boarding/createEmployeeOffBoard");
   };
 
   const filteredEmployeeData = offboardingEmployeeData.filter((row) => {

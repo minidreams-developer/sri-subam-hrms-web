@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import styled from "styled-components";
 import theme from "../../../theme/theme";
 import { customSelectStyles } from "../../../theme/reactSelectStyles";
@@ -9,6 +10,7 @@ import CalenderInput from "../../../components/CalenderInput";
 import TimeInputComponent from "../../../components/TimeInputComponent";
 
 const AddLeave = () => {
+  const [searchParams] = useSearchParams();
   const options = [
     { value: "John Doe", label: "John Doe" },
     { value: "Jane Smith", label: "Jane Smith" },
@@ -29,6 +31,15 @@ const AddLeave = () => {
   const [startTime, setStartTime] = useState(null);
   const [endTime, setEndTime] = useState(null);
   const [remarks, setRemarks] = useState("");
+
+  useEffect(() => {
+    const type = searchParams.get("type");
+    if (type === "permission") {
+      setLeaveType(leaveOptions[0]); // Permission
+    } else {
+      setLeaveType(leaveOptions[1]); // Leave
+    }
+  }, [searchParams]);
 
   return (
     <Container>

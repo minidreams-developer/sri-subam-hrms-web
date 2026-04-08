@@ -1,10 +1,12 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import ReusableTable from "../../../components/ReusableTable";
 import { staffLeavesData } from "../../../utils/data";
 import TableToolbar from "../../../components/TableToolbar";
 import PlusIcon from "../../../assets/images/Dashboard Images/plus-large_svgrepo.com.svg";
 
 const Permissions = () => {
+  const navigate = useNavigate();
   const columns = [
     { header: "Staff ID", accessor: "staffId" },
     { header: "Name", accessor: "name" },
@@ -16,6 +18,10 @@ const Permissions = () => {
   ];
   const [search, setSearch] = useState("");
   const [leaveType, setLeaveType] = useState("All Types");
+
+  const handleAddPermission = () => {
+    navigate("/admin/time-hub/leaveAttendance/add-LeaveOrPermissions?type=permission");
+  };
 
   const filtered = staffLeavesData.filter((row) => {
     const m1 =
@@ -50,6 +56,7 @@ const Permissions = () => {
         filterText="Filter"
         actionText="Add Permissions"
         actionIcon={<img src={PlusIcon} alt="add" width="16" height="16" />}
+        onActionClick={handleAddPermission}
       />
       <ReusableTable
         columns={columns}

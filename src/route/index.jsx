@@ -22,6 +22,8 @@ import ShiftManagement from "../pages/Shift Management/ShiftManagement";
 import AddShift from "../pages/Shift Management/AddShift";
 import OffBoarding from "../pages/OffBoarding/OffBoarding";
 import EmployeeOffboardDetails from "../pages/OffBoarding/EmployeeOffboardDetails";
+import CreateEmployeeOffboard from "../pages/OffBoarding/CreateEmployeeOffboard";
+import Leaderboard from "../pages/Leaderboard/Leaderboard";
 
 const publicRoutes = [
   { path: "/", component: <Login /> },
@@ -83,7 +85,7 @@ const privateRoutes = [
         element: <LeaveAttendance />,
       },
       {
-        path: "time-hub/leaveAttendance/add-Leave",
+        path: "time-hub/leaveAttendance/add-LeaveOrPermissions",
         element: <AddLeave />,
       },
       {
@@ -107,8 +109,16 @@ const privateRoutes = [
         element: <OffBoarding />,
       },
       {
+        path: "peopleHub/off-boarding/createEmployeeOffBoard",
+        element: <CreateEmployeeOffboard />,
+      },
+      {
         path: "peopleHub/off-boarding/EmployeeOffBoardingDetails",
         element: <EmployeeOffboardDetails />,
+      },
+      {
+        path: "time-hub/leaderboard",
+        element: <Leaderboard />,
       },
     ],
   },

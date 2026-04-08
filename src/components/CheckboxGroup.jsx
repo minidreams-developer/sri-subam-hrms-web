@@ -91,7 +91,7 @@ const StyledCheckbox = styled.label`
   height: 1.25rem;
   border: 2px solid ${(props) => (props.$checked ? theme.colors.primary : "#D0D5DD")};
   border-radius: 4px;
-  background-color: ${(props) => (props.$checked ? theme.colors.primary : theme.colors.white)};
+  background-color: ${(props) => (props.$checked ? theme.colors.primary : theme.colors.bgColor)};
   cursor: pointer;
   transition: all 0.2s ease;
 
