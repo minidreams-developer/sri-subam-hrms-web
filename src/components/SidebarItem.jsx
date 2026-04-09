@@ -94,7 +94,7 @@ const SidebarItems = [
     submenu: [
       {
         name: "Payroll",
-        path: "/admin/pay-hub/payRoll",
+        path: "/admin/pay-hub/payroll",
       },
       {
         name: "Paysheet",

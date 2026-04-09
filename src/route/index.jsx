@@ -26,6 +26,7 @@ import CreateEmployeeOffboard from "../pages/OffBoarding/CreateEmployeeOffboard"
 import Leaderboard from "../pages/Leaderboard/Leaderboard";
 import DayOffAndHoliday from "../pages/DayOffAndHoliday/DayOffAndHoliday";
 import AddHoliday from "../pages/DayOffAndHoliday/AddHoliday";
+import Payroll from "../pages/Payroll/Payroll";
 
 const publicRoutes = [
   { path: "/", component: <Login /> },
@@ -129,6 +130,10 @@ const privateRoutes = [
       {
         path: "time-hub/dayOffHolidays/createNewHoliday",
         element: <AddHoliday />,
+      },
+      {
+        path: "pay-hub/payroll",
+        element: <Payroll />,
       },
     ],
   },
