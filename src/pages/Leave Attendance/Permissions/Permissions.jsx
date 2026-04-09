@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import ReusableTable from "../../../components/ReusableTable";
 import { staffLeavesData } from "../../../utils/data";
 import TableToolbar from "../../../components/TableToolbar";
-import PlusIcon from "../../../assets/images/Dashboard Images/plus-large_svgrepo.com.svg";
+import PlusIcon from "../../../assets/images/DashboardImages/plus-large_svgrepo.com.svg";
 
 const Permissions = () => {
   const navigate = useNavigate();

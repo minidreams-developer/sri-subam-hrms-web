@@ -2,12 +2,12 @@ import React from "react";
 import styled from "styled-components";
 import theme from "../../theme/theme";
 import Button from "../../components/Button";
-import GreenArrow from "../../assets/images/Dashboard Images/green.svg";
-import RedArrow from "../../assets/images/Dashboard Images/red.svg";
+import GreenArrow from "../../assets/images/DashboardImages/green.svg";
+import RedArrow from "../../assets/images/DashboardImages/red.svg";
 import { overTimeStats } from "../../utils/data";
 import TabSwitcher from "../../components/TabSwitcher";
-import PlusIcon from "../../assets/images/Dashboard Images/plus-large_svgrepo.com.svg";
-import actionIcon from "../../assets/images/Over time/actionDot.svg";
+import PlusIcon from "../../assets/images/DashboardImages/plus-large_svgrepo.com.svg";
+import actionIcon from "../../assets/images/Overtime/actionDot.svg";
 import Pending from "./Pending/Pending";
 import Approved from "./Approved/Approved";
 

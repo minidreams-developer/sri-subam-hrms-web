@@ -3,7 +3,7 @@ import styled from "styled-components";
 import theme from "../theme/theme";
 import SearchInputComponent from "./SearchInputComponent";
 import Button from "./Button";
-import FilterIcon from "../assets/images/Dashboard Images/filtericon.svg";
+import FilterIcon from "../assets/images/DashboardImages/filtericon.svg";
 
 const TableToolbar = ({
   searchPlaceholder = "Search",

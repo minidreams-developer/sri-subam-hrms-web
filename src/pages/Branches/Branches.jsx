@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import theme from "../../theme/theme";
 import ReusableTable from "../../components/ReusableTable";
-import PlusIcon from "../../assets/images/Dashboard Images/plus-large_svgrepo.com.svg";
+import PlusIcon from "../../assets/images/DashboardImages/plus-large_svgrepo.com.svg";
 import TableToolbar from "../../components/TableToolbar";
 import BranchDetailsSidebar from "./BranchDetailsSidebar";
 

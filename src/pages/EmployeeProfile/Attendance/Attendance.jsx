@@ -5,7 +5,7 @@ import theme from "../../../theme/theme";
 import TopIcon from "../../../assets/images/employee/calendar.svg";
 import EditIcon from "../../../assets/images/employee/editIcon.svg";
 import CardDetails from "../../../components/CardDetails";
-import PlusIcon from "../../../assets/images/Dashboard Images/plus-large_svgrepo.com.svg";
+import PlusIcon from "../../../assets/images/DashboardImages/plus-large_svgrepo.com.svg";
 import TabSwitcher from "../../../components/TabSwitcher";
 import ListView from "../../../components/ListView";
 import CalendarView from "../../../components/CalendarView";

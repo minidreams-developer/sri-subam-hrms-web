@@ -2,7 +2,7 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import theme from "../../theme/theme";
-import HrmsLogo from "../../assets/images/Dashboard Images/main_logo.svg";
+import HrmsLogo from "../../assets/images/DashboardImages/main_logo.svg";
 import BGImage from "../../assets/images/Login/loginImage.jpg";
 import InputComponent from "../../components/InputComponent";
 import { Spinner } from "reactstrap";

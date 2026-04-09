@@ -7,7 +7,7 @@ import InputComponent from "../../components/InputComponent";
 import Select from "react-select";
 import { customSelectStyles } from "../../theme/reactSelectStyles";
 import CheckboxGroup from "../../components/CheckboxGroup";
-import PlusIcon from "../../assets/images/Dashboard Images/plus-large_svgrepo.com.svg";
+import PlusIcon from "../../assets/images/DashboardImages/plus-large_svgrepo.com.svg";
 import Button from "../../components/Button";
 
 const CreateEmployeeOffboard = () => {

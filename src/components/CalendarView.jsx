@@ -1,38 +1,68 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import styled from "styled-components";
 import theme from "../theme/theme";
 import { BsThreeDots } from "react-icons/bs";
 import GreenTik from "../assets/images/Team/greenTik.svg";
 import RedTik from "../assets/images/Team/redTik.svg";
 import InfoTik from "../assets/images/Team/infoTik.svg";
+import CalendarIcon from "../assets/images/Leavemanage/calendar.svg";
 
-const CalendarView = () => {
-  const [currentDate] = useState(new Date());
+const CalendarView = ({ currentYear = new Date().getFullYear(), showAttendance = true, holidays = [] }) => {
+  const [calendarData, setCalendarData] = useState({});
 
-  // Sample data for demonstration
-  const calendarData = {
-    "2026-01": {
-      1: { type: "holiday", label: "New Year", hours: null, description: "New Year Holiday for staffs Only" },
-      2: { type: "present", label: "8.23 Hrs", hours: "8.23" },
-      4: { type: "half-day", label: "4.26 Hrs", hours: "4.26" },
-      5: { type: "present", label: "8.23 Hrs", hours: "8.23" },
-      6: { type: "present", label: "8.23 Hrs", hours: "8.23" },
-      7: { type: "present", label: "8.23 Hrs", hours: "8.23" },
-      8: { type: "present", label: "8.23 Hrs", hours: "8.23" },
-      9: { type: "present", label: "8.23 Hrs", hours: "8.23" },
-      11: { type: "present", label: "8.23 Hrs", hours: "8.23" },
-      12: { type: "absent", label: "Absent", hours: null },
-      14: { type: "holiday", label: "Pongal", hours: null, description: "Pongal Holiday for every staff and employees" },
-      15: { type: "holiday", label: "Mattu Pongal", hours: null, description: "Pongal Holiday for every staff and employees" },
-      26: { type: "holiday", label: "Republic day", hours: null, description: "Republic day Holiday for every staff and emplo..." },
-    },
-    "2025-12": {
-      1: { type: "holiday", label: "New Year", hours: null, description: "New Year Holiday for staffs Only" },
-      2: { type: "present", label: "8.23 Hrs", hours: "8.23" },
-      4: { type: "half-day", label: "4.28 Hrs", hours: "4.28" },
-      5: { type: "present", label: "8.23 Hrs", hours: "8.23" },
-    },
-  };
+  // Build calendar data with holidays
+  useEffect(() => {
+    // Sample attendance data (only used if showAttendance is true)
+    const baseData = showAttendance ? {
+      "2026-01": {
+        1: { type: "holiday", label: "New Year", hours: null, description: "New Year Holiday for staffs Only" },
+        2: { type: "present", label: "8.23 Hrs", hours: "8.23" },
+        4: { type: "half-day", label: "4.26 Hrs", hours: "4.26" },
+        5: { type: "present", label: "8.23 Hrs", hours: "8.23" },
+        6: { type: "present", label: "8.23 Hrs", hours: "8.23" },
+        7: { type: "present", label: "8.23 Hrs", hours: "8.23" },
+        8: { type: "present", label: "8.23 Hrs", hours: "8.23" },
+        9: { type: "present", label: "8.23 Hrs", hours: "8.23" },
+        11: { type: "present", label: "8.23 Hrs", hours: "8.23" },
+        12: { type: "absent", label: "Absent", hours: null },
+        14: { type: "holiday", label: "Pongal", hours: null, description: "Pongal Holiday for every staff and employees" },
+        15: { type: "holiday", label: "Mattu Pongal", hours: null, description: "Pongal Holiday for every staff and employees" },
+        26: { type: "holiday", label: "Republic day", hours: null, description: "Republic day Holiday for every staff and emplo..." },
+      },
+      "2025-12": {
+        1: { type: "holiday", label: "New Year", hours: null, description: "New Year Holiday for staffs Only" },
+        2: { type: "present", label: "8.23 Hrs", hours: "8.23" },
+        4: { type: "half-day", label: "4.28 Hrs", hours: "4.28" },
+        5: { type: "present", label: "8.23 Hrs", hours: "8.23" },
+      },
+    } : {};
+
+    // Merge passed holidays with base data
+    const mergedData = { ...baseData };
+    
+    holidays.forEach((holiday) => {
+      if (holiday.date) {
+        const date = new Date(holiday.date);
+        const year = date.getFullYear();
+        const month = date.getMonth() + 1;
+        const day = date.getDate();
+        const monthKey = `${year}-${String(month).padStart(2, "0")}`;
+
+        if (!mergedData[monthKey]) {
+          mergedData[monthKey] = {};
+        }
+
+        mergedData[monthKey][day] = {
+          type: "holiday",
+          label: holiday.name,
+          hours: null,
+          description: holiday.remarks || `Holiday for ${holiday.people || "all"}`,
+        };
+      }
+    });
+
+    setCalendarData(mergedData);
+  }, [holidays, showAttendance]);
 
   const getDaysInMonth = (year, month) => {
     return new Date(year, month + 1, 0).getDate();
@@ -62,7 +92,7 @@ const CalendarView = () => {
     return calendar;
   };
 
-  const renderMonth = (year, month, monthName) => {
+  const renderMonth = (year, month) => {
     const calendar = generateCalendar(year, month);
     const weeks = [];
     
@@ -70,9 +100,11 @@ const CalendarView = () => {
       weeks.push(calendar.slice(i, i + 7));
     }
 
+    const monthName = new Date(year, month, 1).toLocaleString("en-US", { month: "long" });
+
     return (
       <MonthSection key={`${year}-${month}`}>
-        <MonthTitle>{monthName}</MonthTitle>
+        <MonthTitle>{monthName} {year}</MonthTitle>
         <MonthGrid>
           {weeks.map((week, weekIndex) => (
             <WeekRow key={weekIndex}>
@@ -85,7 +117,11 @@ const CalendarView = () => {
                 const isWeekOff = cellIndex === 3; // Thursday as week off
 
                 return (
-                  <DayCell key={cellIndex} $weekOff={isWeekOff && !data}>
+                  <DayCell 
+                    key={cellIndex} 
+                    $weekOff={isWeekOff && !data}
+                    $holiday={data?.type === "holiday"}
+                  >
                     <DayNumber>
                       {day}
                       {data && data.type !== "present" && (
@@ -106,7 +142,9 @@ const CalendarView = () => {
                           {data.type === "half-day" && (
                             <TickIcon src={InfoTik} alt="half-day" />
                           )}
-                          {data.type === "holiday" && "🎉"}
+                          {data.type === "holiday" && (
+                            <HolidayIcon src={CalendarIcon} alt="holiday" />
+                          )}
                           {" "}
                           {data.label}
                         </StatusBadge>
@@ -136,8 +174,9 @@ const CalendarView = () => {
         <WeekDay>Friday</WeekDay>
         <WeekDay>Saturday</WeekDay>
       </WeekDaysRow>
-      {renderMonth(2026, 0, "January 2026")}
-      {renderMonth(2025, 11, "December 2025")}
+      {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((monthIndex) => 
+        renderMonth(currentYear, monthIndex)
+      )}
     </Container>
   );
 };
@@ -209,6 +248,7 @@ const DayCell = styled.div`
   border-right: 1px solid ${theme.colors.border};
   background: ${(props) => {
     if (props.$empty) return "transparent";
+    if (props.$holiday) return "#f5f7ff";
     if (props.$weekOff) return "repeating-linear-gradient(45deg, #f9fafb, #f9fafb 10px, #ffffff 10px, #ffffff 20px)";
     return theme.colors.white;
   }};
@@ -255,26 +295,31 @@ const StatusBadge = styled.div`
         return `
           background: #d1fae5;
           color: #065f46;
+          border: 1px solid #10b981;
         `;
       case "absent":
         return `
           background: #fee2e2;
           color: #991b1b;
+          border: 1px solid #ef4444;
         `;
       case "half-day":
         return `
           background: #fed7aa;
           color: #9a3412;
+          border: 1px solid #f97316;
         `;
       case "holiday":
         return `
           background: #e0e7ff;
           color: #3730a3;
+          border: 1px solid #6366f1;
         `;
       default:
         return `
           background: #f3f4f6;
           color: ${theme.colors.textColor};
+          border: 1px solid #d1d5db;
         `;
     }
   }}
@@ -285,11 +330,17 @@ const TickIcon = styled.img`
   height: 0.875rem;
 `;
 
+const HolidayIcon = styled.img`
+  width: 0.875rem;
+  height: 0.875rem;
+  filter: invert(32%) sepia(89%) saturate(2477%) hue-rotate(245deg) brightness(92%) contrast(91%);
+`;
+
 const Description = styled.p`
   font-size: 0.75rem;
   font-weight: 400;
   font-family: "Inter_18pt-Medium", sans-serif;
-  color: ${theme.colors.secondaryTextColor || "#6b7280"};
+  color: ${theme.colors.textColor || "#000000"};
   margin: 0;
   line-height: 1.4;
 `;

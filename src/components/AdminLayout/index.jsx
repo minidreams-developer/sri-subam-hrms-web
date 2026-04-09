@@ -5,7 +5,7 @@ import { MdMenu, MdKeyboardArrowUp, MdKeyboardArrowDown } from "react-icons/md";
 import theme from "../../theme/theme";
 import SidebarItems from "../SidebarItem";
 import { getStoredAuthUser } from "../../helpers/auth_helper";
-import MainLogo from "../../assets/images/Dashboard Images/main_logo.svg";
+import MainLogo from "../../assets/images/DashboardImages/main_logo.svg";
 
 const AdminLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);

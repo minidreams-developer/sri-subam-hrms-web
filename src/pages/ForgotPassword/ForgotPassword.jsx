@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import styled from "styled-components";
 import { useNavigate } from "react-router-dom";
 import theme from "../../theme/theme";
-import HrmsLogo from "../../assets/images/Dashboard Images/main_logo.svg";
+import HrmsLogo from "../../assets/images/DashboardImages/main_logo.svg";
 import InputComponent from "../../components/InputComponent";
 import OtpInput from "../../components/OtpInput";
 

@@ -2,12 +2,12 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import ReusableTable from "../../components/ReusableTable";
-import GreenArrow from "../../assets/images/dashboard Images/green.svg";
-import RedArrow from "../../assets/images/dashboard Images/red.svg";
+import GreenArrow from "../../assets/images/dashboardImages/green.svg";
+import RedArrow from "../../assets/images/dashboardImages/red.svg";
 import theme from "../../theme/theme";
 import Button from "../../components/Button";
 import TableToolbar from "../../components/TableToolbar";
-import PlusIcon from "../../assets/images/Dashboard Images/plus-large_svgrepo.com.svg";
+import PlusIcon from "../../assets/images/DashboardImages/plus-large_svgrepo.com.svg";
 import TabSwitcher from "../../components/TabSwitcher";
 import ProfileImage from "../../assets/images/employee/sampleProfile.jpg";
 import {

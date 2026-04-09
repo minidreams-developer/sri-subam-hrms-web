@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ReusableTable from "../../../components/ReusableTable";
 import TableToolbar from "../../../components/TableToolbar";
-import PlusIcon from "../../../assets/images/Dashboard Images/plus-large_svgrepo.com.svg";
+import PlusIcon from "../../../assets/images/DashboardImages/plus-large_svgrepo.com.svg";
 
 const EmployeeLeaves = () => {
   const navigate = useNavigate();

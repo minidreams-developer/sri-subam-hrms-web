@@ -1,8 +1,8 @@
 import { useState } from "react";
 import TableToolbar from "../../components/TableToolbar";
 import { staffLeavesData } from "../../utils/data";
-import PlusIcon from "../../assets/images/Dashboard Images/plus-large_svgrepo.com.svg";
-import actionDot from "../../assets/images/Over time/actionDot.svg";
+import PlusIcon from "../../assets/images/DashboardImages/plus-large_svgrepo.com.svg";
+import actionDot from "../../assets/images/Overtime/actionDot.svg";
 import ReusableTable from "../../components/ReusableTable";
 import ShiftDetailsSidebar from "./ShiftDetailsSidebar";
 import { useNavigate } from "react-router-dom";

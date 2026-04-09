@@ -3,7 +3,7 @@ import styled from "styled-components";
 import theme from "../../theme/theme";
 import ReusableTable from "../../components/ReusableTable";
 import TableToolbar from "../../components/TableToolbar";
-import DotIcon from "../../assets/images/Over time/actionDot.svg";
+import DotIcon from "../../assets/images/Overtime/actionDot.svg";
 import PunctualPro from "../../assets/images/Badges/PunctualPro.svg";
 import AttendanceStreak from "../../assets/images/Badges/AttendanceStreak.svg";
 import ZeroAbsenceChamp from "../../assets/images/Badges/ZeroAbsenceChamp.svg";

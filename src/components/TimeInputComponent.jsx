@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import theme from "../theme/theme";
 import styled from "styled-components";
-import ClockIcon from "../assets/images/Leave manage/clock-circle.svg";
+import ClockIcon from "../assets/images/Leavemanage/clock-circle.svg";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 

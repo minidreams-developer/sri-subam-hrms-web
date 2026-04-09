@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import theme from "../theme/theme";
 import styled from "styled-components";
-import CalenderIcon from "../assets/images/Leave manage/calendar.svg";
+import CalenderIcon from "../assets/images/Leavemanage/calendar.svg";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 

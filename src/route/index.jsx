@@ -24,6 +24,8 @@ import OffBoarding from "../pages/OffBoarding/OffBoarding";
 import EmployeeOffboardDetails from "../pages/OffBoarding/EmployeeOffboardDetails";
 import CreateEmployeeOffboard from "../pages/OffBoarding/CreateEmployeeOffboard";
 import Leaderboard from "../pages/Leaderboard/Leaderboard";
+import DayOffAndHoliday from "../pages/DayOffAndHoliday/DayOffAndHoliday";
+import AddHoliday from "../pages/DayOffAndHoliday/AddHoliday";
 
 const publicRoutes = [
   { path: "/", component: <Login /> },
@@ -119,6 +121,14 @@ const privateRoutes = [
       {
         path: "time-hub/leaderboard",
         element: <Leaderboard />,
+      },
+      {
+        path: "time-hub/dayOffHolidays",
+        element: <DayOffAndHoliday />,
+      },
+      {
+        path: "time-hub/dayOffHolidays/createNewHoliday",
+        element: <AddHoliday />,
       },
     ],
   },
