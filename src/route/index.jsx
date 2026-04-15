@@ -27,6 +27,8 @@ import Leaderboard from "../pages/Leaderboard/Leaderboard";
 import DayOffAndHoliday from "../pages/DayOffAndHoliday/DayOffAndHoliday";
 import AddHoliday from "../pages/DayOffAndHoliday/AddHoliday";
 import Payroll from "../pages/Payroll/Payroll";
+import Paysheet from "../pages/Paysheet/Paysheet";
+import StopPayroll from "../pages/StopPayroll/StopPayroll";
 
 const publicRoutes = [
   { path: "/", component: <Login /> },
@@ -134,6 +136,14 @@ const privateRoutes = [
       {
         path: "pay-hub/payroll",
         element: <Payroll />,
+      },
+      {
+        path: "pay-hub/paysheet",
+        element: <Paysheet />,
+      },
+      {
+        path: "pay-hub/stopPayroll",
+        element: <StopPayroll />,
       },
     ],
   },
