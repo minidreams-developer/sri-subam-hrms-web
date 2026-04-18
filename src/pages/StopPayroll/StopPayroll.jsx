@@ -4,9 +4,28 @@ import theme from "../../theme/theme";
 import GreenArrow from "../../assets/images/DashboardImages/green.svg";
 import RedArrow from "../../assets/images/DashboardImages/red.svg";
 import DotMenuIcon from "../../assets/images/DayOff/dot-menu.svg";
+import TabSwitcher from "../../components/TabSwitcher";
+import ReusableTable from "../../components/ReusableTable";
+import TableToolbar from "../../components/TableToolbar";
+import ProfileImage from "../../assets/images/employee/sampleProfile.jpg";
+import PlusIcon from "../../assets/images/DashboardImages/plus-large_svgrepo.com.svg";
+import {
+  dashboardStats,
+  employeeStopPayroll,
+  offboardingEmployeeData,
+  staffColumnStopPayroll,
+  offboardingStaffData,
+} from "../../utils/data";
 
 const StopPayroll = () => {
   const [selectedMonth, setSelectedMonth] = useState("This Month");
+  const [activeTab, setActiveTab] = useState("Employee");
+  const [employeeSearch, setEmployeeSearch] = useState("");
+  const [employeeDept, setEmployeeDept] = useState("All Department");
+  const [employeeShift, setEmployeeShift] = useState("All Shifts");
+  const [staffSearch, setStaffSearch] = useState("");
+  const [staffRole, setStaffRole] = useState("All Roles");
+  const [staffShift, setStaffShift] = useState("All Shifts");
 
   const quickStats = [
     { label: "Stopped Payrolls", value: "45", percentage: "12 %", isPositive: false },
@@ -14,6 +33,76 @@ const StopPayroll = () => {
     { label: "Pending Amount", value: "₹15,50,000", percentage: "8.5 %", isPositive: false },
     { label: "Released Amount", value: "₹1,85,50,000", percentage: "15.3 %", isPositive: true },
   ];
+
+   const handleRowClick = (row) => {
+    // navigate("");
+  };
+
+  const handleNewEmployee = () => {
+    // navigate("");
+  };
+
+   const filteredEmployeeData = offboardingEmployeeData.filter((row) => {
+      const m1 =
+        employeeDept === "All Department" || row.department === employeeDept;
+      const m2 = employeeShift === "All Shifts" || row.shift === employeeShift;
+      const m3 =
+        !employeeSearch ||
+        row.employee.name.toLowerCase().includes(employeeSearch.toLowerCase());
+      return m1 && m2 && m3;
+    });
+  
+    const filteredStaffData = offboardingStaffData.filter((row) => {
+      const m1 = staffRole === "All Roles" || row.role === staffRole;
+      const m2 = staffShift === "All Shifts" || row.shift === staffShift;
+      const m3 =
+        !staffSearch ||
+        row.staff.name.toLowerCase().includes(staffSearch.toLowerCase());
+      return m1 && m2 && m3;
+    });
+
+   // Custom columns with employee renderer
+    const employeeColumnsWithRenderer = employeeStopPayroll.map((col) => {
+      if (col.accessor === "employee") {
+        return {
+          ...col,
+          render: (row) => (
+            <EmployeeCell>
+              <EmployeeAvatar
+                src={row.employee.profileImage || ProfileImage}
+                alt={row.employee.name}
+              />
+              <EmployeeInfo>
+                <EmployeeName>{row.employee.name}</EmployeeName>
+                <EmployeeRole>{row.employee.role}</EmployeeRole>
+              </EmployeeInfo>
+            </EmployeeCell>
+          ),
+        };
+      }
+      return col;
+    });
+
+     const staffColumnsWithRenderer = staffColumnStopPayroll.map((col) => {
+        if (col.accessor === "staff") {
+          return {
+            ...col,
+            render: (row) => (
+              <EmployeeCell>
+                <EmployeeAvatar
+                  src={row.staff.profileImage || ProfileImage}
+                  alt={row.staff.name}
+                />
+                <EmployeeInfo>
+                  <EmployeeName>{row.staff.name}</EmployeeName>
+                  <EmployeeRole>{row.staff.role}</EmployeeRole>
+                </EmployeeInfo>
+              </EmployeeCell>
+            ),
+          };
+        }
+        return col;
+      });
 
   return (
     <Container>
@@ -51,6 +140,70 @@ const StopPayroll = () => {
             </StatCard>
           ))}
         </StatsGrid>
+        <TabSwitcher
+                tabs={[
+                  { label: "Employee", value: "Employee" },
+                  { label: "Staffs", value: "Staffs" },
+                ]}
+                active={activeTab}
+                onChange={setActiveTab}
+              />
+              {activeTab === "Employee" ? (
+                      <>
+                        <TableToolbar
+                          searchPlaceholder="Search Employee"
+                          searchValue={employeeSearch}
+                          onSearchChange={setEmployeeSearch}
+                          select1Options={["All Department", "HR", "IT", "Sales"]}
+                          select1Value={employeeDept}
+                          onSelect1Change={setEmployeeDept}
+                          select2Options={["All Shifts", "Day", "Night"]}
+                          select2Value={employeeShift}
+                          onSelect2Change={setEmployeeShift}
+                          filterText="Filter"
+                          actionText="New Employee"
+                          actionIcon={<img src={PlusIcon} alt="add" width="16" height="16" />}
+                          onActionClick={handleNewEmployee}
+                        />
+                        <ReusableTable
+                          columns={employeeColumnsWithRenderer}
+                          data={filteredEmployeeData}
+                          rowsPerPage={5}
+                          totalResults={filteredEmployeeData.length}
+                          onRowClick={handleRowClick}
+                        />
+                      </>
+                    ) : (
+                      <>
+                        <TableToolbar
+                          searchPlaceholder="Search Staff"
+                          searchValue={staffSearch}
+                          onSearchChange={setStaffSearch}
+                          select1Options={[
+                            "All Roles",
+                            "Office Admin",
+                            "Receptionist",
+                            "Facilities",
+                            "Security",
+                          ]}
+                          select1Value={staffRole}
+                          onSelect1Change={setStaffRole}
+                          select2Options={["All Shifts", "Day", "Night"]}
+                          select2Value={staffShift}
+                          onSelect2Change={setStaffShift}
+                          filterText="Filter"
+                          actionText="New Staff"
+                          actionIcon={<img src={PlusIcon} alt="add" width="16" height="16" />}
+                        />
+                        <ReusableTable
+                          columns={staffColumnsWithRenderer}
+                          data={filteredStaffData}
+                          rowsPerPage={5}
+                          totalResults={filteredStaffData.length}
+                          onRowClick={handleRowClick}
+                        />
+                      </>
+                    )}
       </QuickStatsSection>
     </Container>
   );
@@ -143,18 +296,23 @@ const StatCard = styled.div`
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+  min-width: 0;
 `;
 
 const StatHeader = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 0.5rem;
+  flex-wrap: wrap;
 `;
 
 const StatLabel = styled.span`
   font-size: 0.875rem;
   font-family: "Inter-Medium", sans-serif;
   color: ${theme.colors.secondaryTextColor};
+  flex: 1;
+  min-width: 0;
 `;
 
 const PercentageBadge = styled.span`
@@ -168,6 +326,8 @@ const PercentageBadge = styled.span`
   padding: 0.25rem 0.5rem;
   border-radius: 15px;
   border: 1px solid ${(props) => (props.$isPositive ? "#10B981" : "#EF4444")};
+  flex-shrink: 0;
+  white-space: nowrap;
 `;
 
 const StatValue = styled.h3`
@@ -176,4 +336,44 @@ const StatValue = styled.h3`
   font-family: "Inter-SemiBold", sans-serif;
   color: ${theme.colors.textColor};
   margin: 0;
+  word-break: break-word;
+  overflow-wrap: break-word;
+`;
+
+const EmployeeCell = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+`;
+
+const EmployeeAvatar = styled.img`
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+`;
+
+const EmployeeInfo = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+`;
+
+const EmployeeName = styled.p`
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-family: "Inter-SemiBold", sans-serif;
+  color: ${theme.colors.textColor};
+  margin: 0;
+  line-height: 1.2;
+`;
+
+const EmployeeRole = styled.p`
+  font-size: 0.75rem;
+  font-weight: 400;
+  font-family: "Inter-Regular", sans-serif;
+  color: ${theme.colors.secondaryText};
+  margin: 0;
+  line-height: 1.2;
 `;

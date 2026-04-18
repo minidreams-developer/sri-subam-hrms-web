@@ -289,3 +289,25 @@ export const offboardingStaffData = [
     action: "...",
   },
 ];
+
+export const employeeStopPayroll = [
+  { header: "Employee", accessor: "employee" },
+  { header: "Dept", accessor: "department" },
+  { header: "Reason", accessor: "exitType" },
+  { header: "From", accessor: "lwd" },
+  { header: "Till", accessor: "fnf" },
+  { header: "Amount", accessor: "assets" },
+  { header: "Status", accessor: "status" },
+  { header: "Action", accessor: "action" },
+];
+
+export const staffColumnStopPayroll = [
+  { header: "Staff", accessor: "staff" },
+  { header: "Department", accessor: "department" },
+  { header: "Exit Type", accessor: "exitType" },
+  { header: "LWD", accessor: "lwd" },
+  { header: "FnF", accessor: "fnf" },
+  { header: "Assets", accessor: "assets" },
+  { header: "Status", accessor: "status" },
+  { header: "Action", accessor: "action" },
+];

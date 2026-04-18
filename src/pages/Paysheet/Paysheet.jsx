@@ -232,6 +232,7 @@ const Paysheet = () => {
       </QuickStatsSection>
 
       {/* Charts Section */}
+      
       <ChartsSection>
         {/* Payroll Overview */}
         <ChartCard>
@@ -458,18 +459,23 @@ const StatCard = styled.div`
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+  min-width: 0;
 `;
 
 const StatHeader = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 0.5rem;
+  flex-wrap: wrap;
 `;
 
 const StatLabel = styled.span`
   font-size: 0.875rem;
   font-family: "Inter-Medium", sans-serif;
   color: ${theme.colors.secondaryTextColor};
+  flex: 1;
+  min-width: 0;
 `;
 
 const PercentageBadge = styled.span`
@@ -483,6 +489,8 @@ const PercentageBadge = styled.span`
   padding: 0.25rem 0.5rem;
   border-radius: 15px;
   border: 1px solid ${(props) => (props.$isPositive ? "#10B981" : "#EF4444")};
+  flex-shrink: 0;
+  white-space: nowrap;
 `;
 
 const StatValue = styled.h3`
@@ -491,6 +499,8 @@ const StatValue = styled.h3`
   font-family: "Inter-SemiBold", sans-serif;
   color: ${theme.colors.textColor};
   margin: 0;
+  word-break: break-word;
+  overflow-wrap: break-word;
 `;
 
 const ChartsSection = styled.div`
