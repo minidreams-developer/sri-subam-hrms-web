@@ -4,15 +4,23 @@ import theme from "../../theme/theme";
 import GreenArrow from "../../assets/images/DashboardImages/green.svg";
 import RedArrow from "../../assets/images/DashboardImages/red.svg";
 import DotMenuIcon from "../../assets/images/DayOff/dot-menu.svg";
+import TabSwitcher from "../../components/TabSwitcher";
+import TableToolbar from "../../components/TableToolbar";
+import PlusIcon from "../../assets/images/DashboardImages/plus-large_svgrepo.com.svg";
+import Adjustments from "./Adjustments";
+import Pendings from "./Pendings";
 
 const Addition = () => {
   const [selectedMonth, setSelectedMonth] = useState("This Month");
+  const [activeTab, setActiveTab] = useState("adjustment");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedMonthFilter, setSelectedMonthFilter] = useState("This Month");
 
   const quickStats = [
-    { label: "Total Additions", value: "₹12,50,000", percentage: "18.5 %", isPositive: true },
-    { label: "Total Deductions", value: "₹8,75,000", percentage: "10.2 %", isPositive: false },
-    { label: "Net Impact", value: "₹3,75,000", percentage: "8.3 %", isPositive: true },
-    { label: "Affected Employees", value: "285", percentage: "15.7 %", isPositive: true },
+    { label: "Total Additions Amount", value: "₹12,50,000", percentage: "18.5 %", isPositive: true },
+    { label: "Total Deductions Amount", value: "₹8,75,000", percentage: "10.2 %", isPositive: false },
+    { label: "Pending Approvals", value: "₹3,75,000", percentage: "8.3 %", isPositive: true },
+    { label: "Applied to Payroll", value: "285", percentage: "15.7 %", isPositive: true },
   ];
 
   return (
@@ -51,6 +59,36 @@ const Addition = () => {
             </StatCard>
           ))}
         </StatsGrid>
+        <TabSwitcher
+                        tabs={[
+                          { label: "All Adjustment", value: "adjustment" },
+                          { label: "Pending", value: "pending" },
+                        ]}
+                        active={activeTab}
+                        onChange={setActiveTab}
+                      />
+        
+        <TableToolbar
+          searchPosition="left"
+          searchPlaceholder="Search"
+          searchValue={searchQuery}
+          onSearchChange={setSearchQuery}
+          select1Options={["This Month", "Last Month", "Last 3 Months", "This Year"]}
+          select1Value={selectedMonthFilter}
+          onSelect1Change={setSelectedMonthFilter}
+          select2Options={false}
+          filterText="Filter"
+          showFilter={true}
+          actionText="Adjustment"
+          actionIcon={<img src={PlusIcon} alt="add" width="16" height="16" />}
+          showDotIcon={false}
+        />
+
+        {activeTab === "adjustment" ? (
+          <Adjustments searchQuery={searchQuery} selectedMonth={selectedMonthFilter} />
+        ) : (
+          <Pendings searchQuery={searchQuery} selectedMonth={selectedMonthFilter} />
+        )}
       </QuickStatsSection>
     </Container>
   );
