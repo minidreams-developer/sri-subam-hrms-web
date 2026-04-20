@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import theme from "../../theme/theme";
 import GreenArrow from "../../assets/images/DashboardImages/green.svg";
@@ -9,8 +10,10 @@ import ReusableTable from "../../components/ReusableTable";
 import TableToolbar from "../../components/TableToolbar";
 import ProfileImage from "../../assets/images/employee/sampleProfile.jpg";
 import PlusIcon from "../../assets/images/DashboardImages/plus-large_svgrepo.com.svg";
+import DetailsSidebar from "../../components/DetailsSidebar";
+import CardDetails from "../../components/CardDetails";
+import EditIcon from "../../assets/images/employee/editIcon.svg";
 import {
-  dashboardStats,
   employeeStopPayroll,
   offboardingEmployeeData,
   staffColumnStopPayroll,
@@ -18,6 +21,7 @@ import {
 } from "../../utils/data";
 
 const StopPayroll = () => {
+  const navigate = useNavigate();
   const [selectedMonth, setSelectedMonth] = useState("This Month");
   const [activeTab, setActiveTab] = useState("Employee");
   const [employeeSearch, setEmployeeSearch] = useState("");
@@ -26,6 +30,8 @@ const StopPayroll = () => {
   const [staffSearch, setStaffSearch] = useState("");
   const [staffRole, setStaffRole] = useState("All Roles");
   const [staffShift, setStaffShift] = useState("All Shifts");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [selectedRow, setSelectedRow] = useState(null);
 
   const quickStats = [
     { label: "Stopped Payrolls", value: "45", percentage: "12 %", isPositive: false },
@@ -35,11 +41,12 @@ const StopPayroll = () => {
   ];
 
    const handleRowClick = (row) => {
-    // navigate("");
+    setSelectedRow(row);
+    setSidebarOpen(true);
   };
 
   const handleNewEmployee = () => {
-    // navigate("");
+    navigate("new");
   };
 
    const filteredEmployeeData = offboardingEmployeeData.filter((row) => {
@@ -161,7 +168,7 @@ const StopPayroll = () => {
                           select2Value={employeeShift}
                           onSelect2Change={setEmployeeShift}
                           filterText="Filter"
-                          actionText="New Employee"
+                          actionText="New Stop Payroll"
                           actionIcon={<img src={PlusIcon} alt="add" width="16" height="16" />}
                           onActionClick={handleNewEmployee}
                         />
@@ -171,7 +178,8 @@ const StopPayroll = () => {
                           rowsPerPage={5}
                           totalResults={filteredEmployeeData.length}
                           onRowClick={handleRowClick}
-                        />
+                          alwaysShowPagination={true}
+                          />
                       </>
                     ) : (
                       <>
@@ -192,7 +200,7 @@ const StopPayroll = () => {
                           select2Value={staffShift}
                           onSelect2Change={setStaffShift}
                           filterText="Filter"
-                          actionText="New Staff"
+                          actionText="New Stop Payroll"
                           actionIcon={<img src={PlusIcon} alt="add" width="16" height="16" />}
                         />
                         <ReusableTable
@@ -201,10 +209,97 @@ const StopPayroll = () => {
                           rowsPerPage={5}
                           totalResults={filteredStaffData.length}
                           onRowClick={handleRowClick}
-                        />
+                          alwaysShowPagination={true}
+                          />
                       </>
                     )}
       </QuickStatsSection>
+
+      {/* Details Sidebar */}
+      <DetailsSidebar
+        open={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        title={"Stop Payroll Details"}
+      >
+        <Section>
+          <CardDetails
+            title="Employee Details"
+            columns={2}
+            items={[
+              { 
+                label: "Employee", 
+                value: activeTab === "Employee" 
+                  ? selectedRow?.employee?.name || "Manoj Kumar"
+                  : selectedRow?.staff?.name || "Manoj Kumar"
+              },
+              { 
+                label: "Employee ID", 
+                value: selectedRow?.employeeId || selectedRow?.staffId || "Head Office"
+              },
+              { 
+                label: "Designation", 
+                value: selectedRow?.designation || "Senior UI UX Designer" 
+              },
+              { 
+                label: "Department", 
+                value: selectedRow?.department || "IT Department" 
+              },
+              { 
+                label: "Current Salary", 
+                value: "Senior UI UX Designer" 
+              },
+              { 
+                label: "Pay Cycle", 
+                value: "IT Department" 
+              },
+            ]}
+          />
+        </Section>
+
+        <Section>
+          <CardDetails
+            title="Stop Details"
+            columns={2}
+            items={[
+              { label: "Stop Type", value: "10:30 AM" },
+              { label: "Reason", value: "Notice Period" },
+              { label: "Effective From", value: "1.36 Hrs" },
+              { label: "Resume On", value: "12.00 Hrs" },
+              { label: "Impact Month", value: "4.00 Hrs" },
+              { label: "Remarks", value: "Policy Issues" },
+              { 
+                label: "Status", 
+                value: (
+                  <StatusText $status="Stopped">
+                    Stopped
+                  </StatusText>
+                )
+              },
+            ]}
+          />
+        </Section>
+
+        <Section>
+          <CardDetails
+            title="Payroll Impact Preview"
+            columns={2}
+            items={[
+              { label: "Current Month Pay", value: "₹45,000" },
+              { label: "Payable After Stop", value: "₹15,000" },
+              { label: "Days Payable", value: "10 / 30" },
+              { label: "Deductions", value: "₹30,000" },
+            ]}
+          />
+        </Section>
+
+        <ButtonRow>
+          <ResumeButton>Resume</ResumeButton>
+          <EditDetailsButton>
+            <img src={EditIcon} alt="edit" width="16" height="16" />
+            Edit details
+          </EditDetailsButton>
+        </ButtonRow>
+      </DetailsSidebar>
     </Container>
   );
 };
@@ -376,4 +471,67 @@ const EmployeeRole = styled.p`
   color: ${theme.colors.secondaryText};
   margin: 0;
   line-height: 1.2;
+`;
+
+const Section = styled.div`
+  display: flex;
+  flex-direction: column;
+`;
+
+const StatusText = styled.span`
+  color: ${({ $status }) => {
+    const s = String($status || "").toLowerCase();
+    if (s === "active") return "#16a34a";
+    if (s === "inactive" || s === "stopped") return "#dc2626";
+    if (s === "pending") return "#f59e0b";
+    return theme.colors.textColor;
+  }};
+  font-weight: 600;
+`;
+
+const ButtonRow = styled.div`
+  display: flex;
+  gap: 1rem;
+  padding: 1rem 0;
+`;
+
+const ResumeButton = styled.button`
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem;
+  background: ${theme.colors.primary};
+  border: none;
+  border-radius: 8px;
+  color: ${theme.colors.white};
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-family: "Inter-SemiBold", sans-serif;
+  cursor: pointer;
+
+  &:hover {
+    opacity: 0.9;
+  }
+`;
+
+const EditDetailsButton = styled.button`
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  background: ${theme.colors.white};
+  border: 1px solid ${theme.colors.primary};
+  border-radius: 8px;
+  color: ${theme.colors.primary};
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-family: "Inter-SemiBold", sans-serif;
+  cursor: pointer;
+
+  &:hover {
+    background: ${theme.colors.secondaryWhite};
+  }
 `;

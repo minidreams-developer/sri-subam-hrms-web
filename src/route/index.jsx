@@ -29,6 +29,8 @@ import AddHoliday from "../pages/DayOffAndHoliday/AddHoliday";
 import Payroll from "../pages/Payroll/Payroll";
 import Paysheet from "../pages/Paysheet/Paysheet";
 import StopPayroll from "../pages/StopPayroll/StopPayroll";
+import NewStopPayroll from "../pages/StopPayroll/NewStopPayroll";
+import Addition from "../pages/Addition/Addition";
 
 const publicRoutes = [
   { path: "/", component: <Login /> },
@@ -144,6 +146,14 @@ const privateRoutes = [
       {
         path: "pay-hub/stopPayroll",
         element: <StopPayroll />,
+      },
+      {
+        path: "pay-hub/stopPayroll/new",
+        element: <NewStopPayroll />,
+      },
+      {
+        path: "pay-hub/additionDeductions",
+        element: <Addition />,
       },
     ],
   },
