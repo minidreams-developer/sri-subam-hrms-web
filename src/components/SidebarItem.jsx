@@ -118,9 +118,34 @@ const SidebarItems = [
   },
   {
     name: "Settings",
-    path: "/admin/settings",
     icon: SettingsIcon,
     iconDark: SettingsIcon,
+    submenu: [
+      {
+        name: "General Settings",
+        path: "/admin/settings/generalSettings",
+      },
+      {
+        name: "Organization Details",
+        path: "/admin/settings/organizationDetails",
+      },
+      {
+        name: "Day Settings",
+        path: "/admin/settings/daySettings",
+      },
+      {
+        name: "Series Configuration",
+        path: "/admin/settings/seriesConfiguration",
+      },
+      {
+        name: "Departments",
+        path: "/admin/settings/departments",
+      },
+      {
+        name: "Roles",
+        path: "/admin/settings/roles",
+      },
+    ],
   },
 ];
 

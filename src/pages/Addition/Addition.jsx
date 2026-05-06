@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import theme from "../../theme/theme";
 import GreenArrow from "../../assets/images/DashboardImages/green.svg";
@@ -11,6 +12,7 @@ import Adjustments from "./Adjustments";
 import Pendings from "./Pendings";
 
 const Addition = () => {
+  const navigate = useNavigate();
   const [selectedMonth, setSelectedMonth] = useState("This Month");
   const [activeTab, setActiveTab] = useState("adjustment");
   const [searchQuery, setSearchQuery] = useState("");
@@ -22,6 +24,10 @@ const Addition = () => {
     { label: "Pending Approvals", value: "₹3,75,000", percentage: "8.3 %", isPositive: true },
     { label: "Applied to Payroll", value: "285", percentage: "15.7 %", isPositive: true },
   ];
+
+  const handleAddAdjustment = () => {
+    navigate("/admin/pay-hub/additionDeductions/add");
+  };
 
   return (
     <Container>
@@ -81,6 +87,7 @@ const Addition = () => {
           showFilter={true}
           actionText="Adjustment"
           actionIcon={<img src={PlusIcon} alt="add" width="16" height="16" />}
+          onActionClick={handleAddAdjustment}
           showDotIcon={false}
         />
 

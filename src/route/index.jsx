@@ -31,6 +31,12 @@ import Paysheet from "../pages/Paysheet/Paysheet";
 import StopPayroll from "../pages/StopPayroll/StopPayroll";
 import NewStopPayroll from "../pages/StopPayroll/NewStopPayroll";
 import Addition from "../pages/Addition/Addition";
+import AddAdjustment from "../pages/Addition/AddAdjustment";
+import GeneralSettings from "../pages/Settings/GeneralSettings/GeneralSettings";
+import OrganizationDetails from "../pages/Settings/OrganizationDetails";
+import Departments from "../pages/Settings/Departments/Departments";
+import Roles from "../pages/Settings/Roles/Roles";
+import RolesConfig from "../pages/Settings/Roles/RolesConfig";
 
 const publicRoutes = [
   { path: "/", component: <Login /> },
@@ -154,6 +160,30 @@ const privateRoutes = [
       {
         path: "pay-hub/additionDeductions",
         element: <Addition />,
+      },
+      {
+        path: "pay-hub/additionDeductions/add",
+        element: <AddAdjustment />,
+      },
+      {
+        path: "settings/generalSettings",
+        element: <GeneralSettings />,
+      },
+      {
+        path: "settings/organizationDetails",
+        element: <OrganizationDetails />,
+      },
+      {
+        path: "settings/departments",
+        element: <Departments />,
+      },
+      {
+        path: "settings/roles",
+        element: <Roles />,
+      },
+      {
+        path: "settings/roles/roleConfigure",
+        element: <RolesConfig />,
       },
     ],
   },

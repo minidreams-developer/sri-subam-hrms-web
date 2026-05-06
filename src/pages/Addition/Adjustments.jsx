@@ -4,8 +4,15 @@ import theme from "../../theme/theme";
 import ReusableTable from "../../components/ReusableTable";
 import ProfileImage from "../../assets/images/employee/sampleProfile.jpg";
 import DotMenuIcon from "../../assets/images/DayOff/dot-menu.svg";
+import DetailsSidebar from "../../components/DetailsSidebar";
+import CardDetails from "../../components/CardDetails";
+import EditIcon from "../../assets/images/employee/editIcon.svg";
+import { MdDelete } from "react-icons/md";
 
 const Adjustments = ({ searchQuery, selectedMonth }) => {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [selectedRow, setSelectedRow] = useState(null);
+
   const adjustmentsData = [
     {
       id: 1,
@@ -120,7 +127,17 @@ const Adjustments = ({ searchQuery, selectedMonth }) => {
   });
 
   const handleRowClick = (row) => {
-    console.log("Row clicked:", row);
+    setSelectedRow(row);
+    setSidebarOpen(true);
+  };
+
+  const handleDelete = () => {
+    console.log("Delete adjustment:", selectedRow);
+    setSidebarOpen(false);
+  };
+
+  const handleEdit = () => {
+    console.log("Edit adjustment:", selectedRow);
   };
 
   return (
@@ -134,6 +151,62 @@ const Adjustments = ({ searchQuery, selectedMonth }) => {
         alwaysShowPagination={true}
         paginationBorder={true}
       />
+
+      {/* Adjustment Details Sidebar */}
+      <DetailsSidebar
+        open={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        title="Adjustment Details"
+      >
+        <Section>
+          <CardDetails
+            title="Basic Details"
+            columns={2}
+            items={[
+              { label: "Employee Name", value: selectedRow?.employee?.name || "General" },
+              { label: "Employee ID", value: "#GEN-01" },
+              { label: "Position", value: "Senior UI UX Designer" },
+              { label: "Department", value: "Design" },
+              { 
+                label: "Status", 
+                value: (
+                  <StatusText $status={selectedRow?.status || "Draft"}>
+                    {selectedRow?.status || "Draft"}
+                  </StatusText>
+                )
+              },
+            ]}
+          />
+        </Section>
+
+        <Section>
+          <CardDetails
+            title="Adjustment Details"
+            columns={2}
+            items={[
+              { label: "Type", value: selectedRow?.type || "Addiction" },
+              { label: "Component", value: selectedRow?.component || "Incentive" },
+              { label: "Created Date", value: "12-01-2026" },
+              { label: "Payroll Month", value: "Feb 2026" },
+              { label: "Amount", value: selectedRow?.amount || "₹6,586" },
+              { label: "Applied to Payroll", value: "Yes" },
+              { label: "Created By", value: "Manoj Kumar" },
+              { label: "Re- marks", value: "This is for job excellence incentive." },
+            ]}
+          />
+        </Section>
+
+        <ButtonRow>
+          <DeleteButton onClick={handleDelete}>
+            <MdDelete size={20} />
+            Delete
+          </DeleteButton>
+          <EditButton onClick={handleEdit}>
+            <img src={EditIcon} alt="edit" width="16" height="16" />
+            Edit details
+          </EditButton>
+        </ButtonRow>
+      </DetailsSidebar>
     </Container>
   );
 };
@@ -194,5 +267,69 @@ const ActionButton = styled.button`
 
   &:hover {
     opacity: 0.7;
+  }
+`;
+
+const Section = styled.div`
+  display: flex;
+  flex-direction: column;
+`;
+
+const StatusText = styled.span`
+  color: ${({ $status }) => {
+    const s = String($status || "").toLowerCase();
+    if (s === "approved") return "#16a34a";
+    if (s === "rejected") return "#dc2626";
+    if (s === "pending" || s === "draft") return "#f59e0b";
+    return theme.colors.textColor;
+  }};
+  font-weight: 600;
+`;
+
+const ButtonRow = styled.div`
+  display: flex;
+  gap: 1rem;
+  padding: 1rem 0;
+`;
+
+const DeleteButton = styled.button`
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  background: ${theme.colors.white};
+  border: 1px solid #EF4444;
+  border-radius: 8px;
+  color: #EF4444;
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-family: "Inter-SemiBold", sans-serif;
+  cursor: pointer;
+
+  &:hover {
+    background: #FEE2E2;
+  }
+`;
+
+const EditButton = styled.button`
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  background: ${theme.colors.white};
+  border: 1px solid ${theme.colors.primary};
+  border-radius: 8px;
+  color: ${theme.colors.primary};
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-family: "Inter-SemiBold", sans-serif;
+  cursor: pointer;
+
+  &:hover {
+    background: ${theme.colors.secondaryWhite};
   }
 `;
