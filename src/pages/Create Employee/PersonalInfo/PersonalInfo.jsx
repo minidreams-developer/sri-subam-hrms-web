@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, forwardRef, useImperativeHandle } from "react";
 import styled from "styled-components";
 import theme from "../../../theme/theme";
 import InputComponent from "../../../components/InputComponent";
@@ -7,7 +7,7 @@ import Select from "react-select";
 import { customSelectStyles } from "../../../theme/reactSelectStyles";
 import UploadIcon from "../../../assets/images/employee/upload2.svg";
 
-const PersonalInfo = ({ onNext, onBack }) => {
+const PersonalInfo = forwardRef(({ onNext, onBack }, ref) => {
   const [formData, setFormData] = useState({
     employeeType: null,
     employeeId: "",
@@ -36,6 +36,14 @@ const PersonalInfo = ({ onNext, onBack }) => {
       relationship: null,
     },
   ]);
+
+  // Expose form data via ref
+  useImperativeHandle(ref, () => ({
+    formData: {
+      ...formData,
+      emergencyContacts,
+    },
+  }));
 
   const employeeTypeOptions = [
     { value: "full_time", label: "Full Time" },
@@ -552,4 +560,4 @@ const RemoveButton = styled.button`
   }
 `;
 
-export default PersonalInfo;
+export default forwardRef(PersonalInfo);

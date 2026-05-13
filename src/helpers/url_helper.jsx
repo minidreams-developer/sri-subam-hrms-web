@@ -8,6 +8,10 @@ export const DASHBOARD = "/dashboard/stats";
 export const BRANCHES = "/v1/branches";
 export const CREATE_BRANCH = "/v1/branches";
 
+// Teams
+export const TEAMS = "/v1/teams";
+export const CREATE_TEAM = "/v1/teams";
+
 // Customers
 export const CUSTOMERS = "/users";
 export const CUSTOMERS_ORDER_HISTORY = "/orders/history";
@@ -16,6 +20,7 @@ export const ORDERS = "/orders/:id";
 export const CREATE_ORDERS = "/orders";
 export const GET_ALL_EMPLOYEE = "/users?role=employee";
 export const ADD_EMPLOYEE = "/users";
+export const CREATE_EMPLOYEE = "/v1/users";
 export const PRODUCTS = "/products";
 export const PLACES = '/places';
 export const PLACES_STATS ='/places/stats';

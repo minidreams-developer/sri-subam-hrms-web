@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, forwardRef, useImperativeHandle } from "react";
 import styled from "styled-components";
 import theme from "../../../theme/theme";
 import CalenderInput from "../../../components/CalenderInput";
@@ -6,7 +6,7 @@ import InputComponent from "../../../components/InputComponent";
 import Select from "react-select";
 import { customSelectStyles } from "../../../theme/reactSelectStyles";
 
-const AddWorkDetails = () => {
+const AddWorkDetails = forwardRef(({ onNext, onBack }, ref) => {
   const [formData, setFormData] = useState({
     dateOfJoining: null,
     experienceType: null,
@@ -41,6 +41,11 @@ const AddWorkDetails = () => {
     bankBranch: "",
     remarks: "",
   });
+
+  // Expose form data via ref
+  useImperativeHandle(ref, () => ({
+    formData,
+  }));
 
   const experienceTypeOptions = [
     { value: "fresher", label: "Fresher" },

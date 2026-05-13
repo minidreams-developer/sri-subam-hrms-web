@@ -6,9 +6,9 @@ import InputComponent from "./InputComponent";
 import Select from "react-select";
 import { customSelectStyles } from "../theme/reactSelectStyles";
 
-const AddTeamModal = ({ isOpen, onClose, onSave }) => {
+const AddTeamModal = ({ isOpen, onClose, onSave, isLoading = false }) => {
   const [formData, setFormData] = useState({
-    teamId: "#TM879",
+    teamId: "",
     name: "",
     department: null,
     leadDepartment: null,
@@ -35,8 +35,21 @@ const AddTeamModal = ({ isOpen, onClose, onSave }) => {
   };
 
   const handleSave = () => {
+    // Validate required fields
+    if (!formData.name) {
+      alert("Team name is required");
+      return;
+    }
+    if (!formData.department) {
+      alert("Department is required");
+      return;
+    }
+    if (!formData.teamLead) {
+      alert("Team lead is required");
+      return;
+    }
+
     onSave && onSave(formData);
-    onClose();
   };
 
   if (!isOpen) return null;
@@ -51,8 +64,8 @@ const AddTeamModal = ({ isOpen, onClose, onSave }) => {
 
         <ModalBody>
           <InputComponent
-            label="Team ID"
-            placeholder="#TM879"
+            label="Team ID (Optional)"
+            placeholder="Auto-generated if empty"
             value={formData.teamId}
             onChange={(e) => handleChange("teamId", e.target.value)}
             labelMargin="0 0 0.625rem 0"
@@ -126,6 +139,8 @@ const AddTeamModal = ({ isOpen, onClose, onSave }) => {
             fontWeight="600"
             fontFamily="Inter-SemiBold"
             onClick={handleSave}
+            loading={isLoading}
+            disabled={isLoading}
           />
         </ModalFooter>
       </ModalContainer>
