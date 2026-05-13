@@ -8,9 +8,13 @@ import Button from "../../components/Button";
 import Select from "react-select";
 import { customSelectStyles } from "../../theme/reactSelectStyles";
 import { IoArrowBack } from "react-icons/io5";
+import { post } from "../../helpers/api_helper";
+import { CREATE_BRANCH } from "../../helpers/url_helper";
+import { toast } from "react-toastify";
 
 const CreateBranch = () => {
   const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     branchType: null,
@@ -78,9 +82,64 @@ const CreateBranch = () => {
     navigate("/admin/people/branch");
   };
 
-  const handleNext = () => {
-    console.log("Form data:", formData);
-    // Add save logic here
+  const handleNext = async () => {
+    // Validate required fields
+    if (!formData.name) {
+      toast.error("Branch name is required");
+      return;
+    }
+    if (!formData.branchType) {
+      toast.error("Branch type is required");
+      return;
+    }
+    if (!formData.branchStatus) {
+      toast.error("Branch status is required");
+      return;
+    }
+    if (!formData.email) {
+      toast.error("Email is required");
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      // Prepare payload for API
+      const payload = {
+        name: formData.name,
+        branchType: formData.branchType?.value,
+        status: formData.branchStatus?.value,
+        effectiveFromDate: formData.effectiveFromDate,
+        branchHead: formData.branchHead?.value,
+        phoneNumber: formData.phoneNumber,
+        emergencyContact: formData.emergencyContact,
+        email: formData.email,
+        address: formData.address,
+        city: formData.city,
+        district: formData.district?.value,
+        state: formData.state?.value,
+        pinCode: formData.pinCode,
+        geoLocation: formData.geoLocation,
+        departments: formData.selectDepartments?.value,
+        shifts: formData.selectShifts?.value,
+      };
+
+      const response = await post(CREATE_BRANCH, payload);
+
+      if (response) {
+        toast.success("Branch created successfully!");
+        navigate("/admin/peopleHub/branch");
+      }
+    } catch (error) {
+      const errorMessage =
+        error.response?.data?.message ||
+        error.message ||
+        "Failed to create branch. Please try again.";
+      toast.error(errorMessage);
+      console.error("Create branch error:", error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -334,6 +393,8 @@ const CreateBranch = () => {
               fontWeight="600"
               fontFamily="Inter-SemiBold"
               onClick={handleNext}
+              loading={isLoading}
+              disabled={isLoading}
             />
           </RightButtons>
         </ButtonRow>

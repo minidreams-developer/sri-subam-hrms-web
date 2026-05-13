@@ -4,6 +4,10 @@ export const LOGIN = "/v1/auth/login";
 // Dashboard
 export const DASHBOARD = "/dashboard/stats";
 
+// Branches
+export const BRANCHES = "/v1/branches";
+export const CREATE_BRANCH = "/v1/branches";
+
 // Customers
 export const CUSTOMERS = "/users";
 export const CUSTOMERS_ORDER_HISTORY = "/orders/history";

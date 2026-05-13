@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import theme from "../../theme/theme";
@@ -6,12 +6,55 @@ import ReusableTable from "../../components/ReusableTable";
 import PlusIcon from "../../assets/images/DashboardImages/plus-large_svgrepo.com.svg";
 import TableToolbar from "../../components/TableToolbar";
 import BranchDetailsSidebar from "./BranchDetailsSidebar";
+import { get } from "../../helpers/api_helper";
+import { BRANCHES } from "../../helpers/url_helper";
+import { toast } from "react-toastify";
+import PageLoader from "../../components/PageLoader";
 
 const Branches = () => {
   const navigate = useNavigate();
   const [searchValue, setSearchValue] = useState("");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [selectedBranch, setSelectedBranch] = useState(null);
+  const [branchesData, setBranchesData] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Fetch branches on component mount
+  useEffect(() => {
+    fetchBranches();
+  }, []);
+
+  const fetchBranches = async () => {
+    setIsLoading(true);
+    try {
+      const response = await get(BRANCHES);
+      
+      // Transform API response to match table format
+      const transformedData = response?.results?.map((branch, index) => ({
+        no: (index + 1).toString(),
+        branchName: branch.name || "N/A",
+        branchHead: branch.branchHead || "N/A",
+        branchNumber: branch.branchNumber || branch.id || "N/A",
+        noOfPeople: branch.employeeCount || branch.noOfPeople || 0,
+        status: branch.status || "Active",
+        isPrimary: branch.isPrimary || false,
+        actions: "...",
+        // Store original data for sidebar
+        originalData: branch,
+      })) || [];
+
+      setBranchesData(transformedData);
+    } catch (error) {
+      const errorMessage =
+        error.response?.data?.message ||
+        error.message ||
+        "Failed to fetch branches";
+      toast.error(errorMessage);
+      console.error("Fetch branches error:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const branchesColumns = [
     { key: "no", label: "No." },
@@ -32,39 +75,6 @@ const Branches = () => {
     { key: "actions", label: "Action" },
   ];
 
-  const branchesData = [
-    {
-      no: "1",
-      branchName: "Downtown Branch",
-      branchHead: "John Doe",
-      branchNumber: "BR001",
-      noOfPeople: 45,
-      status: "Active",
-      isPrimary: true,
-      actions: "...",
-    },
-    {
-      no: "2",
-      branchName: "Uptown Branch",
-      branchHead: "Jane Smith",
-      branchNumber: "BR002",
-      noOfPeople: 32,
-      status: "Active",
-      isPrimary: false,
-      actions: "...",
-    },
-    {
-      no: "3",
-      branchName: "East Side Branch",
-      branchHead: "Mike Johnson",
-      branchNumber: "BR003",
-      noOfPeople: 28,
-      status: "In-Active",
-      isPrimary: false,
-      actions: "...",
-    },
-  ];
-
   const filteredData = branchesData.filter((row) => {
     if (!searchValue) return true;
     const search = searchValue.toLowerCase();
@@ -83,6 +93,10 @@ const Branches = () => {
   const handleAddBranch = () => {
     navigate("/admin/peopleHub/branch/createBranch");
   };
+
+  if (isLoading) {
+    return <PageLoader />;
+  }
 
   return (
     <Container>
