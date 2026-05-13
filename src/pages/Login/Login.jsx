@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import theme from "../../theme/theme";
@@ -8,6 +8,9 @@ import InputComponent from "../../components/InputComponent";
 import { Spinner } from "reactstrap";
 import { Formik, Form } from "formik";
 import * as Yup from "yup";
+import { post } from "../../helpers/api_helper";
+import { LOGIN } from "../../helpers/url_helper";
+import { setStoredAuthUser } from "../../helpers/auth_helper";
 
 const validationSchema = Yup.object().shape({
   username: Yup.string().required("Username is required"),
@@ -16,10 +19,39 @@ const validationSchema = Yup.object().shape({
 
 export const Login = () => {
   const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleLoginSubmit = (values, { setStatus }) => {
+  const handleLoginSubmit = async (values, { setStatus, setSubmitting }) => {
     setStatus("");
-    navigate("/admin/dashboard");
+    setIsLoading(true);
+    setSubmitting(true);
+
+    try {
+      const response = await post(LOGIN, {
+        email: values.username,
+        password: values.password,
+      });
+
+      if (response?.tokens) {
+        // Store auth user data with tokens
+        setStoredAuthUser(response);
+        
+        // Navigate to dashboard on success
+        navigate("/admin/dashboard");
+      } else {
+        setStatus("Invalid response from server");
+      }
+    } catch (error) {
+      // Handle error response
+      const errorMessage =
+        error.response?.data?.message ||
+        error.message ||
+        "Login failed. Please try again.";
+      setStatus(errorMessage);
+    } finally {
+      setIsLoading(false);
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -94,8 +126,8 @@ export const Login = () => {
                     </div>
                     {status && <ErrorText>{status}</ErrorText>}
                   </InputWraper>
-                  <Button type="submit" disabled={isSubmitting}>
-                    {isSubmitting ? <Spinner size="sm" /> : "Login"}
+                  <Button type="submit" disabled={isSubmitting || isLoading}>
+                    {isSubmitting || isLoading ? <Spinner size="sm" /> : "Login"}
                   </Button>
                 </StyledForm>
               )}

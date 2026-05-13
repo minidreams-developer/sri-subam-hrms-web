@@ -1,20 +1,25 @@
-import { handleTokenRefresh } from '../api_helper'
+/**
+ * Auth Token Header Helper
+ * @deprecated Use the axios interceptors in api_helper.jsx instead
+ * This file is kept for backward compatibility
+ */
+import { getAccessToken, isAccessTokenExpired, handleTokenRefresh } from '../auth_helper';
 
 const authHeader = async () => {
-  const obj = JSON.parse(localStorage.getItem('authUser'))
-  console.log('authHeader', obj)
-  if (obj && obj.tokens.access.token) {
-    const accessTokenExpiration = new Date(obj.tokens.access.expires).getTime()
-    const currentTime = new Date().getTime()
-
-    if (accessTokenExpiration && accessTokenExpiration < currentTime) {
-      // Access token is expired, refresh it
-      await handleTokenRefresh()
-    }
-    return { Authorization: obj.tokens.access.token }
-  } else {
-    return {}
+  // Check if token is expired
+  if (isAccessTokenExpired()) {
+    // Try to refresh the token
+    await handleTokenRefresh();
   }
-}
 
-authHeader();
+  // Get the current access token
+  const token = getAccessToken();
+  
+  if (token) {
+    return { Authorization: `Bearer ${token}` };
+  }
+  
+  return {};
+};
+
+export default authHeader;

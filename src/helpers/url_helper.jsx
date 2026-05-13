@@ -1,5 +1,5 @@
 // Login
-export const LOGIN = "/auth/admin-login";
+export const LOGIN = "/v1/auth/login";
 
 // Dashboard
 export const DASHBOARD = "/dashboard/stats";

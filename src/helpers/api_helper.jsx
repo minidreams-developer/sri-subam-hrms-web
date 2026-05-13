@@ -1,22 +1,15 @@
 import axios from "axios";
-// import { refreshToken } from "./jwt-token-access/accessToken";
-// import getAccessToken from "./jwt-token-access/accessToken";
 import {
-  clearAuthData,
-  getStoredAuthUser,
+  getAccessToken,
   handleTokenRefresh,
+  clearAuthData,
+  isAccessTokenExpired,
 } from "./auth_helper";
 
-//calling refreshAccessToken checks the expiration. if it is expired get a new token
-// refreshToken();
-//pass new generated access token here
-// const token = getAccessToken();
-// console.log("token", token);
+// API base URL
+const API_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
 
-//apply base url for axios
-// const API_URL = import.meta.env.VITE_BASE_URL;
-const API_URL = import.meta.env.VITE_BASE_URL_LOCAL;
-
+// Create axios instance
 const axiosApi = axios.create({
   baseURL: API_URL,
   headers: {
@@ -24,76 +17,146 @@ const axiosApi = axios.create({
   },
 });
 
+// Track if we're currently refreshing to prevent multiple refresh calls
+let isRefreshing = false;
+let failedQueue = [];
+
+/**
+ * Process queued requests after token refresh
+ */
+const processQueue = (error, token = null) => {
+  failedQueue.forEach((prom) => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token);
+    }
+  });
+
+  failedQueue = [];
+};
+
+// ==================== Request Interceptor ====================
 axiosApi.interceptors.request.use(
   async (config) => {
-    const authUser = getStoredAuthUser();
-    const accessToken = authUser?.tokens?.access?.token;
+    // Skip auth header for login and refresh endpoints
+    const isAuthEndpoint = 
+      config.url?.includes('/auth/login') || 
+      config.url?.includes('/auth/refresh-tokens');
 
-    // Set the token in the request headers
-    if (accessToken) {
-      config.headers.Authorization = `Bearer ${accessToken}`;
+    if (isAuthEndpoint) {
+      return config;
+    }
+
+    // Check if token is expired before making request
+    if (isAccessTokenExpired()) {
+      try {
+        const newToken = await handleTokenRefresh();
+        if (newToken) {
+          config.headers.Authorization = `Bearer ${newToken}`;
+        }
+      } catch (error) {
+        console.error('Token refresh failed in request interceptor:', error);
+        return Promise.reject(error);
+      }
+    } else {
+      // Use current valid token
+      const accessToken = getAccessToken();
+      if (accessToken) {
+        config.headers.Authorization = `Bearer ${accessToken}`;
+      }
     }
 
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => {
+    return Promise.reject(error);
+  }
 );
 
+// ==================== Response Interceptor ====================
 axiosApi.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
 
-    // If error is 401 and we haven't already tried to refresh
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true;
-
-      try {
-        // Try to refresh the token
-        const refreshSuccess = await handleTokenRefresh();
-
-        if (refreshSuccess) {
-          // Retry the original request with new token
-          const authUser = getStoredAuthUser();
-          const newAccessToken = authUser?.tokens?.access?.token;
-
-          if (newAccessToken) {
-            originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
-          }
-
-          return axiosApi(originalRequest);
-        }
-      } catch (refreshError) {
-        console.error("Token refresh failed:", refreshError);
-        clearAuthData();
-        window.location.href = "/"; // Redirect to login
-        return Promise.reject(refreshError);
-      }
+    // If error is not 401 or request has already been retried, reject immediately
+    if (error.response?.status !== 401 || originalRequest._retry) {
+      return Promise.reject(error);
     }
 
-    return Promise.reject(error);
+    // If we're already refreshing, queue this request
+    if (isRefreshing) {
+      return new Promise((resolve, reject) => {
+        failedQueue.push({ resolve, reject });
+      })
+        .then((token) => {
+          originalRequest.headers.Authorization = `Bearer ${token}`;
+          return axiosApi(originalRequest);
+        })
+        .catch((err) => {
+          return Promise.reject(err);
+        });
+    }
+
+    originalRequest._retry = true;
+    isRefreshing = true;
+
+    try {
+      const newToken = await handleTokenRefresh();
+
+      if (newToken) {
+        // Update the failed request with new token
+        originalRequest.headers.Authorization = `Bearer ${newToken}`;
+        
+        // Process all queued requests
+        processQueue(null, newToken);
+        
+        // Retry the original request
+        return axiosApi(originalRequest);
+      } else {
+        // Refresh failed, clear auth and redirect
+        processQueue(new Error('Token refresh failed'), null);
+        clearAuthData();
+        window.location.href = "/login";
+        return Promise.reject(error);
+      }
+    } catch (refreshError) {
+      processQueue(refreshError, null);
+      clearAuthData();
+      window.location.href = "/login";
+      return Promise.reject(refreshError);
+    } finally {
+      isRefreshing = false;
+    }
   }
 );
 
+// ==================== API Helper Functions ====================
+
+/**
+ * GET request
+ */
 export async function get(url, config = {}) {
   return await axiosApi
     .get(url, { ...config })
     .then((response) => response.data);
 }
 
+/**
+ * POST request
+ */
 export async function post(url, data, config = {}) {
-  const headers = {
-    "Content-Type": "application/json",
-    ...config.headers,
-  };
   return axiosApi
-    .post(url, { ...data }, { ...config, headers })
+    .post(url, data, { ...config })
     .then((response) => response.data);
 }
 
+/**
+ * POST request with FormData (for file uploads)
+ */
 export async function postFormData(url, formData, config = {}, onProgress) {
-  // Set appropriate headers for multipart/form-data
-  config = {
+  const uploadConfig = {
     ...config,
     headers: {
       "Content-Type": "multipart/form-data",
@@ -109,26 +172,36 @@ export async function postFormData(url, formData, config = {}, onProgress) {
     },
   };
 
-  // Make the POST request using axios
-  return axiosApi.post(url, formData, config).then((response) => response.data);
+  return axiosApi
+    .post(url, formData, uploadConfig)
+    .then((response) => response.data);
 }
 
+/**
+ * PUT request
+ */
 export async function put(url, data, config = {}) {
   return axiosApi
-    .put(url, { ...data }, { ...config })
+    .put(url, data, { ...config })
     .then((response) => response.data);
 }
 
+/**
+ * PATCH request
+ */
 export async function patch(url, data, config = {}) {
   return axiosApi
-    .patch(url, { ...data }, { ...config })
+    .patch(url, data, { ...config })
     .then((response) => response.data);
 }
 
+/**
+ * DELETE request
+ */
 export async function del(url, config = {}) {
   return await axiosApi
     .delete(url, { ...config })
     .then((response) => response.data);
 }
 
-//-------------------------------------------------------------------------------------
+export default axiosApi;
