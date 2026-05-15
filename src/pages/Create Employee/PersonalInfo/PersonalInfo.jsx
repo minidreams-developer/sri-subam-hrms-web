@@ -407,7 +407,7 @@ const PersonalInfo = forwardRef(({ onNext, onBack }, ref) => {
       </ButtonWrapper>
     </Container>
   );
-};
+});
 
 const Container = styled.div`
   width: 80%;
@@ -417,7 +417,15 @@ const Container = styled.div`
 `;
 
 const Section = styled.div`
- 
+  margin-bottom: 2rem;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid #E0E3E6;
+
+  &:last-of-type {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: none;
+  }
 `;
 
 const SectionHeader = styled.div`
@@ -560,4 +568,4 @@ const RemoveButton = styled.button`
   }
 `;
 
-export default forwardRef(PersonalInfo);
+export default PersonalInfo;

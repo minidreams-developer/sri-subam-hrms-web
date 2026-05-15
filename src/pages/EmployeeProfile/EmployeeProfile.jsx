@@ -5,6 +5,8 @@ import TabSwitcher from "../../components/TabSwitcher";
 import { PersonalDetails } from "./Personal Details/PersonalDetails";
 import { WorkDetails } from "./Work Details/WorkDetails";
 import { Attendance } from "./Attendance/Attendance";
+import PayrollComponent from "../../components/payroll";
+import Assets from "../../components/assets";
 
 const EmployeeProfile = () => {
   const [active, setActive] = useState("Personal Details");
@@ -27,8 +29,8 @@ const EmployeeProfile = () => {
       {active === "Personal Details" && <PersonalDetails />}
       {active === "Work Details" && <WorkDetails />}
       {active === "Attendance" && <Attendance />}
-      {active === "Payroll" && <Section>Payroll content</Section>}
-      {active === "Assets" && <Section>Assets content</Section>}
+      {active === "Payroll" && <PayrollComponent />}
+      {active === "Assets" && <Assets />}
       {active === "Report" && <Section>Report content</Section>}
     </Container>
   );

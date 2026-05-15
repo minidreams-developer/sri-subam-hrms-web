@@ -9,6 +9,7 @@ import Button from "../../components/Button";
 import TableToolbar from "../../components/TableToolbar";
 import PlusIcon from "../../assets/images/DashboardImages/plus-large_svgrepo.com.svg";
 import TabSwitcher from "../../components/TabSwitcher";
+import Filter from "../../components/filter";
 import {
   dashboardStats,
   employeeTableColumns,
@@ -30,6 +31,7 @@ const Employees = () => {
   const [staffSearch, setStaffSearch] = useState("");
   const [staffRole, setStaffRole] = useState("All Roles");
   const [staffShift, setStaffShift] = useState("All Shifts");
+  const [showFilter, setShowFilter] = useState(false);
 
   const handleRowClick = (row) => {
     navigate("/admin/peopleHub/employees/employeeProfile");
@@ -37,6 +39,26 @@ const Employees = () => {
 
   const handleNewEmployee = () => {
     navigate("/admin/peopleHub/employees/create");
+  };
+
+  const handleFilterOpen = () => {
+    setShowFilter(true);
+  };
+
+  const handleFilterClose = () => {
+    setShowFilter(false);
+  };
+
+  const handleFilterApply = (filters) => {
+    console.log("Applied filters:", filters);
+    // Apply filters to the data
+    if (filters.department.length > 0) {
+      setEmployeeDept(filters.department[0]);
+    }
+    if (filters.shift.length > 0) {
+      setEmployeeShift(filters.shift[0]);
+    }
+    setShowFilter(false);
   };
 
   const filteredEmployeeData = employeeTableData.filter((row) => {
@@ -60,6 +82,9 @@ const Employees = () => {
 
   return (
     <Container>
+      {showFilter && (
+        <Filter onClose={handleFilterClose} onApply={handleFilterApply} />
+      )}
       <Top>
         <TopTitle>Quick Stats</TopTitle>
         <Controls>
@@ -138,6 +163,7 @@ const Employees = () => {
             select2Value={employeeShift}
             onSelect2Change={setEmployeeShift}
             filterText="Filter"
+            onFilterClick={handleFilterOpen}
             actionText="New Employee"
             actionIcon={<img src={PlusIcon} alt="add" width="16" height="16" />}
             onActionClick={handleNewEmployee}
@@ -169,6 +195,7 @@ const Employees = () => {
             select2Value={staffShift}
             onSelect2Change={setStaffShift}
             filterText="Filter"
+            onFilterClick={handleFilterOpen}
             actionText="New Staff"
             actionIcon={<img src={PlusIcon} alt="add" width="16" height="16" />}
           />

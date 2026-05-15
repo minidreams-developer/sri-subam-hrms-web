@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, forwardRef, useImperativeHandle } from "react";
 import styled from "styled-components";
 import theme from "../../../theme/theme";
 import UploadComponent from "../../../components/UploadComponent";
@@ -6,7 +6,7 @@ import FileUploadComponent from "../../../components/FileUploadComponent";
 import AddNewFieldModal from "../../../components/AddNewFieldModal";
 import MinusIcon from "../../../assets/images/employee/minus.svg";
 
-const Documents = () => {
+const Documents = forwardRef(({ }, ref) => {
   const [documents, setDocuments] = useState([
     { id: 1, label: "Select Document", file: null, keepOriginal: false },
   ]);
@@ -17,6 +17,14 @@ const Documents = () => {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalType, setModalType] = useState(""); // "government" or "personal"
+
+  // Expose documents data via ref
+  useImperativeHandle(ref, () => ({
+    getDocuments: () => ({
+      governmentDocuments: documents,
+      personalDocuments: personalDocuments,
+    }),
+  }));
 
   const handleFileSelect = (id, file, keepOriginal) => {
     setDocuments((prev) =>
@@ -213,7 +221,7 @@ const Documents = () => {
       </Section>
     </Container>
   );
-};
+});
 
 const Container = styled.div`
   width: 80%;
@@ -223,6 +231,15 @@ const Container = styled.div`
 `;
 
 const Section = styled.div`
+  margin-bottom: 2rem;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid #E0E3E6;
+
+  &:last-of-type {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: none;
+  }
 `;
 
 const SectionTitle = styled.h2`
