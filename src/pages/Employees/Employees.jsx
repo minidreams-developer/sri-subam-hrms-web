@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import ReusableTable from "../../components/ReusableTable";
@@ -10,6 +10,9 @@ import TableToolbar from "../../components/TableToolbar";
 import PlusIcon from "../../assets/images/DashboardImages/plus-large_svgrepo.com.svg";
 import TabSwitcher from "../../components/TabSwitcher";
 import Filter from "../../components/filter";
+import { get } from "../../helpers/api_helper";
+import { GET_ALL_EMPLOYEES } from "../../helpers/url_helper";
+import { toast } from "react-toastify";
 import {
   dashboardStats,
   employeeTableColumns,
@@ -32,6 +35,68 @@ const Employees = () => {
   const [staffRole, setStaffRole] = useState("All Roles");
   const [staffShift, setStaffShift] = useState("All Shifts");
   const [showFilter, setShowFilter] = useState(false);
+  const [employees, setEmployees] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Fetch employees on component mount
+  useEffect(() => {
+    fetchEmployees();
+  }, []);
+
+  const fetchEmployees = async () => {
+    setIsLoading(true);
+    try {
+      const response = await get(GET_ALL_EMPLOYEES);
+      console.log("API Response:", response);
+      
+      // Handle different response structures
+      let employeeList = [];
+      
+      if (response && Array.isArray(response)) {
+        // If response is directly an array
+        employeeList = response;
+      } else if (response && response.results && Array.isArray(response.results)) {
+        // If response has a results property (pagination format)
+        employeeList = response.results;
+      } else if (response && response.data && Array.isArray(response.data)) {
+        // If response has a data property
+        employeeList = response.data;
+      } else if (response && response.users && Array.isArray(response.users)) {
+        // If response has a users property
+        employeeList = response.users;
+      }
+      
+      console.log("Employee List:", employeeList);
+      
+      if (employeeList.length > 0) {
+        // Transform API response to match table format
+        const transformedEmployees = employeeList.map((emp) => ({
+          id: emp.id,
+          name: emp.name || emp.employeeName,
+          email: emp.email,
+          phone: emp.phone,
+          department: emp.employee?.workInformation?.department || emp.department || "N/A",
+          designation: emp.employee?.workInformation?.designation || emp.designation || "N/A",
+          shift: emp.employee?.workInformation?.shift || emp.shift || "N/A",
+          status: emp.employee?.employeeStatus || emp.status || "Active",
+          joinDate: emp.employee?.workInformation?.joinedDate || emp.dateOfJoining,
+        }));
+        console.log("Transformed Employees:", transformedEmployees);
+        setEmployees(transformedEmployees);
+      } else {
+        console.warn("No employees found in response");
+      }
+    } catch (error) {
+      const errorMessage =
+        error.response?.data?.message ||
+        error.message ||
+        "Failed to fetch employees";
+      toast.error(errorMessage);
+      console.error("Fetch employees error:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleRowClick = (row) => {
     navigate("/admin/peopleHub/employees/employeeProfile");
@@ -61,7 +126,7 @@ const Employees = () => {
     setShowFilter(false);
   };
 
-  const filteredEmployeeData = employeeTableData.filter((row) => {
+  const filteredEmployeeData = employees.filter((row) => {
     const m1 =
       employeeDept === "All Department" || row.department === employeeDept;
     const m2 = employeeShift === "All Shifts" || row.shift === employeeShift;

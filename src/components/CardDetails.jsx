@@ -4,6 +4,7 @@ import theme from "../theme/theme";
 
 const CardDetails = ({
   title,
+  icon,
   items = [],
   columns = 3,
   showEdit = false,
@@ -19,7 +20,10 @@ const CardDetails = ({
     <Wrapper>
       {(title || showEdit || showAdd) && (
         <Head>
-          {title && <TitleLine>{title}</TitleLine>}
+          <TitleWrapper>
+            {icon && <TitleIcon src={icon} alt="icon" />}
+            {title && <TitleLine>{title}</TitleLine>}
+          </TitleWrapper>
           <ButtonsRight>
             {showEdit && (
               <EditBtn onClick={onEdit}>
@@ -71,6 +75,17 @@ const Head = styled.div`
   justify-content: space-between;
   gap: 0.75rem;
   margin: 0 0 0.5rem 0;
+`;
+
+const TitleWrapper = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+`;
+
+const TitleIcon = styled.img`
+  width: 1.5rem;
+  height: 1.5rem;
 `;
 
 const TitleLine = styled.p`

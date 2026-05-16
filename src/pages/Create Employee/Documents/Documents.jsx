@@ -166,7 +166,7 @@ const Documents = forwardRef(({ }, ref) => {
             <span>+</span> Add More
           </AddMoreButton>
         </ButtonWrapper>
-        <Divider />
+     
       </Section>
 
       <Section>

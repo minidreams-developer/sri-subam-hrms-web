@@ -8,7 +8,7 @@ import AddWorkDetails from "./Work Details/AddWorkDetails";
 import Documents from "./Documents/Documents";
 import Button from "../../components/Button";
 import { post, postFormData } from "../../helpers/api_helper";
-import { CREATE_EMPLOYEE } from "../../helpers/url_helper";
+import { CREATE_EMPLOYEE_NEW as CREATE_EMPLOYEE } from "../../helpers/url_helper";
 import { toast } from "react-toastify";
 
 const CreateEmployee = () => {
@@ -48,29 +48,33 @@ const CreateEmployee = () => {
     setIsLoading(true);
 
     try {
+      // Get data from refs
+      const personalData = personalInfoRef.current?.formData || {};
+      const workData = workDetailsRef.current?.formData || {};
+      const documentsData = documentsRef.current?.getDocuments?.() || {};
+
+      console.log("Personal Data:", personalData);
+      console.log("Work Data:", workData);
+      console.log("Documents Data:", documentsData);
+
       // Validate required fields
-      if (!personalInfoRef.current?.formData?.employeeName) {
+      if (!personalData?.employeeName) {
         toast.error("Employee name is required");
         setIsLoading(false);
         return;
       }
 
-      if (!personalInfoRef.current?.formData?.email) {
+      if (!personalData?.email) {
         toast.error("Email is required");
         setIsLoading(false);
         return;
       }
 
-      if (!workDetailsRef.current?.formData?.department) {
+      if (!workData?.department) {
         toast.error("Department is required");
         setIsLoading(false);
         return;
       }
-
-      // Prepare payload
-      const personalData = personalInfoRef.current?.formData || {};
-      const workData = workDetailsRef.current?.formData || {};
-      const documentsData = documentsRef.current?.getDocuments?.() || {};
 
       const payload = {
         // Personal Information
@@ -129,6 +133,8 @@ const CreateEmployee = () => {
         remarks: workData.remarks,
       };
 
+      console.log("Payload to send:", payload);
+
       // If there are documents, use FormData
       if (personalData.aadhaarImage || Object.keys(documentsData).length > 0) {
         const formData = new FormData();
@@ -158,6 +164,7 @@ const CreateEmployee = () => {
 
         const response = await postFormData(CREATE_EMPLOYEE, formData);
         
+        console.log("FormData Response:", response);
         if (response) {
           toast.success("Employee created successfully!");
           navigate("/admin/peopleHub/employees");
@@ -165,6 +172,7 @@ const CreateEmployee = () => {
       } else {
         // Use regular POST if no files
         const response = await post(CREATE_EMPLOYEE, payload);
+        console.log("POST Response:", response);
 
         if (response) {
           toast.success("Employee created successfully!");

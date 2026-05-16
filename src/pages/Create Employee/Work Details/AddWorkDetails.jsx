@@ -241,7 +241,7 @@ const AddWorkDetails = forwardRef(({ onNext, onBack }, ref) => {
         </Row>
       </Section>
 
-      <Divider />
+    
 
       <Section>
         <SectionTitle>Experience Details</SectionTitle>
@@ -287,7 +287,7 @@ const AddWorkDetails = forwardRef(({ onNext, onBack }, ref) => {
         </Row>
       </Section>
 
-      <Divider />
+     
 
       <Section>
         <SectionTitle>Shift & Attendance Details</SectionTitle>
@@ -321,7 +321,7 @@ const AddWorkDetails = forwardRef(({ onNext, onBack }, ref) => {
         </Row>
       </Section>
 
-      <Divider />
+    
 
       <Section>
         <SectionTitle>ESI & PF Details</SectionTitle>
@@ -347,7 +347,7 @@ const AddWorkDetails = forwardRef(({ onNext, onBack }, ref) => {
         </Row>
       </Section>
 
-      <Divider />
+     
 
       <Section>
         <SectionTitle>Salary Details</SectionTitle>
@@ -454,7 +454,7 @@ const AddWorkDetails = forwardRef(({ onNext, onBack }, ref) => {
         </Row>
       </Section>
 
-      <Divider />
+  
 
       <Section>
         <SectionTitle>Bank Details</SectionTitle>
@@ -511,7 +511,7 @@ const AddWorkDetails = forwardRef(({ onNext, onBack }, ref) => {
         </Row>
       </Section>
 
-      <Divider />
+    
 
       <Section>
         <SectionTitle>Reference Details</SectionTitle>

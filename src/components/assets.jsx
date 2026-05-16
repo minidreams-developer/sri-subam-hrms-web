@@ -209,6 +209,8 @@ const Container = styled.div`
   width: 100%;
   padding: 1.5rem;
   background-color: ${theme.colors.white};
+  border-radius: 12px;
+  border: 1px solid ${theme.colors.border};
 `;
 
 const Header = styled.div`
@@ -335,6 +337,8 @@ const DetailsContainer = styled.div`
   width: 100%;
   padding: 1.5rem;
   background-color: ${theme.colors.white};
+  border-radius: 12px;
+  border: 1px solid ${theme.colors.border};
 `;
 
 const DetailsHeader = styled.div`

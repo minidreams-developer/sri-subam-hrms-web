@@ -3,6 +3,7 @@ import theme from "../theme/theme";
 import { useState } from "react";
 import EditIcon from "../assets/images/employee/editIcon.svg";
 import CardDetails from "./CardDetails";
+import PayrollIcon from "./Frame 1000009178 - Copy.svg";
 
 const PayrollComponent = () => {
   const [expandedYear, setExpandedYear] = useState("2026");
@@ -18,8 +19,13 @@ const PayrollComponent = () => {
 
   return (
     <Wrapper>
+      
+      <PayrollDetailsHeader>
+        <PayrollHeaderIcon src={PayrollIcon} alt="payroll" />
+        <PayrollDetailsTitle>Payroll details</PayrollDetailsTitle>
+      </PayrollDetailsHeader>
       <CardDetails
-        title="Payroll Details"
+        title="Basic Details"
         columns={3}
         showEdit={true}
         editIcon={EditIcon}
@@ -94,7 +100,10 @@ const PayrollComponent = () => {
 
       <Section>
         <SectionHeader>
-          <SectionTitle>Salary History</SectionTitle>
+          <SectionTitleWithIcon>
+            <SectionIcon src={PayrollIcon} alt="payroll" />
+            <SectionTitle>Salary History</SectionTitle>
+          </SectionTitleWithIcon>
         </SectionHeader>
 
         {/* Year 2026 */}
@@ -195,6 +204,26 @@ const Wrapper = styled.div`
   padding: 1rem;
 `;
 
+const PayrollDetailsHeader = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+`;
+
+const PayrollHeaderIcon = styled.img`
+  width: 1.5rem;
+  height: 1.5rem;
+`;
+
+const PayrollDetailsTitle = styled.h5`
+  font-size: 1.125rem;
+  font-weight: 600;
+  font-family: "Inter-SemiBold", sans-serif;
+  color: ${theme.colors.textColor};
+  margin: 0;
+`;
+
 const Section = styled.div`
   width: 100%;
   display: flex;
@@ -216,6 +245,17 @@ const SectionTitle = styled.h3`
   color: ${theme.colors.textColor};
   line-height: 160%;
   margin: 0;
+`;
+
+const SectionTitleWithIcon = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+`;
+
+const SectionIcon = styled.img`
+  width: 1.5rem;
+  height: 1.5rem;
 `;
 
 const YearSection = styled.div`
