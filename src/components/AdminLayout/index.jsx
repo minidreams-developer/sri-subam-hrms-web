@@ -104,13 +104,35 @@ const AdminLayout = () => {
                     {item.submenu.map((subItem, subIndex) => {
                       const current = location.pathname.replace(/\/+$/, "");
                       const target = (subItem.path || "").replace(/\/+$/, "");
-                      const isSubActive =
-                        current === target || current.startsWith(target);
+                      
+                      // Dynamic active state based on navigation source
+                      let isSubActive = current === target;
+                      
+                      // Special handling for Employees and Onboarding
+                      if (subItem.name === "Employees") {
+                        isSubActive =
+                          current === target ||
+                          (current === "/admin/peopleHub/employees/create" &&
+                            location.state?.from === "employees");
+                      } else if (subItem.name === "Onboarding") {
+                        isSubActive =
+                          current === target ||
+                          (current === "/admin/peopleHub/employees/create" &&
+                            location.state?.from === "onboarding");
+                      }
+                      
                       return (
                         <SubMenuItem
                           key={subIndex}
                           $isactive={isSubActive}
-                          onClick={() => navigate(subItem.path)}
+                          onClick={() => {
+                            // Pass state when navigating from sidebar
+                            if (subItem.state) {
+                              navigate(subItem.path, { state: subItem.state });
+                            } else {
+                              navigate(subItem.path);
+                            }
+                          }}
                         >
                           <span>{subItem.name}</span>
                         </SubMenuItem>

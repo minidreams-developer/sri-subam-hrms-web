@@ -103,7 +103,9 @@ const Employees = () => {
   };
 
   const handleNewEmployee = () => {
-    navigate("/admin/peopleHub/employees/create");
+    navigate("/admin/peopleHub/employees/create", {
+      state: { from: "employees" },
+    });
   };
 
   const handleFilterOpen = () => {

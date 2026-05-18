@@ -37,6 +37,10 @@ import OrganizationDetails from "../pages/Settings/OrganizationDetails";
 import Departments from "../pages/Settings/Departments/Departments";
 import Roles from "../pages/Settings/Roles/Roles";
 import RolesConfig from "../pages/Settings/Roles/RolesConfig";
+import DaySettings from "../pages/Settings/DaySettings/DaySettings";
+import SeriesConfigurationPage from "../pages/Settings/SeriesConfiguration";
+import AddSeriesPage from "../pages/Settings/AddSeriesPage";
+import AttendancePage from "../pages/Attendance/Attendance";
 
 const publicRoutes = [
   { path: "/", component: <Login /> },
@@ -61,6 +65,7 @@ const privateRoutes = [
         path: "peopleHub/employees/create",
         element: <CreateEmployee />,
       },
+      
       {
         path: "peopleHub/employees/employeeProfile",
         element: <EmployeeProfile />,
@@ -104,6 +109,10 @@ const privateRoutes = [
       {
         path: "time-hub/leaveAttendance/edit-Leave",
         element: <EditLeave />,
+      },
+      {
+        path: "time-hub/attendance",
+        element: <AttendancePage />,
       },
       {
         path: "time-hub/overTime-management",
@@ -184,6 +193,18 @@ const privateRoutes = [
       {
         path: "settings/roles/roleConfigure",
         element: <RolesConfig />,
+      },
+      {
+        path: "settings/daySettings",
+        element: <DaySettings />,
+      },
+      {
+        path: "settings/seriesConfiguration",
+        element: <SeriesConfigurationPage />,
+      },
+      {
+        path: "settings/seriesConfiguration/add",
+        element: <AddSeriesPage />,
       },
     ],
   },

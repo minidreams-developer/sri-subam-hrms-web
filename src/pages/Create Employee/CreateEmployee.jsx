@@ -70,6 +70,20 @@ const CreateEmployee = () => {
         return;
       }
 
+      if (!personalData?.password) {
+        toast.error("Password is required");
+        setIsLoading(false);
+        return;
+      }
+
+      // Validate password format (min 8 chars, at least 1 letter and 1 number)
+      const passwordRegex = /^(?=.*[a-zA-Z])(?=.*\d).{8,}$/;
+      if (!passwordRegex.test(personalData.password)) {
+        toast.error("Password must be at least 8 characters with at least 1 letter and 1 number");
+        setIsLoading(false);
+        return;
+      }
+
       if (!workData?.department) {
         toast.error("Department is required");
         setIsLoading(false);
@@ -78,59 +92,79 @@ const CreateEmployee = () => {
 
       const payload = {
         // Personal Information
-        employeeType: personalData.employeeType?.value,
-        employeeId: personalData.employeeId,
         name: personalData.employeeName,
+        email: personalData.email,
+        password: personalData.password, // Required field
+        phone: personalData.contact,
         gender: personalData.gender?.value,
         dateOfBirth: personalData.dob,
         age: personalData.age,
-        phone: personalData.contact,
-        email: personalData.email,
-        maritalStatus: personalData.maritalStatus?.value,
+        spokenLanguages: personalData.spokenLanguages || [],
+        martialStatus: personalData.maritalStatus?.value, // Note: API has typo "martialStatus"
         motherTongue: personalData.motherTongue?.value,
         identificationMark: personalData.identificationMark,
         religion: personalData.religion?.value,
-        address: personalData.address,
-        city: personalData.city,
-        district: personalData.district?.value,
-        state: personalData.state?.value,
-        pinCode: personalData.pinCode,
+        profilePic: personalData.profilePic, // From document upload
+
+        // Document Numbers
+        documentNo: {
+          aadharNo: personalData.aadharNo,
+          panNo: personalData.panNo,
+        },
+
+        // Addresses
+        addresses: [
+          {
+            addressLine1: personalData.address,
+            addressLine2: personalData.addressLine2 || "",
+            city: personalData.city,
+            state: personalData.state?.value,
+            pincode: personalData.pinCode,
+          },
+        ],
+
+        // Emergency Contacts
         emergencyContacts: personalData.emergencyContacts || [],
 
         // Work Information
-        dateOfJoining: workData.dateOfJoining,
-        experienceType: workData.experienceType?.value,
-        department: workData.department?.value,
-        designation: workData.designation?.value,
-        team: workData.team?.value,
-        branch: workData.branch?.value,
-        reportingPerson: workData.reportingPerson?.value,
-        attendanceType: workData.attendanceType?.value,
-        shift: workData.shift?.value,
-        totalYearsOfExperience: workData.totalYearsOfExperience,
-        lastCompanyName: workData.lastCompanyName,
+        workInformation: {
+          joinedDate: workData.dateOfJoining,
+          experienceType: workData.experienceType?.value,
+          department: workData.department?.value, // ObjectId
+          team: workData.team?.value, // ObjectId
+          branch: workData.branch?.value, // ObjectId
+          contractAgent: workData.contractAgent?.value, // ObjectId
+          reportingPerson: workData.reportingPerson?.value, // ObjectId
+          AttendanceType: workData.attendanceType?.value,
+          shiftId: workData.shift?.value, // ObjectId
+          userRemarks: workData.remarks,
+        },
 
         // Salary Details
-        ctcAnnual: workData.ctcAnnual,
-        monthlyCTC: workData.monthlyCTC,
-        basicSalary: workData.basicSalary,
-        hra: workData.hra,
-        conveyanceAllowance: workData.conveyanceAllowance,
-        specialAllowance: workData.specialAllowance,
-        salaryDisbursementType: workData.salaryDisbursementType?.value,
+        salaryDetails: {
+          basicSalary: workData.basicSalary,
+          annualCTC: workData.ctcAnnual,
+          monthlyCTC: workData.monthlyCTC,
+          houseRentAllowance: workData.hra,
+          conveyanceAllowance: workData.conveyanceAllowance,
+          specialAllowance: workData.specialAllowance,
+          otherFixedAllowance: workData.otherFixedAllowance || 0,
+        },
 
         // Bank Details
-        accountHolderName: workData.accHolderName,
-        bankName: workData.bank,
-        accountNumber: workData.accNumber,
-        ifscCode: workData.ifscCode,
-        bankBranch: workData.bankBranch,
-
-        // ESI & PF
-        esiNumber: workData.esiNumber,
-        pfNumber: workData.pfNumber,
-
-        remarks: workData.remarks,
+        bankDetails: [
+          {
+            accountHolderName: workData.accHolderName,
+            bankName: workData.bank,
+            accountNumber: workData.accNumber,
+            ifscCode: workData.ifscCode,
+            branch: workData.bankBranch,
+            esiAndPf: {
+              esiNumber: workData.esiNumber,
+              pfNumber: workData.pfNumber,
+            },
+          },
+        ],
       };
 
       console.log("Payload to send:", payload);

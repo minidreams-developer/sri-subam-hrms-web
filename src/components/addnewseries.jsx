@@ -1,0 +1,315 @@
+import { useState } from "react";
+import styled from "styled-components";
+import theme from "../theme/theme";
+
+const AddNewSeries = ({ onClose, onSave }) => {
+  const [formData, setFormData] = useState({
+    seriesName: "",
+    voucherType: "",
+    prefix: "",
+    suffix: "",
+    startingNo: "",
+    lengthOfZero: "",
+  });
+
+  const [errors, setErrors] = useState({});
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+    if (errors[name]) {
+      setErrors((prev) => ({
+        ...prev,
+        [name]: "",
+      }));
+    }
+  };
+
+  const validateForm = () => {
+    const newErrors = {};
+    if (!formData.seriesName.trim()) {
+      newErrors.seriesName = "Series Name is required";
+    }
+    if (!formData.prefix.trim()) {
+      newErrors.prefix = "Prefix is required";
+    }
+    if (!formData.startingNo.trim()) {
+      newErrors.startingNo = "Starting No is required";
+    }
+    return newErrors;
+  };
+
+  const handleSave = () => {
+    const newErrors = validateForm();
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+    onSave(formData);
+    setFormData({
+      seriesName: "",
+      voucherType: "",
+      prefix: "",
+      suffix: "",
+      startingNo: "",
+      lengthOfZero: "",
+    });
+    setErrors({});
+  };
+
+  const handleCancel = () => {
+    setFormData({
+      seriesName: "",
+      voucherType: "",
+      prefix: "",
+      suffix: "",
+      startingNo: "",
+      lengthOfZero: "",
+    });
+    setErrors({});
+    onClose();
+  };
+
+  return (
+    <Container>
+      <PageTitle>Auto Numbering Info</PageTitle>
+      <ContentArea>
+        <FormGrid>
+          <FormGroup>
+            <Label>
+              Series Name
+              <Required>*</Required>
+            </Label>
+            <Input
+              type="text"
+              name="seriesName"
+              placeholder="Series Name"
+              value={formData.seriesName}
+              onChange={handleChange}
+              $hasError={!!errors.seriesName}
+            />
+            {errors.seriesName && (
+              <ErrorText>{errors.seriesName}</ErrorText>
+            )}
+          </FormGroup>
+
+          <FormGroup>
+            <Label>Voucher Type</Label>
+            <Input
+              type="text"
+              name="voucherType"
+              placeholder="Enter Name"
+              value={formData.voucherType}
+              onChange={handleChange}
+            />
+          </FormGroup>
+
+          <FormGroup>
+            <Label>
+              Prefix
+              <Required>*</Required>
+            </Label>
+            <Input
+              type="text"
+              name="prefix"
+              placeholder="Prefix"
+              value={formData.prefix}
+              onChange={handleChange}
+              $hasError={!!errors.prefix}
+            />
+            {errors.prefix && <ErrorText>{errors.prefix}</ErrorText>}
+          </FormGroup>
+
+          <FormGroup>
+            <Label>Suffix</Label>
+            <Input
+              type="text"
+              name="suffix"
+              placeholder="Suffix"
+              value={formData.suffix}
+              onChange={handleChange}
+            />
+          </FormGroup>
+
+          <FormGroup>
+            <Label>
+              Starting No
+              <Required>*</Required>
+            </Label>
+            <Input
+              type="text"
+              name="startingNo"
+              placeholder="Starting no"
+              value={formData.startingNo}
+              onChange={handleChange}
+              $hasError={!!errors.startingNo}
+            />
+            {errors.startingNo && (
+              <ErrorText>{errors.startingNo}</ErrorText>
+            )}
+          </FormGroup>
+
+          <FormGroup>
+            <Label>Length of Zero</Label>
+            <Input
+              type="text"
+              name="lengthOfZero"
+              placeholder="Length of Zero"
+              value={formData.lengthOfZero}
+              onChange={handleChange}
+            />
+          </FormGroup>
+        </FormGrid>
+      </ContentArea>
+
+      <ButtonGroup>
+        <CancelButton onClick={handleCancel}>Cancel</CancelButton>
+        <SaveButton onClick={handleSave}>Save</SaveButton>
+      </ButtonGroup>
+    </Container>
+  );
+};
+
+export default AddNewSeries;
+
+const Container = styled.div`
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  padding: 0;
+`;
+
+const PageTitle = styled.h1`
+  font-size: 1rem;
+  font-weight: 600;
+  font-family: "Inter-SemiBold", sans-serif;
+  color: ${theme.colors.primary};
+  margin: 0;
+  flex-shrink: 0;
+`;
+
+const ContentArea = styled.div`
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+  box-shadow: none;
+`;
+
+const FormGrid = styled.div`
+  display: grid;
+  grid-template-columns: 40% 40%;
+  gap: 2rem 3rem;
+  row-gap: 2.5rem;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+`;
+
+const FormGroup = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+`;
+
+const Label = styled.label`
+  font-size: 0.8125rem;
+  font-weight: 500;
+  font-family: "Inter-Medium", sans-serif;
+  color: #333;
+  letter-spacing: 0.3px;
+`;
+
+const Required = styled.span`
+  color: #ef4444;
+  margin-left: 0.25rem;
+`;
+
+const Input = styled.input`
+  padding: 0.625rem 0.875rem;
+  border: 1px solid ${(props) => (props.$hasError ? "#ef4444" : "#e5e5e5")};
+  border-radius: 0.375rem;
+  font-size: 0.8125rem;
+  font-family: "Inter-Regular", sans-serif;
+  color: ${theme.colors.textColor};
+  background: #ffff;
+  outline: none;
+  transition: all 0.2s ease;
+
+  &::placeholder {
+    color: #bbb;
+  }
+
+  &:focus {
+    border-color: ${(props) =>
+      props.$hasError ? "#ef4444" : theme.colors.primary};
+    background: #f5f5f5;
+    box-shadow: 0 0 0 3px ${(props) =>
+      props.$hasError ? "rgba(239, 68, 68, 0.1)" : "rgba(0, 128, 128, 0.1)"};
+  }
+`;
+
+const ErrorText = styled.span`
+  font-size: 0.75rem;
+  color: #ef4444;
+  font-family: "Inter-Regular", sans-serif;
+  margin-top: 0.25rem;
+`;
+
+const ButtonGroup = styled.div`
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  margin-top: 3rem;
+  padding-top: 2rem;
+  border-top: 1px solid #e5e5e5;
+`;
+
+const CancelButton = styled.button`
+  padding: 0.625rem 1.5rem;
+  border: 1.5px solid ${theme.colors.primary};
+  background: white;
+  color: ${theme.colors.primary};
+  border-radius: 0.375rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  font-family: "Inter-Medium", sans-serif;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 8rem;
+
+  &:hover {
+    background: #f9f9f9;
+  }
+
+  &:active {
+    opacity: 0.8;
+  }
+`;
+
+const SaveButton = styled.button`
+  padding: 0.625rem 1.5rem;
+  background: ${theme.colors.primary};
+  color: white;
+  border: none;
+  border-radius: 0.375rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  font-family: "Inter-Medium", sans-serif;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 8rem;
+
+  &:hover {
+    opacity: 0.9;
+  }
+
+  &:active {
+    opacity: 0.8;
+  }
+`;

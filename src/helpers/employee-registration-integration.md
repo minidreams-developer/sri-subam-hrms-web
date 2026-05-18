@@ -1,0 +1,164 @@
+# Employee Registration API Integration Guide
+
+## Overview
+This document outlines the integration of the Employee Registration API with the Create Employee pages.
+
+## API Endpoint
+- **POST** `/api/v1/users/employee-registration`
+
+## Current Implementation
+
+### Pages Involved
+1. **List Page**: `/admin/peopleHub/employees` (Employees.jsx)
+   - Displays all employees
+   - Fetches from: `GET /v1/users`
+   - Shows employee list with filters and search
+
+2. **Create Page**: `/admin/peopleHub/employees/create` (CreateEmployee.jsx)
+   - Multi-step form (3 steps)
+   - Posts to: `POST /v1/employees`
+   - Submits to: `CREATE_EMPLOYEE_NEW` endpoint
+
+## Payload Mapping
+
+### Step 1: Personal Information
+Maps to API fields:
+```
+Form Field → API Field
+employeeName → name
+email → email
+phone → phone
+gender → gender
+dateOfBirth → dateOfBirth
+age → age
+maritalStatus → martialStatus (note: typo in API)
+motherTongue → motherTongue
+identificationMark → identificationMark
+religion → religion
+profileImage → profilePic
+aadharNo → documentNo.aadharNo
+panNo → documentNo.panNo
+address → addresses[0].addressLine1
+city → addresses[0].city
+state → addresses[0].state
+pinCode → addresses[0].pincode
+emergencyContacts → emergencyContacts[]
+```
+
+### Step 2: Document Upload
+- Aadhaar image → profilePic
+- Other documents → handled via FormData
+
+### Step 3: Work Details
+Maps to API fields:
+```
+Form Field → API Field
+dateOfJoining → workInformation.joinedDate
+experienceType → workInformation.experienceType
+department → workInformation.department (ObjectId)
+designation → (not in API, store separately)
+team → workInformation.team (ObjectId)
+branch → workInformation.branch (ObjectId)
+reportingPerson → workInformation.reportingPerson (ObjectId)
+attendanceType → workInformation.AttendanceType
+shift → workInformation.shiftId (ObjectId)
+remarks → workInformation.userRemarks
+
+Salary Details:
+basicSalary → salaryDetails.basicSalary
+monthlyCTC → salaryDetails.monthlyCTC
+ctcAnnual → salaryDetails.annualCTC
+hra → salaryDetails.houseRentAllowance
+conveyanceAllowance → salaryDetails.conveyanceAllowance
+specialAllowance → salaryDetails.specialAllowance
+
+Bank Details:
+accountHolderName → bankDetails[0].accountHolderName
+bankName → bankDetails[0].bankName
+accountNumber → bankDetails[0].accountNumber
+ifscCode → bankDetails[0].ifscCode
+bankBranch → bankDetails[0].branch
+esiNumber → bankDetails[0].esiAndPf.esiNumber
+pfNumber → bankDetails[0].esiAndPf.pfNumber
+```
+
+## Required Fields (from API)
+- name (String) - Required
+- password (String) - Required, min 8 chars, at least 1 letter and 1 number
+- email (String) - Unique, optional but recommended
+- phone (Number) - Unique, optional
+
+## Optional Fields
+All other fields are optional but recommended for complete employee profile.
+
+## Response Handling
+
+### Success (201 Created)
+Returns employee object with:
+- id: MongoDB ObjectId
+- employeeId: Auto-generated (e.g., "EMP847291")
+- approvalStatus: "pending"
+- isEmailVerified: false
+- isProfileCompleted: false
+- employeeProfileStatus: Object tracking completion
+
+### Error Handling
+- 400 Bad Request: Email already taken, validation errors
+- Handle password validation: "must contain at least 1 letter and 1 number"
+- Handle email uniqueness validation
+
+## Implementation Checklist
+
+### CreateEmployee.jsx Updates Needed
+- [ ] Add password field to PersonalInfo step
+- [ ] Validate password format (min 8 chars, 1 letter, 1 number)
+- [ ] Map all form fields to API payload correctly
+- [ ] Handle ObjectId references for department, team, branch, etc.
+- [ ] Implement proper error handling for duplicate email
+- [ ] Add success notification with employeeId
+- [ ] Handle FormData for file uploads
+
+### Employees.jsx Updates Needed
+- [ ] Fetch from correct endpoint: `GET /v1/users`
+- [ ] Display employeeId in table
+- [ ] Show approvalStatus
+- [ ] Show isProfileCompleted status
+- [ ] Add filters for approval status
+- [ ] Add link to create new employee
+
+### PersonalInfo.jsx Updates Needed
+- [ ] Add password field with validation
+- [ ] Add aadhar and PAN fields
+- [ ] Validate email format and uniqueness
+- [ ] Add emergency contacts array handling
+
+### AddWorkDetails.jsx Updates Needed
+- [ ] Map all salary fields correctly
+- [ ] Handle bank details array
+- [ ] Add ESI and PF fields
+- [ ] Validate ObjectId references
+
+## Testing Checklist
+
+### Create Employee Flow
+- [ ] Fill all required fields
+- [ ] Test password validation
+- [ ] Test email uniqueness
+- [ ] Test file uploads
+- [ ] Verify payload structure before submission
+- [ ] Check response contains employeeId
+- [ ] Verify redirect to employees list
+
+### Employee List
+- [ ] Verify employees load correctly
+- [ ] Test search functionality
+- [ ] Test filters
+- [ ] Verify pagination
+- [ ] Check employee details display
+
+## Notes
+- API has typo: "martialStatus" should be "maritalStatus" but API uses "martialStatus"
+- Password is required but not shown in current form
+- employeeId is auto-generated by backend
+- All ObjectId fields (department, team, branch, etc.) need to be validated before submission
+- Consider adding a preview step before final submission

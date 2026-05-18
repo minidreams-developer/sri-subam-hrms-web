@@ -109,7 +109,7 @@ const ReusableTable = ({
           <TableHead>
             <tr>
               {columns?.map((col, i) => (
-                <TableHeader key={i} noWrap={col?.noWrap}>
+                <TableHeader key={i} noWrap={col?.noWrap} $align={col?.align}>
                   <div>
                     <p
                       style={{
@@ -122,7 +122,7 @@ const ReusableTable = ({
                         fontWeight: 500,
                         fontSize: "0.875rem",
                         alignSelf: "flex-start",
-                        textAlign: "left",
+                        textAlign: col?.align || "left",
                         margin: "0",
                       }}
                     >
@@ -147,7 +147,9 @@ const ReusableTable = ({
 
                   if (col.render) {
                     return (
-                      <TableCell key={colIndex}>{col.render(row)}</TableCell>
+                      <TableCell key={colIndex} $align={col?.align}>
+                        {col.render(row)}
+                      </TableCell>
                     );
                   }
 
@@ -158,7 +160,7 @@ const ReusableTable = ({
                   ) {
                     if (actionType === "buttons") {
                       return (
-                        <TableCell key={colIndex}>
+                        <TableCell key={colIndex} $align={col?.align}>
                           <div style={{ display: "flex", gap: "0.5rem" }}>
                             <CustomButton
                               text="Reject"
@@ -197,6 +199,7 @@ const ReusableTable = ({
                     return (
                       <ActionCell
                         key={colIndex}
+                        $align={col?.align}
                         onClick={(e) => {
                           e.stopPropagation();
                           actionBtnClicked && actionBtnClicked(row);
@@ -210,7 +213,7 @@ const ReusableTable = ({
                     col?.header === "Status"
                   ) {
                     return (
-                      <TableCell key={colIndex}>
+                      <TableCell key={colIndex} $align={col?.align}>
                         <StatusBadge $status={value}>
                           <StatusBadgeText $status={value}>
                             {value}
@@ -220,7 +223,11 @@ const ReusableTable = ({
                     );
                   }
 
-                  return <TableCell key={colIndex}>{value || "-/-"}</TableCell>;
+                  return (
+                    <TableCell key={colIndex} $align={col?.align}>
+                      {value || "-/-"}
+                    </TableCell>
+                  );
                 })}
               </TableRow>
             ))}
@@ -310,6 +317,7 @@ const TableHeader = styled.th`
   padding: 0.938rem 0.625rem;
   /* width: ${100 / 7}%; Removed fixed width to allow dynamic sizing */
   min-width: 100px;
+  text-align: ${(props) => props.$align || "left"};
   &:first-child {
     border-top-left-radius: 8px;
   }
@@ -327,6 +335,7 @@ const TableCell = styled.td`
   white-space: ${(props) => (props.noWrap ? "nowrap" : "normal")};
   /* width: ${100 / 7}%; Removed fixed width */
   min-width: 100px;
+  text-align: ${(props) => props.$align || "left"};
 `;
 
 const PaginationWrapper = styled.div`
@@ -368,7 +377,7 @@ const ActionCell = styled.td`
   padding: 0.75rem 1.25rem;
   color: ${theme.colors.textColor};
   cursor: pointer;
-  text-align: left;
+  text-align: ${(props) => props.$align || "left"};
   font-family: "Inter", sans-serif;
   font-weight: 500;
   min-width: 100px;

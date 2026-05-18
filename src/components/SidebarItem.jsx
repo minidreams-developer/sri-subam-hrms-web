@@ -28,7 +28,8 @@ const SidebarItems = [
     submenu: [
       {
         name: "Onboarding",
-        path: "/admin/people/onboarding",
+        path: "/admin/peopleHub/employees/create",
+        state: { from: "onboarding" },
       },
       {
         name: "Employees",
