@@ -20,10 +20,10 @@ const Documents = forwardRef(({ }, ref) => {
 
   // Expose documents data via ref
   useImperativeHandle(ref, () => ({
-    getDocuments: () => ({
+    formData: {
       governmentDocuments: documents,
       personalDocuments: personalDocuments,
-    }),
+    },
   }));
 
   const handleFileSelect = (id, file, keepOriginal) => {

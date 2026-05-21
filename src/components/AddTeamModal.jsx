@@ -1,10 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import styled from "styled-components";
 import theme from "../theme/theme";
 import Button from "./Button";
 import InputComponent from "./InputComponent";
 import Select from "react-select";
 import { customSelectStyles } from "../theme/reactSelectStyles";
+import { get } from "../helpers/api_helper";
+import { GENERATE_TEAM_ID, DEPARTMENTS, GET_ALL_EMPLOYEES } from "../helpers/url_helper";
+import { toast } from "react-toastify";
 
 const AddTeamModal = ({ isOpen, onClose, onSave, isLoading = false }) => {
   const [formData, setFormData] = useState({
@@ -15,20 +18,90 @@ const AddTeamModal = ({ isOpen, onClose, onSave, isLoading = false }) => {
     teamLead: null,
   });
 
-  const departmentOptions = [
-    { value: "IT", label: "IT" },
-    { value: "HR", label: "HR" },
-    { value: "Sales", label: "Sales" },
-    { value: "Marketing", label: "Marketing" },
-    { value: "Finance", label: "Finance" },
-  ];
+  const [isGeneratingId, setIsGeneratingId] = useState(false);
+  const [departmentOptions, setDepartmentOptions] = useState([]);
+  const [isLoadingDepartments, setIsLoadingDepartments] = useState(false);
+  const [teamLeadOptions, setTeamLeadOptions] = useState([]);
+  const [isLoadingTeamLeads, setIsLoadingTeamLeads] = useState(false);
 
-  const teamLeadOptions = [
-    { value: "john_doe", label: "John Doe" },
-    { value: "jane_smith", label: "Jane Smith" },
-    { value: "mike_johnson", label: "Mike Johnson" },
-    { value: "sarah_williams", label: "Sarah Williams" },
-  ];
+  // Generate Team ID and fetch departments/team leads when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      generateTeamId();
+      fetchDepartments();
+      fetchTeamLeads();
+    }
+  }, [isOpen]);
+
+  const fetchDepartments = async () => {
+    setIsLoadingDepartments(true);
+    try {
+      const response = await get(DEPARTMENTS);
+      console.log("Departments response:", response);
+      
+      // Handle different response structures
+      const departmentsList = response?.results || response?.data || response || [];
+      
+      // Transform departments to select options
+      const options = departmentsList.map((dept) => ({
+        value: dept.id || dept._id,
+        label: dept.departmentName || dept.name || "N/A",
+      }));
+      
+      console.log("Department options:", options);
+      setDepartmentOptions(options);
+    } catch (error) {
+      console.error("Error fetching departments:", error);
+      toast.error("Failed to fetch departments");
+    } finally {
+      setIsLoadingDepartments(false);
+    }
+  };
+
+  const fetchTeamLeads = async () => {
+    setIsLoadingTeamLeads(true);
+    try {
+      const response = await get(GET_ALL_EMPLOYEES);
+      console.log("Team leads response:", response);
+      
+      // Handle different response structures
+      const usersList = response?.results || response?.data || response || [];
+      
+      // Transform users to select options
+      const options = usersList.map((user) => ({
+        value: user.id || user._id,
+        label: user.name || user.firstName + " " + user.lastName || user.email || "N/A",
+      }));
+      
+      console.log("Team lead options:", options);
+      setTeamLeadOptions(options);
+    } catch (error) {
+      console.error("Error fetching team leads:", error);
+      toast.error("Failed to fetch team leads");
+    } finally {
+      setIsLoadingTeamLeads(false);
+    }
+  };
+
+  const generateTeamId = async () => {
+    setIsGeneratingId(true);
+    try {
+      const response = await get(GENERATE_TEAM_ID);
+      console.log("Generated Team ID response:", response);
+      
+      // Handle different response structures
+      const teamId = response?.teamCode || response?.teamId || response?.id || response?.data?.teamCode || response?.data?.teamId || "";
+      
+      if (teamId) {
+        setFormData((prev) => ({ ...prev, teamId }));
+      }
+    } catch (error) {
+      console.error("Error generating team ID:", error);
+      toast.error("Failed to generate team ID");
+    } finally {
+      setIsGeneratingId(false);
+    }
+  };
 
   const handleChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -63,13 +136,23 @@ const AddTeamModal = ({ isOpen, onClose, onSave, isLoading = false }) => {
         </ModalHeader>
 
         <ModalBody>
-          <InputComponent
-            label="Team ID (Optional)"
-            placeholder="Auto-generated if empty"
-            value={formData.teamId}
-            onChange={(e) => handleChange("teamId", e.target.value)}
-            labelMargin="0 0 0.625rem 0"
-          />
+          <TeamIdWrapper>
+            <InputComponent
+              label="Team ID (Optional)"
+              placeholder="Auto-generated if empty"
+              value={formData.teamId}
+              onChange={(e) => handleChange("teamId", e.target.value)}
+              labelMargin="0 0 0.625rem 0"
+              disabled={isGeneratingId}
+            />
+            <RegenerateButton
+              onClick={generateTeamId}
+              disabled={isGeneratingId}
+              title="Regenerate Team ID"
+            >
+              ↻
+            </RegenerateButton>
+          </TeamIdWrapper>
 
           <InputComponent
             label="Name"
@@ -85,23 +168,27 @@ const AddTeamModal = ({ isOpen, onClose, onSave, isLoading = false }) => {
               options={departmentOptions}
               value={formData.department}
               onChange={(value) => handleChange("department", value)}
-              placeholder="Select Department"
+              placeholder={isLoadingDepartments ? "Loading departments..." : "Select Department"}
               styles={customSelectStyles}
               isSearchable
+              isDisabled={isLoadingDepartments}
+              isLoading={isLoadingDepartments}
             />
           </SelectWrapper>
 
-          <SelectWrapper>
+          {/* <SelectWrapper>
             <Label>Lead Department</Label>
             <Select
               options={departmentOptions}
               value={formData.leadDepartment}
               onChange={(value) => handleChange("leadDepartment", value)}
-              placeholder="Select Lead Department"
+              placeholder={isLoadingDepartments ? "Loading departments..." : "Select Lead Department"}
               styles={customSelectStyles}
               isSearchable
+              isDisabled={isLoadingDepartments}
+              isLoading={isLoadingDepartments}
             />
-          </SelectWrapper>
+          </SelectWrapper> */}
 
           <SelectWrapper>
             <Label>Team Lead</Label>
@@ -109,9 +196,11 @@ const AddTeamModal = ({ isOpen, onClose, onSave, isLoading = false }) => {
               options={teamLeadOptions}
               value={formData.teamLead}
               onChange={(value) => handleChange("teamLead", value)}
-              placeholder="Select Lead"
+              placeholder={isLoadingTeamLeads ? "Loading team leads..." : "Select Lead"}
               styles={customSelectStyles}
               isSearchable
+              isDisabled={isLoadingTeamLeads}
+              isLoading={isLoadingTeamLeads}
             />
           </SelectWrapper>
         </ModalBody>
@@ -239,6 +328,39 @@ const ModalFooter = styled.div`
   gap: 1rem;
   padding: 1rem 1.5rem 1.5rem 1.5rem;
   border-top: 1px solid ${theme.colors.border};
+`;
+
+const TeamIdWrapper = styled.div`
+  position: relative;
+  width: 100%;
+`;
+
+const RegenerateButton = styled.button`
+  position: absolute;
+  right: 0.75rem;
+  top: 2.25rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0.5rem;
+  font-size: 1.2rem;
+  color: ${theme.colors.primary};
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+
+  &:hover:not(:disabled) {
+    opacity: 0.7;
+    transform: rotate(180deg);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
 `;
 
 export default AddTeamModal;

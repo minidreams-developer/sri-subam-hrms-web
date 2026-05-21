@@ -10,6 +10,7 @@ export const CREATE_BRANCH = "/v1/branches";
 
 // Teams
 export const TEAMS = "/v1/teams";
+export const GENERATE_TEAM_ID = "/v1/teams/generate-id";
 export const CREATE_TEAM = "/v1/teams";
 
 // Customers
@@ -23,6 +24,15 @@ export const GET_ALL_EMPLOYEES = "/v1/users";
 export const ADD_EMPLOYEE = "/users";
 export const CREATE_EMPLOYEE = "/v1/users";
 export const CREATE_EMPLOYEE_NEW = "/v1/employees";
+export const EMPLOYEE_REGISTRATION = "/v1/users/employee-registration";
+
+// Departments
+export const DEPARTMENTS = "/v1/departments";
+export const GENERATE_DEPARTMENT_ID = "/v1/departments/generate-id";
+export const CREATE_DEPARTMENT = "/v1/departments";
+export const GET_DEPARTMENT = "/v1/departments/:departmentId";
+export const UPDATE_DEPARTMENT = "/v1/departments/:departmentId";
+export const DELETE_DEPARTMENT = "/v1/departments/:departmentId";
 export const PRODUCTS = "/products";
 export const PLACES = '/places';
 export const PLACES_STATS ='/places/stats';

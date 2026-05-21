@@ -7,16 +7,21 @@ import PersonalInfo from "./PersonalInfo/PersonalInfo";
 import AddWorkDetails from "./Work Details/AddWorkDetails";
 import Documents from "./Documents/Documents";
 import Button from "../../components/Button";
-import { post, postFormData } from "../../helpers/api_helper";
-import { CREATE_EMPLOYEE_NEW as CREATE_EMPLOYEE } from "../../helpers/url_helper";
+import { post } from "../../helpers/api_helper";
+import { EMPLOYEE_REGISTRATION } from "../../helpers/url_helper";
 import { toast } from "react-toastify";
 
 const CreateEmployee = () => {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
-  
-  // Refs to access child component data
+
+  // Use refs (not state) to store form data across steps.
+  // State updates are async and cause stale closure bugs inside async handlers.
+  // Refs update synchronously and always return the latest value.
+  const savedPersonalData = useRef({});
+  const savedWorkData = useRef({});
+
   const personalInfoRef = useRef();
   const workDetailsRef = useRef();
   const documentsRef = useRef();
@@ -25,7 +30,10 @@ const CreateEmployee = () => {
 
   const handleBack = () => {
     if (currentStep > 1) {
-      setCurrentStep(currentStep - 1);
+      if (currentStep === 3 && workDetailsRef.current?.formData) {
+        savedWorkData.current = workDetailsRef.current.formData;
+      }
+      setCurrentStep((s) => s - 1);
     } else {
       navigate(-1);
     }
@@ -36,10 +44,21 @@ const CreateEmployee = () => {
   };
 
   const handleNext = async () => {
+    console.log("handleNext called, currentStep:", currentStep);
     if (currentStep < 3) {
-      setCurrentStep(currentStep + 1);
+      // Snapshot step 1 data into ref before PersonalInfo unmounts
+      if (currentStep === 1 && personalInfoRef.current?.formData) {
+        savedPersonalData.current = personalInfoRef.current.formData;
+        console.log("Saved personal data:", savedPersonalData.current);
+      }
+      setCurrentStep((s) => s + 1);
     } else {
-      // Submit form on final step
+      // Step 3 is still mounted — read directly from its ref
+      if (workDetailsRef.current?.formData) {
+        savedWorkData.current = workDetailsRef.current.formData;
+        console.log("Saved work data:", savedWorkData.current);
+      }
+      console.log("Calling handleSubmitEmployee...");
       await handleSubmitEmployee();
     }
   };
@@ -48,171 +67,103 @@ const CreateEmployee = () => {
     setIsLoading(true);
 
     try {
-      // Get data from refs
-      const personalData = personalInfoRef.current?.formData || {};
-      const workData = workDetailsRef.current?.formData || {};
-      const documentsData = documentsRef.current?.getDocuments?.() || {};
+      // Read from refs — always the latest values, no stale closure
+      const personalData = savedPersonalData.current;
+      const workData = savedWorkData.current;
+      const documentsData = documentsRef.current?.formData || {};
 
       console.log("Personal Data:", personalData);
       console.log("Work Data:", workData);
       console.log("Documents Data:", documentsData);
 
-      // Validate required fields
-      if (!personalData?.employeeName) {
-        toast.error("Employee name is required");
-        setIsLoading(false);
-        return;
-      }
-
-      if (!personalData?.email) {
-        toast.error("Email is required");
-        setIsLoading(false);
-        return;
-      }
-
-      if (!personalData?.password) {
-        toast.error("Password is required");
-        setIsLoading(false);
-        return;
-      }
-
-      // Validate password format (min 8 chars, at least 1 letter and 1 number)
-      const passwordRegex = /^(?=.*[a-zA-Z])(?=.*\d).{8,}$/;
-      if (!passwordRegex.test(personalData.password)) {
-        toast.error("Password must be at least 8 characters with at least 1 letter and 1 number");
-        setIsLoading(false);
-        return;
-      }
-
-      if (!workData?.department) {
-        toast.error("Department is required");
-        setIsLoading(false);
-        return;
-      }
-
+      // --- Build payload: POST /v1/users/employee-registration ---
       const payload = {
-        // Personal Information
         name: personalData.employeeName,
         email: personalData.email,
-        password: personalData.password, // Required field
-        phone: personalData.contact,
+        password: personalData.password,
+        phone: Number(personalData.contact),
         gender: personalData.gender?.value,
         dateOfBirth: personalData.dob,
-        age: personalData.age,
+        age: Number(personalData.age),
         spokenLanguages: personalData.spokenLanguages || [],
-        martialStatus: personalData.maritalStatus?.value, // Note: API has typo "martialStatus"
+        martialStatus: personalData.maritalStatus?.value, // API typo preserved
         motherTongue: personalData.motherTongue?.value,
         identificationMark: personalData.identificationMark,
         religion: personalData.religion?.value,
-        profilePic: personalData.profilePic, // From document upload
+        profilePic: personalData.profilePic || "",
 
-        // Document Numbers
         documentNo: {
-          aadharNo: personalData.aadharNo,
+          aadharNo: Number(personalData.aadharNo),
           panNo: personalData.panNo,
         },
 
-        // Addresses
         addresses: [
           {
             addressLine1: personalData.address,
             addressLine2: personalData.addressLine2 || "",
             city: personalData.city,
             state: personalData.state?.value,
-            pincode: personalData.pinCode,
+            pincode: Number(personalData.pinCode),
           },
         ],
 
-        // Emergency Contacts
-        emergencyContacts: personalData.emergencyContacts || [],
+        emergencyContacts: (personalData.emergencyContacts || []).map((contact) => ({
+          contactName: contact.emergencyContactName,
+          phone: Number(contact.emergencyContact),
+          relattionship: contact.relationship?.value, // API typo preserved
+          mobileNumber: Number(contact.emergencyContact),
+        })),
 
-        // Work Information
         workInformation: {
           joinedDate: workData.dateOfJoining,
           experienceType: workData.experienceType?.value,
-          department: workData.department?.value, // ObjectId
-          team: workData.team?.value, // ObjectId
-          branch: workData.branch?.value, // ObjectId
-          contractAgent: workData.contractAgent?.value, // ObjectId
-          reportingPerson: workData.reportingPerson?.value, // ObjectId
+          department: workData.department?.value,
+          team: workData.team?.value,
+          branch: workData.branch?.value,
+          contractAgent: workData.contractAgent?.value,
+          reportingPerson: workData.reportingPerson?.value,
           AttendanceType: workData.attendanceType?.value,
-          shiftId: workData.shift?.value, // ObjectId
+          shiftId: workData.shift?.value,
           userRemarks: workData.remarks,
         },
 
-        // Salary Details
         salaryDetails: {
-          basicSalary: workData.basicSalary,
-          annualCTC: workData.ctcAnnual,
-          monthlyCTC: workData.monthlyCTC,
-          houseRentAllowance: workData.hra,
-          conveyanceAllowance: workData.conveyanceAllowance,
-          specialAllowance: workData.specialAllowance,
-          otherFixedAllowance: workData.otherFixedAllowance || 0,
+          basicSalary: Number(workData.basicSalary),
+          annualCTC: Number(workData.ctcAnnual),
+          monthlyCTC: Number(workData.monthlyCTC),
+          houseRentAllowance: Number(workData.hra),
+          conveyanceAllowance: Number(workData.conveyanceAllowance),
+          specialAllowance: Number(workData.specialAllowance),
+          otherFixedAllowance: Number(workData.otherFixedAllowances) || 0,
         },
 
-        // Bank Details
         bankDetails: [
           {
             accountHolderName: workData.accHolderName,
             bankName: workData.bank,
-            accountNumber: workData.accNumber,
+            accountNumber: Number(workData.accNumber),
             ifscCode: workData.ifscCode,
             branch: workData.bankBranch,
             esiAndPf: {
-              esiNumber: workData.esiNumber,
-              pfNumber: workData.pfNumber,
+              esiNumber: Number(workData.esiNumber),
+              pfNumber: Number(workData.pfNumber),
             },
           },
         ],
+
+        documents: {
+          governmentDocuments: documentsData.governmentDocuments || [],
+          personalDocuments: documentsData.personalDocuments || [],
+        },
       };
 
-      console.log("Payload to send:", payload);
+      console.log("Payload:", payload);
 
-      // If there are documents, use FormData
-      if (personalData.aadhaarImage || Object.keys(documentsData).length > 0) {
-        const formData = new FormData();
-        
-        // Add all payload fields
-        Object.keys(payload).forEach((key) => {
-          if (payload[key] !== null && payload[key] !== undefined) {
-            if (Array.isArray(payload[key])) {
-              formData.append(key, JSON.stringify(payload[key]));
-            } else {
-              formData.append(key, payload[key]);
-            }
-          }
-        });
+      const response = await post(EMPLOYEE_REGISTRATION, payload);
+      console.log("Response:", response);
 
-        // Add profile image if exists
-        if (personalData.aadhaarImage) {
-          formData.append("profileImage", personalData.aadhaarImage);
-        }
-
-        // Add documents
-        Object.keys(documentsData).forEach((key) => {
-          if (documentsData[key]) {
-            formData.append(`documents_${key}`, documentsData[key]);
-          }
-        });
-
-        const response = await postFormData(CREATE_EMPLOYEE, formData);
-        
-        console.log("FormData Response:", response);
-        if (response) {
-          toast.success("Employee created successfully!");
-          navigate("/admin/peopleHub/employees");
-        }
-      } else {
-        // Use regular POST if no files
-        const response = await post(CREATE_EMPLOYEE, payload);
-        console.log("POST Response:", response);
-
-        if (response) {
-          toast.success("Employee created successfully!");
-          navigate("/admin/peopleHub/employees");
-        }
-      }
+      toast.success("Employee created successfully!");
+      navigate("/admin/peopleHub/employees");
     } catch (error) {
       const errorMessage =
         error.response?.data?.message ||
@@ -229,15 +180,9 @@ const CreateEmployee = () => {
     <Container>
       <Stepper steps={steps} currentStep={currentStep} />
       <div>
-        {currentStep === 1 && (
-          <PersonalInfo ref={personalInfoRef} />
-        )}
-        {currentStep === 2 && (
-          <Documents ref={documentsRef} />
-        )}
-        {currentStep === 3 && (
-          <AddWorkDetails ref={workDetailsRef} />
-        )}
+        {currentStep === 1 && <PersonalInfo ref={personalInfoRef} />}
+        {currentStep === 2 && <Documents ref={documentsRef} />}
+        {currentStep === 3 && <AddWorkDetails ref={workDetailsRef} />}
       </div>
 
       <ButtonRow>
@@ -288,18 +233,6 @@ const CreateEmployee = () => {
 const Container = styled.div`
   width: 100%;
   padding: 1.5rem 0;
-`;
-
-const Section = styled.div`
-  width: 100%;
-`;
-
-const SectionTitle = styled.h2`
-  font-size: 1.25rem;
-  font-weight: 600;
-  font-family: "Inter-SemiBold", sans-serif;
-  color: ${theme.colors.primary};
-  margin: 0 0 1.5rem 0;
 `;
 
 const ButtonRow = styled.div`

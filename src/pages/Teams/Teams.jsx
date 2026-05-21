@@ -28,19 +28,40 @@ const Teams = () => {
     setIsFetchingTeams(true);
     try {
       const response = await get(TEAMS);
+      console.log("Teams API response:", response);
+      
+      // Handle different response structures
+      const teamsList = response?.results || response?.data || response || [];
       
       // Transform API response to match table format
-      const transformedData = response?.results?.map((team, index) => ({
-        teamId: team.teamId || team.id || `T${String(index + 1).padStart(3, '0')}`,
-        name: team.name || "N/A",
-        department: team.department || "N/A",
-        teamLead: team.teamLead || team.leadName || "N/A",
-        totalMembers: team.totalMembers || team.memberCount || 0,
-        actions: "...",
-        // Store original data for details page
-        originalData: team,
-      })) || [];
+      const transformedData = teamsList.map((team, index) => {
+        console.log("Processing team:", team);
+        
+        // Extract department name if it's an object, otherwise use as string
+        let departmentName = "N/A";
+        if (team.department) {
+          if (typeof team.department === "string") {
+            departmentName = team.department;
+          } else if (team.department.departmentName) {
+            departmentName = team.department.departmentName;
+          } else if (team.department.name) {
+            departmentName = team.department.name;
+          }
+        }
+        
+        return {
+          teamId: team.teamCode || team.teamId || team.id || `T${String(index + 1).padStart(3, '0')}`,
+          name: team.teamName || team.name || "N/A",
+          department: departmentName,
+          teamLead: team.teamLead?.name || team.teamLead || team.leadName || "N/A",
+          totalMembers: team.teamEmployees?.length || team.totalMembers || team.memberCount || 0,
+          actions: "...",
+          // Store original data for details page
+          originalData: team,
+        };
+      });
 
+      console.log("Transformed teams data:", transformedData);
       setTeamsData(transformedData);
     } catch (error) {
       const errorMessage =
@@ -55,12 +76,30 @@ const Teams = () => {
   };
 
   const teamsColumns = [
-    { key: "teamId", label: "Team ID" },
-    { key: "name", label: "Name" },
-    { key: "department", label: "Department" },
-    { key: "teamLead", label: "Team Lead" },
-    { key: "totalMembers", label: "Total Members" },
-    { key: "actions", label: "Action" },
+    { key: "teamId", header: "Team ID" },
+    { key: "name", header: "Name" },
+    { key: "department", header: "Department" },
+    { key: "teamLead", header: "Team Lead" },
+    {
+      key: "totalMembers",
+      header: "Total Members",
+      render: (row) => (
+        <MembersCell>
+          {row.totalMembers}
+        </MembersCell>
+      ),
+    },
+    {
+      key: "actions",
+      header: "Action",
+      render: () => (
+        <ActionButton onClick={(e) => {
+          e.stopPropagation();
+        }}>
+          ⋮
+        </ActionButton>
+      ),
+    },
   ];
 
   const filteredData = teamsData.filter((row) => {
@@ -153,6 +192,30 @@ const Teams = () => {
 
 const Container = styled.div`
   width: 100%;
+`;
+
+const ActionButton = styled.button`
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.2s;
+
+  &:hover {
+    opacity: 0.7;
+  }
+`;
+
+const MembersCell = styled.div`
+  font-size: 0.875rem;
+  color: #0c0c0c;
+  font-weight: 500;
+  text-align: center;
+  min-width: 60px;
 `;
 
 export default Teams;

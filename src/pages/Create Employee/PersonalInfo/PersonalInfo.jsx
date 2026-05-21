@@ -7,7 +7,7 @@ import Select from "react-select";
 import { customSelectStyles } from "../../../theme/reactSelectStyles";
 import UploadIcon from "../../../assets/images/employee/upload2.svg";
 
-const PersonalInfo = forwardRef(({ onNext, onBack }, ref) => {
+const PersonalInfo = forwardRef((_, ref) => {
   const [formData, setFormData] = useState({
     employeeType: null,
     employeeId: "",
@@ -17,12 +17,18 @@ const PersonalInfo = forwardRef(({ onNext, onBack }, ref) => {
     age: "",
     contact: "",
     email: "",
+    password: "",
     maritalStatus: null,
     motherTongue: null,
     identificationMark: "",
     religion: null,
+    spokenLanguages: [],
     aadhaarImage: null,
+    profilePic: "",
+    aadharNo: "",
+    panNo: "",
     address: "",
+    addressLine2: "",
     city: "",
     district: null,
     state: null,
@@ -30,19 +36,12 @@ const PersonalInfo = forwardRef(({ onNext, onBack }, ref) => {
   });
 
   const [emergencyContacts, setEmergencyContacts] = useState([
-    {
-      emergencyContact: "",
-      emergencyContactName: "",
-      relationship: null,
-    },
+    { emergencyContact: "", emergencyContactName: "", relationship: null },
   ]);
 
   // Expose form data via ref
   useImperativeHandle(ref, () => ({
-    formData: {
-      ...formData,
-      emergencyContacts,
-    },
+    formData: { ...formData, emergencyContacts },
   }));
 
   const employeeTypeOptions = [
@@ -70,10 +69,31 @@ const PersonalInfo = forwardRef(({ onNext, onBack }, ref) => {
     { value: "other", label: "Other" },
   ];
 
+  const motherTongueOptions = [
+    { value: "tamil", label: "Tamil" },
+    { value: "english", label: "English" },
+    { value: "hindi", label: "Hindi" },
+    { value: "telugu", label: "Telugu" },
+    { value: "kannada", label: "Kannada" },
+    { value: "malayalam", label: "Malayalam" },
+  ];
+
+  const spokenLanguagesOptions = [
+    { value: "tamil", label: "Tamil" },
+    { value: "english", label: "English" },
+    { value: "hindi", label: "Hindi" },
+    { value: "telugu", label: "Telugu" },
+    { value: "kannada", label: "Kannada" },
+    { value: "malayalam", label: "Malayalam" },
+  ];
+
   const stateOptions = [
     { value: "tamil_nadu", label: "Tamil Nadu" },
     { value: "kerala", label: "Kerala" },
     { value: "karnataka", label: "Karnataka" },
+    { value: "andhra_pradesh", label: "Andhra Pradesh" },
+    { value: "telangana", label: "Telangana" },
+    { value: "maharashtra", label: "Maharashtra" },
   ];
 
   const relationshipOptions = [
@@ -95,31 +115,27 @@ const PersonalInfo = forwardRef(({ onNext, onBack }, ref) => {
   };
 
   const handleEmergencyContactChange = (index, field, value) => {
-    const updatedContacts = [...emergencyContacts];
-    updatedContacts[index][field] = value;
-    setEmergencyContacts(updatedContacts);
+    const updated = [...emergencyContacts];
+    updated[index][field] = value;
+    setEmergencyContacts(updated);
   };
 
   const handleAddMoreContact = () => {
     setEmergencyContacts([
       ...emergencyContacts,
-      {
-        emergencyContact: "",
-        emergencyContactName: "",
-        relationship: null,
-      },
+      { emergencyContact: "", emergencyContactName: "", relationship: null },
     ]);
   };
 
   const handleRemoveContact = (index) => {
     if (emergencyContacts.length > 1) {
-      const updatedContacts = emergencyContacts.filter((_, i) => i !== index);
-      setEmergencyContacts(updatedContacts);
+      setEmergencyContacts(emergencyContacts.filter((_, i) => i !== index));
     }
   };
 
   return (
     <Container>
+      {/* ── Personal Information ── */}
       <Section>
         <SectionTitle>Personal Information</SectionTitle>
         <Row>
@@ -129,7 +145,7 @@ const PersonalInfo = forwardRef(({ onNext, onBack }, ref) => {
               <Select
                 options={employeeTypeOptions}
                 value={formData.employeeType}
-                onChange={(value) => handleChange("employeeType", value)}
+                onChange={(v) => handleChange("employeeType", v)}
                 placeholder="Select Type"
                 styles={customSelectStyles}
                 isSearchable
@@ -162,8 +178,8 @@ const PersonalInfo = forwardRef(({ onNext, onBack }, ref) => {
               <Select
                 options={genderOptions}
                 value={formData.gender}
-                onChange={(value) => handleChange("gender", value)}
-                placeholder="Enter Your Email"
+                onChange={(v) => handleChange("gender", v)}
+                placeholder="Select Gender"
                 styles={customSelectStyles}
                 isSearchable
               />
@@ -212,13 +228,38 @@ const PersonalInfo = forwardRef(({ onNext, onBack }, ref) => {
         </Row>
         <Row>
           <Col>
+            <InputComponent
+              label="Password"
+              placeholder="Min 8 chars, 1 letter & 1 number"
+              value={formData.password}
+              onChange={(e) => handleChange("password", e.target.value)}
+              labelMargin="0 0 0.625rem 0"
+              type="password"
+            />
+          </Col>
+          <Col>
             <SelectWrapper>
               <Label>Marital Status</Label>
               <Select
                 options={maritalStatusOptions}
                 value={formData.maritalStatus}
-                onChange={(value) => handleChange("maritalStatus", value)}
+                onChange={(v) => handleChange("maritalStatus", v)}
                 placeholder="Select Marital Status"
+                styles={customSelectStyles}
+                isSearchable
+              />
+            </SelectWrapper>
+          </Col>
+        </Row>
+        <Row>
+          <Col>
+            <SelectWrapper>
+              <Label>Mother Tongue</Label>
+              <Select
+                options={motherTongueOptions}
+                value={formData.motherTongue}
+                onChange={(v) => handleChange("motherTongue", v)}
+                placeholder="Select Language"
                 styles={customSelectStyles}
                 isSearchable
               />
@@ -226,16 +267,12 @@ const PersonalInfo = forwardRef(({ onNext, onBack }, ref) => {
           </Col>
           <Col>
             <SelectWrapper>
-              <Label>Mother Tongue</Label>
+              <Label>Religion</Label>
               <Select
-                options={[
-                  { value: "tamil", label: "Tamil" },
-                  { value: "english", label: "English" },
-                  { value: "hindi", label: "Hindi" },
-                ]}
-                value={formData.motherTongue}
-                onChange={(value) => handleChange("motherTongue", value)}
-                placeholder="Select language"
+                options={religionOptions}
+                value={formData.religion}
+                onChange={(v) => handleChange("religion", v)}
+                placeholder="Select Religion"
                 styles={customSelectStyles}
                 isSearchable
               />
@@ -254,14 +291,22 @@ const PersonalInfo = forwardRef(({ onNext, onBack }, ref) => {
           </Col>
           <Col>
             <SelectWrapper>
-              <Label>Religion</Label>
+              <Label>Spoken Languages</Label>
               <Select
-                options={religionOptions}
-                value={formData.religion}
-                onChange={(value) => handleChange("religion", value)}
-                placeholder="Select Religion"
+                options={spokenLanguagesOptions}
+                value={spokenLanguagesOptions.filter((o) =>
+                  formData.spokenLanguages.includes(o.value)
+                )}
+                onChange={(selected) =>
+                  handleChange(
+                    "spokenLanguages",
+                    selected ? selected.map((s) => s.value) : []
+                  )
+                }
+                placeholder="Select Languages"
                 styles={customSelectStyles}
                 isSearchable
+                isMulti
               />
             </SelectWrapper>
           </Col>
@@ -272,15 +317,19 @@ const PersonalInfo = forwardRef(({ onNext, onBack }, ref) => {
             <UploadArea>
               <input
                 type="file"
-                id="aadhaar-upload"
+                id="profile-upload"
                 accept="image/*"
                 onChange={handleImageUpload}
                 style={{ display: "none" }}
               />
-              <label htmlFor="aadhaar-upload" style={{ cursor: "pointer", width: "100%" }}>
+              <label htmlFor="profile-upload" style={{ cursor: "pointer", width: "100%" }}>
                 <UploadContent>
                   <img src={UploadIcon} alt="upload" width="32" height="32" />
-                  <UploadText>Upload Image</UploadText>
+                  <UploadText>
+                    {formData.aadhaarImage
+                      ? formData.aadhaarImage.name
+                      : "Upload Image"}
+                  </UploadText>
                 </UploadContent>
               </label>
             </UploadArea>
@@ -288,18 +337,50 @@ const PersonalInfo = forwardRef(({ onNext, onBack }, ref) => {
         </Row>
       </Section>
 
+      {/* ── Address & Document Numbers ── */}
       <Section>
-        <SectionTitle>Address</SectionTitle>
+        <SectionTitle>Address & Document Numbers</SectionTitle>
         <Row>
           <Col>
             <InputComponent
-              label="Address"
+              label="Aadhaar Number"
+              placeholder="Enter Aadhaar Number"
+              value={formData.aadharNo}
+              onChange={(e) => handleChange("aadharNo", e.target.value)}
+              labelMargin="0 0 0.625rem 0"
+            />
+          </Col>
+          <Col>
+            <InputComponent
+              label="PAN Number"
+              placeholder="Enter PAN Number"
+              value={formData.panNo}
+              onChange={(e) => handleChange("panNo", e.target.value)}
+              labelMargin="0 0 0.625rem 0"
+            />
+          </Col>
+        </Row>
+        <Row>
+          <Col>
+            <InputComponent
+              label="Address Line 1"
               placeholder="Enter Address"
               value={formData.address}
               onChange={(e) => handleChange("address", e.target.value)}
               labelMargin="0 0 0.625rem 0"
             />
           </Col>
+          <Col>
+            <InputComponent
+              label="Address Line 2"
+              placeholder="Landmark / Area (optional)"
+              value={formData.addressLine2}
+              onChange={(e) => handleChange("addressLine2", e.target.value)}
+              labelMargin="0 0 0.625rem 0"
+            />
+          </Col>
+        </Row>
+        <Row>
           <Col>
             <InputComponent
               label="City"
@@ -309,29 +390,14 @@ const PersonalInfo = forwardRef(({ onNext, onBack }, ref) => {
               labelMargin="0 0 0.625rem 0"
             />
           </Col>
-        </Row>
-        <Row>
           <Col>
             <SelectWrapper>
               <Label>District</Label>
               <Select
                 options={stateOptions}
                 value={formData.district}
-                onChange={(value) => handleChange("district", value)}
+                onChange={(v) => handleChange("district", v)}
                 placeholder="Select District"
-                styles={customSelectStyles}
-                isSearchable
-              />
-            </SelectWrapper>
-          </Col>
-          <Col>
-            <SelectWrapper>
-              <Label>State</Label>
-              <Select
-                options={stateOptions}
-                value={formData.state}
-                onChange={(value) => handleChange("state", value)}
-                placeholder="Select State"
                 styles={customSelectStyles}
                 isSearchable
               />
@@ -340,9 +406,22 @@ const PersonalInfo = forwardRef(({ onNext, onBack }, ref) => {
         </Row>
         <Row>
           <Col>
+            <SelectWrapper>
+              <Label>State</Label>
+              <Select
+                options={stateOptions}
+                value={formData.state}
+                onChange={(v) => handleChange("state", v)}
+                placeholder="Select State"
+                styles={customSelectStyles}
+                isSearchable
+              />
+            </SelectWrapper>
+          </Col>
+          <Col>
             <InputComponent
-              label="Pin code"
-              placeholder="Enter Pin code"
+              label="Pin Code"
+              placeholder="Enter Pin Code"
               value={formData.pinCode}
               onChange={(e) => handleChange("pinCode", e.target.value)}
               labelMargin="0 0 0.625rem 0"
@@ -351,6 +430,7 @@ const PersonalInfo = forwardRef(({ onNext, onBack }, ref) => {
         </Row>
       </Section>
 
+      {/* ── Emergency Contacts ── */}
       {emergencyContacts.map((contact, index) => (
         <Section key={index}>
           <SectionHeader>
@@ -364,10 +444,12 @@ const PersonalInfo = forwardRef(({ onNext, onBack }, ref) => {
           <Row>
             <Col>
               <InputComponent
-                label="Emergency Contact"
+                label="Emergency Contact Number"
                 placeholder="Enter Contact Number"
                 value={contact.emergencyContact}
-                onChange={(e) => handleEmergencyContactChange(index, "emergencyContact", e.target.value)}
+                onChange={(e) =>
+                  handleEmergencyContactChange(index, "emergencyContact", e.target.value)
+                }
                 labelMargin="0 0 0.625rem 0"
                 suffix="+91"
               />
@@ -375,9 +457,11 @@ const PersonalInfo = forwardRef(({ onNext, onBack }, ref) => {
             <Col>
               <InputComponent
                 label="Emergency Contact Name"
-                placeholder="Enter Emergency Contact Name"
+                placeholder="Enter Name"
                 value={contact.emergencyContactName}
-                onChange={(e) => handleEmergencyContactChange(index, "emergencyContactName", e.target.value)}
+                onChange={(e) =>
+                  handleEmergencyContactChange(index, "emergencyContactName", e.target.value)
+                }
                 labelMargin="0 0 0.625rem 0"
               />
             </Col>
@@ -389,8 +473,10 @@ const PersonalInfo = forwardRef(({ onNext, onBack }, ref) => {
                 <Select
                   options={relationshipOptions}
                   value={contact.relationship}
-                  onChange={(value) => handleEmergencyContactChange(index, "relationship", value)}
-                  placeholder="Select Nom"
+                  onChange={(v) =>
+                    handleEmergencyContactChange(index, "relationship", v)
+                  }
+                  placeholder="Select Relationship"
                   styles={customSelectStyles}
                   isSearchable
                 />
@@ -399,7 +485,7 @@ const PersonalInfo = forwardRef(({ onNext, onBack }, ref) => {
           </Row>
         </Section>
       ))}
-      
+
       <ButtonWrapper>
         <AddMoreButton onClick={handleAddMoreContact}>
           <span>+</span> Add More
@@ -408,6 +494,8 @@ const PersonalInfo = forwardRef(({ onNext, onBack }, ref) => {
     </Container>
   );
 });
+
+// ── Styled Components ──
 
 const Container = styled.div`
   width: 80%;
@@ -419,7 +507,7 @@ const Container = styled.div`
 const Section = styled.div`
   margin-bottom: 2rem;
   padding-bottom: 2rem;
-  border-bottom: 1px solid #E0E3E6;
+  border-bottom: 1px solid #e0e3e6;
 
   &:last-of-type {
     margin-bottom: 0;
@@ -495,7 +583,7 @@ const UploadArea = styled.div`
   min-height: 150px;
   border: 2px dashed ${theme.colors.primary};
   border-radius: 0.625rem;
-  background: #066C781A;
+  background: #066c781a;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -522,6 +610,11 @@ const UploadText = styled.p`
   margin: 0;
 `;
 
+const ButtonWrapper = styled.div`
+  display: flex;
+  width: 100%;
+`;
+
 const AddMoreButton = styled.button`
   display: flex;
   align-items: center;
@@ -544,11 +637,6 @@ const AddMoreButton = styled.button`
   span {
     font-size: 1.2rem;
   }
-`;
-
-const ButtonWrapper = styled.div`
-  display: flex;
-  width: 100%;
 `;
 
 const RemoveButton = styled.button`

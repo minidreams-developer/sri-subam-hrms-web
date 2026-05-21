@@ -9,15 +9,15 @@ const StyledButton = styled.button`
   justify-content: center;
   gap: 0.625rem;
   padding: 0.5rem 0.875rem;
-  background-color: ${(props) => props.bg || theme.colors.primary};
-  color: ${(props) => props.color || theme.colors.secondary};
-  font-size: ${(props) => props.fontSize || "0.75rem"};
-  font-weight: ${(props) => props.fontWeight || 500};
-  font-family: ${(props) => props.fontFamily || '"Inter", sans-serif'};
+  background-color: ${(props) => props.$bg || theme.colors.primary};
+  color: ${(props) => props.$color || theme.colors.secondary};
+  font-size: ${(props) => props.$fontSize || "0.75rem"};
+  font-weight: ${(props) => props.$fontWeight || 500};
+  font-family: ${(props) => props.$fontFamily || '"Inter", sans-serif'};
   line-height: 160%;
-  border: ${(props) => props.border || "none"};
-  border-radius: ${(props) => props.radius || "6px"};
-  width: ${(props) => props.width || "auto"};
+  border: ${(props) => props.$border || "none"};
+  border-radius: ${(props) => props.$radius || "6px"};
+  width: ${(props) => props.$width || "auto"};
   cursor: pointer;
   transition: all 0.3s ease;
   white-space: nowrap;
@@ -52,17 +52,17 @@ const Button = ({
   return (
     <StyledButton
       onClick={onClick}
-      bg={bg}
-      color={color}
-      hoverBg={hoverBg}
-      fontSize={fontSize}
-      width={width}
-      border={border}
-      radius={radius}
+      $bg={bg}
+      $color={color}
+      $hoverBg={hoverBg}
+      $fontSize={fontSize}
+      $width={width}
+      $border={border}
+      $radius={radius}
       disabled={disabled || loading}
       type={type}
-      fontWeight={fontWeight}
-      fontFamily={fontFamily}
+      $fontWeight={fontWeight}
+      $fontFamily={fontFamily}
     >
       {loading ? (
         <Spinner size="sm" color={color || theme.colors.white} />
