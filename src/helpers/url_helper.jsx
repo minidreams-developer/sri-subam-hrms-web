@@ -44,3 +44,7 @@ export const ANALYTICS_PRODUCT = '/dashboard/revenue/top-products';
 export const GET_DELIVERIES = '/deliveries';
 export const FILTER_VALUES = '/deliveries/available';
 export const DELIVERY_STATUS = '/deliveries/stats';
+
+// shift management oda api 
+
+export const CREATE_SHIFT = "/v1/shifts";

@@ -157,7 +157,7 @@ const AdminLayout = () => {
             </TextWrap>
           </CoverLeft>
           <RightCover>
-            <Profile src={""} alt="profile" />
+            <Profile src={null} alt="profile" />
             <TextWrap>
               <Name>{user?.name || user?.username || "Admin"}</Name>
               <Role>{user?.role || "Admin"}</Role>

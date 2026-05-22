@@ -28,14 +28,44 @@ const Teams = () => {
     setIsFetchingTeams(true);
     try {
       const response = await get(TEAMS);
-      console.log("Teams API response:", response);
+      console.log("Teams API response (full):", response);
+      console.log("Teams API response (type):", typeof response);
       
       // Handle different response structures
-      const teamsList = response?.results || response?.data || response || [];
+      let teamsList = response?.results || response?.data || response || [];
+      
+      // If response is an array, use it directly
+      if (Array.isArray(response)) {
+        teamsList = response;
+      }
+      
+      console.log("Teams list:", teamsList);
+      console.log("Teams list (length):", teamsList?.length);
       
       // Transform API response to match table format
       const transformedData = teamsList.map((team, index) => {
-        console.log("Processing team:", team);
+        console.log(`Processing team ${index + 1}:`, team);
+        
+        // Extract Team ID/Code - Check all possible field names
+        let displayTeamId = "N/A";
+        if (team.teamCode) {
+          displayTeamId = team.teamCode;
+          console.log("Using teamCode:", team.teamCode);
+        } else if (team.code) {
+          displayTeamId = team.code;
+          console.log("Using code:", team.code);
+        } else if (team.teamId) {
+          displayTeamId = team.teamId;
+          console.log("Using teamId:", team.teamId);
+        } else if (team.id && typeof team.id === "string" && team.id.match(/^[A-Z]+/)) {
+          // If ID starts with letters, it might be a code
+          displayTeamId = team.id;
+          console.log("Using id (looks like code):", team.id);
+        } else if (team.id) {
+          // Last resort: use MongoDB ID
+          displayTeamId = team.id;
+          console.log("Using id (MongoDB):", team.id);
+        }
         
         // Extract department name if it's an object, otherwise use as string
         let departmentName = "N/A";
@@ -49,15 +79,40 @@ const Teams = () => {
           }
         }
         
+        // Extract team name
+        let teamName = team.teamName || team.name || "N/A";
+        
+        // Extract team lead name
+        let teamLeadName = "N/A";
+        if (team.teamLead) {
+          if (typeof team.teamLead === "string") {
+            teamLeadName = team.teamLead;
+          } else if (team.teamLead.name) {
+            teamLeadName = team.teamLead.name;
+          }
+        } else if (team.leadName) {
+          teamLeadName = team.leadName;
+        }
+        
+        // Extract total members
+        let totalMembers = 0;
+        if (team.teamEmployees?.length) {
+          totalMembers = team.teamEmployees.length;
+        } else if (typeof team.totalMembers === "number") {
+          totalMembers = team.totalMembers;
+        } else if (typeof team.memberCount === "number") {
+          totalMembers = team.memberCount;
+        }
+        
+        console.log(`Team ${index + 1} extracted: ID=${displayTeamId}, Name=${teamName}, Dept=${departmentName}, Lead=${teamLeadName}, Members=${totalMembers}`);
+        
         return {
-          teamId: team.teamCode || team.teamId || team.id || `T${String(index + 1).padStart(3, '0')}`,
-          name: team.teamName || team.name || "N/A",
+          teamId: displayTeamId,
+          name: teamName,
           department: departmentName,
-          teamLead: team.teamLead?.name || team.teamLead || team.leadName || "N/A",
-          totalMembers: team.teamEmployees?.length || team.totalMembers || team.memberCount || 0,
+          teamLead: teamLeadName,
+          totalMembers: totalMembers,
           actions: "...",
-          // Store original data for details page
-          originalData: team,
         };
       });
 
@@ -119,12 +174,14 @@ const Teams = () => {
     try {
       // Prepare payload for API
       const payload = {
-        teamId: teamData.teamId || undefined, // Optional field
-        name: teamData.name,
-        department: teamData.department?.value,
-        leadDepartment: teamData.leadDepartment?.value,
-        teamLead: teamData.teamLead?.value,
+        teamCode: teamData.teamId || undefined, // Use the generated Team ID
+        teamName: teamData.name,
+        department: teamData.department?.value, // Department ID
+        teamLead: teamData.teamLead?.value, // User ID
+        teamDescription: "", // Optional description
       };
+
+      console.log("Team payload:", payload);
 
       const response = await post(CREATE_TEAM, payload);
 
