@@ -32,12 +32,12 @@ const Branches = () => {
       // Transform API response to match table format
       const transformedData = response?.results?.map((branch, index) => ({
         no: (index + 1).toString(),
-        branchName: branch.name || "N/A",
+        branchName: branch.branchName || "N/A",
         branchHead: branch.branchHead || "N/A",
         branchNumber: branch.branchNumber || branch.id || "N/A",
-        noOfPeople: branch.employeeCount || branch.noOfPeople || 0,
-        status: branch.status || "Active",
-        isPrimary: branch.isPrimary || false,
+        noOfPeople: branch.departments?.length || 0,
+        status: branch.branchStatus || branch.activeStatus || "Active",
+        isPrimary: false,
         actions: "...",
         // Store original data for sidebar
         originalData: branch,

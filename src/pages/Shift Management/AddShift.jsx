@@ -3,7 +3,7 @@ import theme from "../../theme/theme";
 import styled from "styled-components";
 import InputComponent from "../../components/InputComponent";
 import Select from "react-select";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { customSelectStyles } from "../../theme/reactSelectStyles";
 import TimeInputComponent from "../../components/TimeInputComponent";
 import Button from "../../components/Button";
@@ -12,8 +12,13 @@ import { FaTimes } from "react-icons/fa";
 import deleteIcon from "../../assets/images/shift/delete.svg";
 import Switch from "react-switch";
 import CalenderInput from "../../components/CalenderInput";
+import { post, get } from "../../helpers/api_helper";
+import { CREATE_SHIFT, GENERATE_SHIFT_ID } from "../../helpers/url_helper";
+import { toast } from "react-toastify";
+import { useNavigate } from "react-router-dom";
 
 const AddShift = () => {
+  const navigate = useNavigate();
   const [effectiveStartDate, setEffectiveStartDate] = useState(null);
   const [breaks, setBreaks] = useState([{ id: 1 }]);
   const [breakManagementEnabled, setBreakManagementEnabled] = useState(false);
@@ -24,6 +29,70 @@ const AddShift = () => {
   });
   const [selectedShifts, setSelectedShifts] = useState([]);
   const [rotationOrder, setRotationOrder] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isGeneratingId, setIsGeneratingId] = useState(false);
+
+  // Basic Details
+  const [shiftCode, setShiftCode] = useState("");
+  const [shiftName, setShiftName] = useState("");
+
+  // Generate shift code on component mount
+  useEffect(() => {
+    generateShiftId();
+  }, []);
+
+  // GET /v1/shifts/generate-id - Fetch unique shift code
+  const generateShiftId = async () => {
+    setIsGeneratingId(true);
+    try {
+      console.log("Fetching shift code from GET /v1/shifts/generate-id");
+      const response = await get(GENERATE_SHIFT_ID);
+      console.log("Shift code generated:", response);
+
+      if (response?.shiftCode) {
+        setShiftCode(response.shiftCode);
+        console.log("Shift code set to:", response.shiftCode);
+      } else {
+        toast.error("No shift code received from server");
+      }
+    } catch (error) {
+      console.error("Error generating shift ID:", error);
+      toast.error("Failed to generate shift ID");
+    } finally {
+      setIsGeneratingId(false);
+    }
+  };
+
+  // Break Management
+  const [breakType, setBreakType] = useState(null);
+  const [breakDuration, setBreakDuration] = useState("");
+  const [multipleBreaks, setMultipleBreaks] = useState(null);
+
+  // Shift Timing
+  const [startTime, setStartTime] = useState("");
+  const [endTime, setEndTime] = useState("");
+  const [totalShiftDuration, setTotalShiftDuration] = useState("");
+  const [minimumWorkingHours, setMinimumWorkingHours] = useState("");
+
+  // Grace Periods
+  const [gracePeriodEarlyCheckin, setGracePeriodEarlyCheckin] = useState("");
+  const [gracePeriodLateCheckin, setGracePeriodLateCheckin] = useState("");
+  const [gracePeriodEarlyCheckout, setGracePeriodEarlyCheckout] = useState("");
+  const [gracePeriodLateCheckout, setGracePeriodLateCheckout] = useState("");
+
+  // Break Details
+  const [breakDetails, setBreakDetails] = useState({});
+
+  // Attendance Rules
+  const [lateMarkAfter, setLateMarkAfter] = useState("");
+  const [autoHalfDayAfter, setAutoHalfDayAfter] = useState("");
+  const [autoAbsentIfWorkingHours, setAutoAbsentIfWorkingHours] = useState("");
+  const [overtimeEligibility, setOvertimeEligibility] = useState(null);
+
+  // Weekly Pattern
+  const [fixedDays, setFixedDays] = useState(null);
+  const [workingOnHoliday, setWorkingOnHoliday] = useState(null);
+  const [compOff, setCompOff] = useState(null);
 
   const handleAddBreak = () => {
     setBreaks([...breaks, { id: Date.now() }]);
@@ -41,6 +110,118 @@ const AddShift = () => {
 
   const handleRemoveRotationOrder = (value) => {
     setRotationOrder(rotationOrder.filter((item) => item.value !== value));
+  };
+
+  const handleSaveShift = async () => {
+    try {
+      setIsLoading(true);
+
+      // Validate required fields
+      if (!shiftCode.trim()) {
+        toast.error("Shift Code is required");
+        setIsLoading(false);
+        return;
+      }
+      if (!shiftName.trim()) {
+        toast.error("Shift Name is required");
+        setIsLoading(false);
+        return;
+      }
+
+      // Validate shift type specific requirements
+      if (shiftType?.value === "fixed" && sameTiming?.value === "yes") {
+        if (!startTime || !endTime) {
+          toast.error("Start Time and End Time are required");
+          setIsLoading(false);
+          return;
+        }
+      }
+
+      // Build timings array for fixed shifts
+      let timingsArray = [];
+      if (shiftType?.value === "fixed") {
+        if (sameTiming?.value === "yes") {
+          // Same timing for all days
+          timingsArray = weekDays.map((day) => ({
+            day,
+            startTime,
+            endTime,
+            off: false,
+          }));
+        } else {
+          // Different timing per day - use the same start/end for now
+          timingsArray = weekDays.map((day) => ({
+            day,
+            startTime,
+            endTime,
+            off: false,
+          }));
+        }
+      }
+
+      // Build the payload matching API structure
+      const payload = {
+        shiftCode,
+        shiftName,
+        shiftType: shiftType?.value || "fixed",
+        sameTimingForAllDays: sameTiming?.value === "yes",
+        totalShiftDuration: totalShiftDuration || "0",
+        minWorkingHours: minimumWorkingHours || "0",
+        timings: timingsArray,
+        breakManagement: {
+          enabled: breakManagementEnabled,
+          multipleBreaksSupport: multipleBreaks?.value === "yes",
+          breaks: breakManagementEnabled
+            ? breaks.map((b) => ({
+                name: breakDetails[b.id]?.name || "",
+                duration: breakDetails[b.id]?.duration || "0",
+                startTime: breakDetails[b.id]?.startTime || "",
+                endTime: breakDetails[b.id]?.endTime || "",
+              }))
+            : [],
+        },
+        gracePeriod: {
+          earlyCheckIn: parseInt(gracePeriodEarlyCheckin) || 0,
+          lateCheckIn: parseInt(gracePeriodLateCheckin) || 0,
+          earlyCheckOut: parseInt(gracePeriodEarlyCheckout) || 0,
+          lateCheckOut: parseInt(gracePeriodLateCheckout) || 0,
+        },
+        attendanceRules: {
+          lateMarkAfter: parseInt(lateMarkAfter) || 0,
+          autoHalfDayAfterLate: parseInt(autoHalfDayAfter) || 0,
+          autoAbsentIfWorkingHours: parseInt(autoAbsentIfWorkingHours) || 0,
+          overtimeEligibility: overtimeEligibility?.value === "yes",
+        },
+        weekOff: fixedDays
+          ? fixedDays.map((d) => d.value)
+          : [],
+        compOff: [compOff?.value || "no"],
+        isShiftActive: true,
+      };
+
+      console.log("Payload being sent:", JSON.stringify(payload, null, 2));
+
+      // Make POST request to /v1/shifts
+      const response = await post(CREATE_SHIFT, payload);
+
+      console.log("Shift creation response:", response);
+
+      if (response) {
+        toast.success("Shift created successfully!");
+        
+        // Navigate immediately to ShiftManagement page
+        navigate("/admin/time-hub/shiftManagement");
+      }
+    } catch (error) {
+      console.error("Error saving shift:", error);
+      const errorMessage =
+        error?.response?.data?.message ||
+        error?.message ||
+        "Failed to create shift";
+      toast.error(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const options = [
@@ -75,12 +256,24 @@ const AddShift = () => {
         <Title>Basic Details</Title>
         <Row>
           <Col>
-            <InputComponent
-              label="Shift Code"
-              placeholder="Enter Code"
-              labelMargin="0 0 0.625rem 0"
-              height="45px"
-            />
+            <CodeInputWrapper>
+              <InputComponent
+                label="Shift Code"
+                placeholder="Auto-generated"
+                labelMargin="0 0 0.625rem 0"
+                height="45px"
+                value={shiftCode}
+                onChange={(e) => setShiftCode(e.target.value)}
+                disabled
+              />
+              <RegenerateButton
+                onClick={generateShiftId}
+                disabled={isGeneratingId}
+                title="Fetch a new shift code"
+              >
+                {isGeneratingId ? "..." : "↻"}
+              </RegenerateButton>
+            </CodeInputWrapper>
           </Col>
           <Col>
             <InputComponent
@@ -88,6 +281,8 @@ const AddShift = () => {
               placeholder="Enter Name"
               labelMargin="0 0 0.625rem 0"
               height="45px"
+              value={shiftName}
+              onChange={(e) => setShiftName(e.target.value)}
             />
           </Col>
         </Row>
@@ -323,16 +518,16 @@ const AddShift = () => {
                     <TimeInputComponent
                       label="Start Time"
                       placeholder="Start Time"
-                      onTimeSelect={""}
-                      initialTime={""}
+                      onTimeSelect={(time) => setStartTime(time)}
+                      initialTime={startTime}
                     />
                   </Col>
                   <Col>
                     <TimeInputComponent
                       label="End Time"
                       placeholder="End Time"
-                      onTimeSelect={""}
-                      initialTime={""}
+                      onTimeSelect={(time) => setEndTime(time)}
+                      initialTime={endTime}
                     />
                   </Col>
                 </Row>
@@ -343,16 +538,16 @@ const AddShift = () => {
                   <TimeInputComponent
                     label="Start Time"
                     placeholder="Start Time"
-                    onTimeSelect={""}
-                    initialTime={""}
+                    onTimeSelect={(time) => setStartTime(time)}
+                    initialTime={startTime}
                   />
                 </Col>
                 <Col>
                   <TimeInputComponent
                     label="End Time"
                     placeholder="End Time"
-                    onTimeSelect={""}
-                    initialTime={""}
+                    onTimeSelect={(time) => setEndTime(time)}
+                    initialTime={endTime}
                   />
                 </Col>
               </Row>
@@ -364,6 +559,8 @@ const AddShift = () => {
                   placeholder="Enter Total Shift Duration"
                   labelMargin="0 0 0.625rem 0"
                   height="45px"
+                  value={totalShiftDuration}
+                  onChange={(e) => setTotalShiftDuration(e.target.value)}
                 />
               </Col>
               <Col>
@@ -372,6 +569,8 @@ const AddShift = () => {
                   placeholder="Enter Minimum working hours"
                   labelMargin="0 0 0.625rem 0"
                   height="45px"
+                  value={minimumWorkingHours}
+                  onChange={(e) => setMinimumWorkingHours(e.target.value)}
                 />
               </Col>
             </Row>
@@ -384,6 +583,8 @@ const AddShift = () => {
                   labelMargin="0 0 0.625rem 0"
                   height="45px"
                   suffix="Min"
+                  value={gracePeriodEarlyCheckin}
+                  onChange={(e) => setGracePeriodEarlyCheckin(e.target.value)}
                 />
               </Col>
               <Col>
@@ -393,6 +594,8 @@ const AddShift = () => {
                   labelMargin="0 0 0.625rem 0"
                   height="45px"
                   suffix="Min"
+                  value={gracePeriodLateCheckin}
+                  onChange={(e) => setGracePeriodLateCheckin(e.target.value)}
                 />
               </Col>
             </Row>
@@ -404,6 +607,8 @@ const AddShift = () => {
                   labelMargin="0 0 0.625rem 0"
                   height="45px"
                   suffix="Min"
+                  value={gracePeriodEarlyCheckout}
+                  onChange={(e) => setGracePeriodEarlyCheckout(e.target.value)}
                 />
               </Col>
               <Col>
@@ -413,6 +618,8 @@ const AddShift = () => {
                   labelMargin="0 0 0.625rem 0"
                   height="45px"
                   suffix="Min"
+                  value={gracePeriodLateCheckout}
+                  onChange={(e) => setGracePeriodLateCheckout(e.target.value)}
                 />
               </Col>
             </Row>
@@ -438,6 +645,71 @@ const AddShift = () => {
                 width={40}
               />
             </div>
+            <Row>
+              <Col>
+                <Label
+                  htmlFor="breakType"
+                  style={{
+                    fontSize: "0.875rem",
+                    fontWeight: "500",
+                    fontFamily: "Inter, sans-serif",
+                    color: theme.colors.primaryGreen,
+                    marginBottom: "0.625rem",
+                  }}
+                >
+                  Break Type
+                </Label>
+                <Select
+                  id="breakType"
+                  options={[
+                    { value: "paid", label: "Paid" },
+                    { value: "unpaid", label: "Unpaid" },
+                  ]}
+                  value={breakType}
+                  onChange={setBreakType}
+                  placeholder="Select Type"
+                  styles={customSelectStyles}
+                  isSearchable
+                />
+              </Col>
+              <Col>
+                <InputComponent
+                  label="Break duration"
+                  placeholder="In Min"
+                  labelMargin="0 0 0.625rem 0"
+                  height="45px"
+                  suffix="Min"
+                  value={breakDuration}
+                  onChange={(e) => setBreakDuration(e.target.value)}
+                />
+              </Col>
+            </Row>
+            <Row>
+              <Col>
+                <Label
+                  htmlFor="multipleBreaks"
+                  style={{
+                    fontSize: "0.875rem",
+                    fontWeight: "500",
+                    fontFamily: "Inter, sans-serif",
+                    color: theme.colors.primaryGreen,
+                    marginBottom: "0.625rem",
+                  }}
+                >
+                  Multiple breaks support (Lunch, Tea, etc.)
+                </Label>
+                <Select
+                  id="multipleBreaks"
+                  options={shiftOptions}
+                  value={multipleBreaks}
+                  onChange={setMultipleBreaks}
+                  placeholder="Select Type"
+                  styles={customSelectStyles}
+                  isSearchable
+                />
+              </Col>
+              <Col></Col>
+            </Row>
             {breaks.map((breakItem, index) => (
               <div key={breakItem.id}>
                 <SubHeader>
@@ -459,6 +731,16 @@ const AddShift = () => {
                       placeholder="Enter Name"
                       labelMargin="0 0 0.625rem 0"
                       height="45px"
+                      value={breakDetails[breakItem.id]?.name || ""}
+                      onChange={(e) =>
+                        setBreakDetails({
+                          ...breakDetails,
+                          [breakItem.id]: {
+                            ...breakDetails[breakItem.id],
+                            name: e.target.value,
+                          },
+                        })
+                      }
                     />
                   </Col>
                   <Col>
@@ -476,8 +758,29 @@ const AddShift = () => {
                     </Label>
                     <Select
                       id={`breakDuration-${breakItem.id}`}
-                      options={""}
-                      value={""}
+                      options={[
+                        { value: "15", label: "15 mins" },
+                        { value: "30", label: "30 mins" },
+                        { value: "45", label: "45 mins" },
+                        { value: "60", label: "60 mins" },
+                      ]}
+                      value={
+                        breakDetails[breakItem.id]?.duration
+                          ? {
+                              value: breakDetails[breakItem.id]?.duration,
+                              label: `${breakDetails[breakItem.id]?.duration} mins`,
+                            }
+                          : null
+                      }
+                      onChange={(option) =>
+                        setBreakDetails({
+                          ...breakDetails,
+                          [breakItem.id]: {
+                            ...breakDetails[breakItem.id],
+                            duration: option?.value,
+                          },
+                        })
+                      }
                       placeholder="Select Type"
                       styles={customSelectStyles}
                       isSearchable
@@ -489,16 +792,32 @@ const AddShift = () => {
                     <TimeInputComponent
                       label="Start Time"
                       placeholder="Start Time"
-                      onTimeSelect={""}
-                      initialTime={""}
+                      onTimeSelect={(time) =>
+                        setBreakDetails({
+                          ...breakDetails,
+                          [breakItem.id]: {
+                            ...breakDetails[breakItem.id],
+                            startTime: time,
+                          },
+                        })
+                      }
+                      initialTime={breakDetails[breakItem.id]?.startTime || ""}
                     />
                   </Col>
                   <Col>
                     <TimeInputComponent
                       label="End Time"
                       placeholder="End Time"
-                      onTimeSelect={""}
-                      initialTime={""}
+                      onTimeSelect={(time) =>
+                        setBreakDetails({
+                          ...breakDetails,
+                          [breakItem.id]: {
+                            ...breakDetails[breakItem.id],
+                            endTime: time,
+                          },
+                        })
+                      }
+                      initialTime={breakDetails[breakItem.id]?.endTime || ""}
                     />
                   </Col>
                 </Row>
@@ -530,6 +849,8 @@ const AddShift = () => {
                   labelMargin="0 0 0.625rem 0"
                   height="45px"
                   suffix="Min"
+                  value={lateMarkAfter}
+                  onChange={(e) => setLateMarkAfter(e.target.value)}
                 />
               </Col>
               <Col>
@@ -539,6 +860,8 @@ const AddShift = () => {
                   labelMargin="0 0 0.625rem 0"
                   height="45px"
                   suffix="Min"
+                  value={autoHalfDayAfter}
+                  onChange={(e) => setAutoHalfDayAfter(e.target.value)}
                 />
               </Col>
             </Row>
@@ -550,6 +873,8 @@ const AddShift = () => {
                   labelMargin="0 0 0.625rem 0"
                   height="45px"
                   suffix="Min"
+                  value={autoAbsentIfWorkingHours}
+                  onChange={(e) => setAutoAbsentIfWorkingHours(e.target.value)}
                 />
               </Col>
               <Col>
@@ -567,8 +892,9 @@ const AddShift = () => {
                 </Label>
                 <Select
                   id="overtimeEligibility"
-                  options={""}
-                  value={""}
+                  options={shiftOptions}
+                  value={overtimeEligibility}
+                  onChange={setOvertimeEligibility}
                   placeholder="Select Type"
                   styles={customSelectStyles}
                   isSearchable
@@ -593,8 +919,10 @@ const AddShift = () => {
                 </Label>
                 <Select
                   id="fixedDays"
-                  options={""}
-                  value={""}
+                  options={weekDays.map((day) => ({ value: day, label: day }))}
+                  isMulti
+                  value={fixedDays}
+                  onChange={setFixedDays}
                   placeholder="Select Days"
                   styles={customSelectStyles}
                   isSearchable
@@ -615,8 +943,9 @@ const AddShift = () => {
                 </Label>
                 <Select
                   id="workingOnHoliday"
-                  options={""}
-                  value={""}
+                  options={shiftOptions}
+                  value={workingOnHoliday}
+                  onChange={setWorkingOnHoliday}
                   placeholder="Select Days"
                   styles={customSelectStyles}
                   isSearchable
@@ -639,8 +968,9 @@ const AddShift = () => {
                 </Label>
                 <Select
                   id="compOff"
-                  options={""}
-                  value={""}
+                  options={shiftOptions}
+                  value={compOff}
+                  onChange={setCompOff}
                   placeholder="Select"
                   styles={customSelectStyles}
                   isSearchable
@@ -678,6 +1008,8 @@ const AddShift = () => {
               bg={theme.colors.primary}
               color="white"
               width="200px"
+              onClick={handleSaveShift}
+              disabled={isLoading}
             />
           </div>
         </Footer>
@@ -756,6 +1088,40 @@ const Tag = styled.div`
   font-family: "Inter", sans-serif;
   font-weight: 600;
   gap: 8px;
+`;
+
+const CodeInputWrapper = styled.div`
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5rem;
+`;
+
+const RegenerateButton = styled.button`
+  padding: 0.75rem 1rem;
+  background: ${theme.colors.primary};
+  color: white;
+  border: none;
+  border-radius: 0.625rem;
+  cursor: pointer;
+  font-size: 1.2rem;
+  font-weight: bold;
+  transition: all 0.2s;
+  height: 45px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 45px;
+
+  &:hover:not(:disabled) {
+    background: ${theme.colors.primaryDark || "#0a5f5f"};
+    transform: scale(1.05);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
 `;
 
 export default AddShift;

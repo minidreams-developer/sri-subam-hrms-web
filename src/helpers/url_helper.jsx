@@ -47,4 +47,7 @@ export const DELIVERY_STATUS = '/deliveries/stats';
 
 // shift management oda api 
 
+export const GENERATE_SHIFT_ID = "/v1/shifts/generate-id";
 export const CREATE_SHIFT = "/v1/shifts";
+export const GET_SHIFTS = "/v1/shifts";
+export const GET_SHIFT_DETAILS = "/v1/shifts/:shiftId";
