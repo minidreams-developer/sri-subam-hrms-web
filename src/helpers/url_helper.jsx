@@ -7,6 +7,7 @@ export const DASHBOARD = "/dashboard/stats";
 // Branches
 export const BRANCHES = "/v1/branches";
 export const CREATE_BRANCH = "/v1/branches";
+export const GENERATE_BRANCH_ID = "/v1/branches/generate-id";
 
 // Teams
 export const TEAMS = "/v1/teams";
@@ -25,6 +26,7 @@ export const ADD_EMPLOYEE = "/users";
 export const CREATE_EMPLOYEE = "/v1/users";
 export const CREATE_EMPLOYEE_NEW = "/v1/employees";
 export const EMPLOYEE_REGISTRATION = "/v1/users/employee-registration";
+export const GENERATE_EMPLOYEE_ID = "/v1/users/generate-employeeId";
 
 // Departments
 export const DEPARTMENTS = "/v1/departments";
@@ -51,3 +53,14 @@ export const GENERATE_SHIFT_ID = "/v1/shifts/generate-id";
 export const CREATE_SHIFT = "/v1/shifts";
 export const GET_SHIFTS = "/v1/shifts";
 export const GET_SHIFT_DETAILS = "/v1/shifts/:shiftId";
+
+// OffBoarding API
+export const OFFBOARD = "/v1/off-board";
+export const CREATE_OFFBOARD = "/v1/off-board";
+export const GET_OFFBOARDS = "/v1/off-board";
+export const GET_OFFBOARD_BY_ID = "/v1/off-board/:offBoardId";
+export const GET_OFFBOARD_BY_USER = "/v1/off-board/user/:userId";
+export const UPDATE_OFFBOARD = "/v1/off-board/:offBoardId";
+export const DELETE_OFFBOARD = "/v1/off-board/:offBoardId";
+export const SEND_OTP = "/v1/off-board/:offBoardId/send-otp";
+export const VERIFY_OTP = "/v1/off-board/:offBoardId/verify-otp";

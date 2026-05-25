@@ -1,10 +1,13 @@
-import { useState, forwardRef, useImperativeHandle } from "react";
+import { useState, forwardRef, useImperativeHandle, useEffect } from "react";
 import styled from "styled-components";
 import theme from "../../../theme/theme";
 import CalenderInput from "../../../components/CalenderInput";
 import InputComponent from "../../../components/InputComponent";
 import Select from "react-select";
 import { customSelectStyles } from "../../../theme/reactSelectStyles";
+import { get } from "../../../helpers/api_helper";
+import { DEPARTMENTS, GET_SHIFTS, GET_ALL_EMPLOYEES, TEAMS, BRANCHES } from "../../../helpers/url_helper";
+import { toast } from "react-toastify";
 
 const AddWorkDetails = forwardRef(({ onNext, onBack }, ref) => {
   const [formData, setFormData] = useState({
@@ -42,21 +45,172 @@ const AddWorkDetails = forwardRef(({ onNext, onBack }, ref) => {
     remarks: "",
   });
 
+  // Loading states
+  const [departmentsLoading, setDepartmentsLoading] = useState(false);
+  const [shiftsLoading, setShiftsLoading] = useState(false);
+  const [usersLoading, setUsersLoading] = useState(false);
+  const [teamsLoading, setTeamsLoading] = useState(false);
+  const [branchesLoading, setBranchesLoading] = useState(false);
+
+  // Options states
+  const [departmentOptions, setDepartmentOptions] = useState([]);
+  const [shiftOptions, setShiftOptions] = useState([]);
+  const [reportingPersonOptions, setReportingPersonOptions] = useState([]);
+  const [teamOptions, setTeamOptions] = useState([]);
+  const [branchOptions, setBranchOptions] = useState([]);
+
+  // Fetch data on component mount
+  useEffect(() => {
+    fetchDepartments();
+    fetchShifts();
+    fetchUsers();
+    fetchTeams();
+    fetchBranches();
+  }, []);
+
+  const fetchDepartments = async () => {
+    setDepartmentsLoading(true);
+    try {
+      const response = await get(`${DEPARTMENTS}?page=1&limit=1000`);
+      let departments = [];
+      if (Array.isArray(response)) {
+        departments = response;
+      } else if (response?.results && Array.isArray(response.results)) {
+        departments = response.results;
+      } else if (response?.data && Array.isArray(response.data)) {
+        departments = response.data;
+      }
+      
+      const options = departments.map((dept) => ({
+        value: dept.id || dept._id,
+        label: dept.departmentName || dept.name || "Unknown",
+      }));
+      setDepartmentOptions(options);
+    } catch (error) {
+      console.error("Error fetching departments:", error);
+      toast.error("Failed to fetch departments");
+    } finally {
+      setDepartmentsLoading(false);
+    }
+  };
+
+  const fetchShifts = async () => {
+    setShiftsLoading(true);
+    try {
+      const response = await get(`${GET_SHIFTS}?page=1&limit=1000`);
+      let shifts = [];
+      if (Array.isArray(response)) {
+        shifts = response;
+      } else if (response?.results && Array.isArray(response.results)) {
+        shifts = response.results;
+      } else if (response?.data && Array.isArray(response.data)) {
+        shifts = response.data;
+      }
+      
+      const options = shifts.map((shift) => ({
+        value: shift.id || shift._id,
+        label: shift.shiftName || shift.name || "Unknown",
+      }));
+      setShiftOptions(options);
+    } catch (error) {
+      console.error("Error fetching shifts:", error);
+      toast.error("Failed to fetch shifts");
+    } finally {
+      setShiftsLoading(false);
+    }
+  };
+
+  const fetchUsers = async () => {
+    setUsersLoading(true);
+    try {
+      const response = await get(`${GET_ALL_EMPLOYEES}?page=1&limit=1000`);
+      let users = [];
+      if (Array.isArray(response)) {
+        users = response;
+      } else if (response?.results && Array.isArray(response.results)) {
+        users = response.results;
+      } else if (response?.data && Array.isArray(response.data)) {
+        users = response.data;
+      } else if (response?.users && Array.isArray(response.users)) {
+        users = response.users;
+      }
+      
+      const options = users.map((user) => ({
+        value: user.id || user._id,
+        label: user.firstName && user.lastName 
+          ? `${user.firstName} ${user.lastName}` 
+          : user.name || user.email || "Unknown",
+      }));
+      setReportingPersonOptions(options);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      toast.error("Failed to fetch users");
+    } finally {
+      setUsersLoading(false);
+    }
+  };
+
+  const fetchTeams = async () => {
+    setTeamsLoading(true);
+    try {
+      const response = await get(`${TEAMS}?page=1&limit=1000`);
+      let teams = [];
+      if (Array.isArray(response)) {
+        teams = response;
+      } else if (response?.results && Array.isArray(response.results)) {
+        teams = response.results;
+      } else if (response?.data && Array.isArray(response.data)) {
+        teams = response.data;
+      }
+      
+      const options = teams.map((team) => ({
+        value: team.id || team._id,
+        label: team.teamName || team.name || "Unknown",
+      }));
+      setTeamOptions(options);
+    } catch (error) {
+      console.error("Error fetching teams:", error);
+      toast.error("Failed to fetch teams");
+    } finally {
+      setTeamsLoading(false);
+    }
+  };
+
+  const fetchBranches = async () => {
+    setBranchesLoading(true);
+    try {
+      const response = await get(`${BRANCHES}?page=1&limit=1000`);
+      let branches = [];
+      if (Array.isArray(response)) {
+        branches = response;
+      } else if (response?.results && Array.isArray(response.results)) {
+        branches = response.results;
+      } else if (response?.data && Array.isArray(response.data)) {
+        branches = response.data;
+      }
+      
+      const options = branches.map((branch) => ({
+        value: branch.id || branch._id,
+        label: branch.branchName || branch.name || "Unknown",
+      }));
+      setBranchOptions(options);
+    } catch (error) {
+      console.error("Error fetching branches:", error);
+      toast.error("Failed to fetch branches");
+    } finally {
+      setBranchesLoading(false);
+    }
+  };
+
   // Expose form data via ref
   useImperativeHandle(ref, () => ({
     formData,
   }));
 
+  // Hardcoded options for system-level dropdowns
   const experienceTypeOptions = [
     { value: "fresher", label: "Fresher" },
     { value: "experienced", label: "Experienced" },
-  ];
-
-  const departmentOptions = [
-    { value: "hr", label: "HR" },
-    { value: "it", label: "IT" },
-    { value: "sales", label: "Sales" },
-    { value: "marketing", label: "Marketing" },
   ];
 
   const designationOptions = [
@@ -65,37 +219,14 @@ const AddWorkDetails = forwardRef(({ onNext, onBack }, ref) => {
     { value: "designer", label: "Designer" },
   ];
 
-  const teamOptions = [
-    { value: "team_a", label: "Team A" },
-    { value: "team_b", label: "Team B" },
-    { value: "team_c", label: "Team C" },
-  ];
-
-  const branchOptions = [
-    { value: "main", label: "Main Branch" },
-    { value: "branch_1", label: "Branch 1" },
-    { value: "branch_2", label: "Branch 2" },
-  ];
-
   const contractAgentOptions = [
     { value: "agent_1", label: "Agent 1" },
     { value: "agent_2", label: "Agent 2" },
   ];
 
-  const reportingPersonOptions = [
-    { value: "person_1", label: "John Doe" },
-    { value: "person_2", label: "Jane Smith" },
-  ];
-
   const attendanceTypeOptions = [
     { value: "bio_metric", label: "Bio Metric" },
     { value: "manual", label: "Manual" },
-  ];
-
-  const shiftOptions = [
-    { value: "morning", label: "Morning" },
-    { value: "evening", label: "Evening" },
-    { value: "night", label: "Night" },
   ];
 
   const attendancePermissionOptions = [
@@ -151,6 +282,7 @@ const AddWorkDetails = forwardRef(({ onNext, onBack }, ref) => {
                 placeholder="Select Department"
                 styles={customSelectStyles}
                 isSearchable
+                isLoading={departmentsLoading}
               />
             </SelectWrapper>
           </Col>
@@ -179,6 +311,7 @@ const AddWorkDetails = forwardRef(({ onNext, onBack }, ref) => {
                 placeholder="Select Team"
                 styles={customSelectStyles}
                 isSearchable
+                isLoading={teamsLoading}
               />
             </SelectWrapper>
           </Col>
@@ -192,6 +325,7 @@ const AddWorkDetails = forwardRef(({ onNext, onBack }, ref) => {
                 placeholder="Select Branch"
                 styles={customSelectStyles}
                 isSearchable
+                isLoading={branchesLoading}
               />
             </SelectWrapper>
           </Col>
@@ -220,6 +354,7 @@ const AddWorkDetails = forwardRef(({ onNext, onBack }, ref) => {
                 placeholder="Select"
                 styles={customSelectStyles}
                 isSearchable
+                isLoading={usersLoading}
               />
             </SelectWrapper>
           </Col>
@@ -302,6 +437,7 @@ const AddWorkDetails = forwardRef(({ onNext, onBack }, ref) => {
                 placeholder="Select Shift"
                 styles={customSelectStyles}
                 isSearchable
+                isLoading={shiftsLoading}
               />
             </SelectWrapper>
           </Col>

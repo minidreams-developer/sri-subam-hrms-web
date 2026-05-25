@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import theme from "../../theme/theme";
@@ -8,14 +8,24 @@ import Button from "../../components/Button";
 import Select from "react-select";
 import { customSelectStyles } from "../../theme/reactSelectStyles";
 import { IoArrowBack } from "react-icons/io5";
-import { post } from "../../helpers/api_helper";
-import { CREATE_BRANCH } from "../../helpers/url_helper";
+import { post, get } from "../../helpers/api_helper";
+import { CREATE_BRANCH, GENERATE_BRANCH_ID, DEPARTMENTS, GET_SHIFTS, GET_ALL_EMPLOYEES } from "../../helpers/url_helper";
 import { toast } from "react-toastify";
 
 const CreateBranch = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
+  const [branchNumberLoading, setBranchNumberLoading] = useState(false);
+  const [departmentsLoading, setDepartmentsLoading] = useState(false);
+  const [shiftsLoading, setShiftsLoading] = useState(false);
+  const [usersLoading, setUsersLoading] = useState(false);
+  
+  const [departmentOptions, setDepartmentOptions] = useState([]);
+  const [shiftOptions, setShiftOptions] = useState([]);
+  const [branchHeadOptions, setBranchHeadOptions] = useState([]);
+  
   const [formData, setFormData] = useState({
+    branchNumber: "",
     name: "",
     branchType: null,
     branchStatus: null,
@@ -34,6 +44,142 @@ const CreateBranch = () => {
     selectShifts: null,
   });
 
+  // Generate branch number and fetch dropdown data on component mount
+  useEffect(() => {
+    generateBranchNumber();
+    fetchDepartments();
+    fetchShifts();
+    fetchBranchHeads();
+  }, []);
+
+  const generateBranchNumber = async () => {
+    setBranchNumberLoading(true);
+    try {
+      const response = await get(GENERATE_BRANCH_ID);
+      console.log("Branch number generated:", response);
+      
+      // Handle different response structures
+      let branchNumber = "";
+      if (typeof response === "string") {
+        branchNumber = response;
+      } else if (response?.branchNumber) {
+        branchNumber = response.branchNumber;
+      } else if (response?.data) {
+        branchNumber = response.data;
+      } else if (response?.id) {
+        branchNumber = response.id;
+      }
+      
+      setFormData((prev) => ({ ...prev, branchNumber }));
+    } catch (error) {
+      console.error("Error generating branch number:", error);
+      toast.error("Failed to generate branch number");
+    } finally {
+      setBranchNumberLoading(false);
+    }
+  };
+
+  const fetchDepartments = async () => {
+    setDepartmentsLoading(true);
+    try {
+      const response = await get(DEPARTMENTS);
+      console.log("Departments fetched:", response);
+      
+      // Handle different response structures
+      let departments = [];
+      if (Array.isArray(response)) {
+        departments = response;
+      } else if (response?.results && Array.isArray(response.results)) {
+        departments = response.results;
+      } else if (response?.data && Array.isArray(response.data)) {
+        departments = response.data;
+      }
+      
+      // Map to select options
+      const options = departments.map((dept) => ({
+        value: dept.id || dept._id,
+        label: dept.departmentName || dept.name || "Unknown",
+      }));
+      
+      setDepartmentOptions(options);
+    } catch (error) {
+      console.error("Error fetching departments:", error);
+      toast.error("Failed to fetch departments");
+    } finally {
+      setDepartmentsLoading(false);
+    }
+  };
+
+  const fetchShifts = async () => {
+    setShiftsLoading(true);
+    try {
+      const response = await get(GET_SHIFTS);
+      console.log("Shifts fetched:", response);
+      
+      // Handle different response structures
+      let shifts = [];
+      if (Array.isArray(response)) {
+        shifts = response;
+      } else if (response?.results && Array.isArray(response.results)) {
+        shifts = response.results;
+      } else if (response?.data && Array.isArray(response.data)) {
+        shifts = response.data;
+      }
+      
+      // Map to select options
+      const options = shifts.map((shift) => ({
+        value: shift.id || shift._id,
+        label: shift.shiftName || shift.name || "Unknown",
+      }));
+      
+      setShiftOptions(options);
+    } catch (error) {
+      console.error("Error fetching shifts:", error);
+      toast.error("Failed to fetch shifts");
+    } finally {
+      setShiftsLoading(false);
+    }
+  };
+
+  const fetchBranchHeads = async () => {
+    setUsersLoading(true);
+    try {
+      // Fetch with a large limit to get all employees (or implement pagination)
+      const response = await get(`${GET_ALL_EMPLOYEES}?page=1&limit=1000`);
+      console.log("Users fetched:", response);
+      
+      // Handle different response structures
+      let users = [];
+      if (Array.isArray(response)) {
+        users = response;
+      } else if (response?.results && Array.isArray(response.results)) {
+        users = response.results;
+      } else if (response?.data && Array.isArray(response.data)) {
+        users = response.data;
+      } else if (response?.users && Array.isArray(response.users)) {
+        users = response.users;
+      }
+      
+      console.log("Mapped users:", users);
+      
+      // Map to select options
+      const options = users.map((user) => ({
+        value: user.id || user._id,
+        label: user.firstName && user.lastName 
+          ? `${user.firstName} ${user.lastName}` 
+          : user.name || user.email || "Unknown",
+      }));
+      
+      console.log("Branch head options:", options);
+      setBranchHeadOptions(options);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      toast.error("Failed to fetch branch heads");
+    } finally {
+      setUsersLoading(false);
+    }
+  };
+
   const branchTypeOptions = [
     { value: "main", label: "Main Branch" },
     { value: "sub", label: "Sub Branch" },
@@ -45,29 +191,10 @@ const CreateBranch = () => {
     { value: "inactive", label: "Inactive" },
   ];
 
-  const branchHeadOptions = [
-    { value: "john_doe", label: "John Doe" },
-    { value: "jane_smith", label: "Jane Smith" },
-    { value: "mike_johnson", label: "Mike Johnson" },
-  ];
-
   const stateOptions = [
     { value: "california", label: "California" },
     { value: "texas", label: "Texas" },
     { value: "new_york", label: "New York" },
-  ];
-
-  const departmentOptions = [
-    { value: "it", label: "IT" },
-    { value: "hr", label: "HR" },
-    { value: "sales", label: "Sales" },
-    { value: "marketing", label: "Marketing" },
-  ];
-
-  const shiftOptions = [
-    { value: "morning", label: "Morning Shift" },
-    { value: "evening", label: "Evening Shift" },
-    { value: "night", label: "Night Shift" },
   ];
 
   const handleChange = (field, value) => {
@@ -106,9 +233,10 @@ const CreateBranch = () => {
     try {
       // Prepare payload for API
       const payload = {
-        name: formData.name,
+        branchNumber: formData.branchNumber,
+        branchName: formData.name,
         branchType: formData.branchType?.value,
-        status: formData.branchStatus?.value,
+        branchStatus: formData.branchStatus?.value,
         effectiveFromDate: formData.effectiveFromDate,
         branchHead: formData.branchHead?.value,
         phoneNumber: formData.phoneNumber,
@@ -157,13 +285,25 @@ const CreateBranch = () => {
           <Row>
             <Col>
               <InputComponent
+                label="Branch Number"
+                placeholder="Auto-generated"
+                value={formData.branchNumber}
+                onChange={(e) => handleChange("branchNumber", e.target.value)}
+                labelMargin="0 0 0.625rem 0"
+                disabled={true}
+              />
+            </Col>
+            <Col>
+              <InputComponent
                 label="Name"
-                placeholder="Select DOB"
+                placeholder="Enter Branch Name"
                 value={formData.name}
                 onChange={(e) => handleChange("name", e.target.value)}
                 labelMargin="0 0 0.625rem 0"
               />
             </Col>
+          </Row>
+          <Row>
             <Col>
               <SelectWrapper>
                 <Label>Branch Type</Label>
@@ -177,8 +317,6 @@ const CreateBranch = () => {
                 />
               </SelectWrapper>
             </Col>
-          </Row>
-          <Row>
             <Col>
               <SelectWrapper>
                 <Label>Branch Status</Label>
@@ -186,12 +324,14 @@ const CreateBranch = () => {
                   options={statusOptions}
                   value={formData.branchStatus}
                   onChange={(value) => handleChange("branchStatus", value)}
-                  placeholder="Select Department"
+                  placeholder="Select Status"
                   styles={customSelectStyles}
                   isSearchable
                 />
               </SelectWrapper>
             </Col>
+          </Row>
+          <Row>
             <Col>
               <CalenderInput
                 label="Effective From Date"
@@ -200,6 +340,7 @@ const CreateBranch = () => {
                 labelMargin="0 0 0.625rem 0"
               />
             </Col>
+            <Col></Col>
           </Row>
         </Section>
 
@@ -213,9 +354,10 @@ const CreateBranch = () => {
                   options={branchHeadOptions}
                   value={formData.branchHead}
                   onChange={(value) => handleChange("branchHead", value)}
-                  placeholder="Select Type"
+                  placeholder="Select Branch Head"
                   styles={customSelectStyles}
                   isSearchable
+                  isLoading={usersLoading}
                 />
               </SelectWrapper>
             </Col>
@@ -335,9 +477,10 @@ const CreateBranch = () => {
                   options={departmentOptions}
                   value={formData.selectDepartments}
                   onChange={(value) => handleChange("selectDepartments", value)}
-                  placeholder="Select State"
+                  placeholder="Select Departments"
                   styles={customSelectStyles}
                   isSearchable
+                  isLoading={departmentsLoading}
                 />
               </SelectWrapper>
             </Col>
@@ -348,9 +491,10 @@ const CreateBranch = () => {
                   options={shiftOptions}
                   value={formData.selectShifts}
                   onChange={(value) => handleChange("selectShifts", value)}
-                  placeholder="Select State"
+                  placeholder="Select Shifts"
                   styles={customSelectStyles}
                   isSearchable
+                  isLoading={shiftsLoading}
                 />
               </SelectWrapper>
             </Col>

@@ -37,33 +37,48 @@ const Employees = () => {
   const [showFilter, setShowFilter] = useState(false);
   const [employees, setEmployees] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [totalResults, setTotalResults] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [sortBy, setSortBy] = useState("createdAt:desc");
 
-  // Fetch employees on component mount
+  // Fetch employees on component mount and when pagination changes
   useEffect(() => {
-    fetchEmployees();
-  }, []);
+    fetchEmployees(currentPage, pageSize, sortBy);
+  }, [currentPage, pageSize, sortBy]);
 
-  const fetchEmployees = async () => {
+  const fetchEmployees = async (page = 1, limit = 10, sort = "createdAt:desc") => {
     setIsLoading(true);
     try {
-      const response = await get(GET_ALL_EMPLOYEES);
+      const response = await get(`${GET_ALL_EMPLOYEES}?page=${page}&limit=${limit}&sortBy=${sort}`);
       console.log("API Response:", response);
       
       // Handle different response structures
       let employeeList = [];
+      let total = 0;
+      let pages = 0;
       
       if (response && Array.isArray(response)) {
         // If response is directly an array
         employeeList = response;
+        total = response.length;
+        pages = 1;
       } else if (response && response.results && Array.isArray(response.results)) {
         // If response has a results property (pagination format)
         employeeList = response.results;
+        total = response.totalResults || response.results.length;
+        pages = response.totalPages || 1;
       } else if (response && response.data && Array.isArray(response.data)) {
         // If response has a data property
         employeeList = response.data;
+        total = response.totalResults || response.data.length;
+        pages = response.totalPages || 1;
       } else if (response && response.users && Array.isArray(response.users)) {
         // If response has a users property
         employeeList = response.users;
+        total = response.totalResults || response.users.length;
+        pages = response.totalPages || 1;
       }
       
       console.log("Employee List:", employeeList);
@@ -83,8 +98,13 @@ const Employees = () => {
         }));
         console.log("Transformed Employees:", transformedEmployees);
         setEmployees(transformedEmployees);
+        setTotalResults(total);
+        setTotalPages(pages);
       } else {
         console.warn("No employees found in response");
+        setEmployees([]);
+        setTotalResults(0);
+        setTotalPages(0);
       }
     } catch (error) {
       const errorMessage =
@@ -100,6 +120,10 @@ const Employees = () => {
 
   const handleRowClick = (row) => {
     navigate("/admin/peopleHub/employees/employeeProfile");
+  };
+
+  const handlePageChange = (newPage) => {
+    setCurrentPage(newPage);
   };
 
   const handleNewEmployee = () => {
@@ -237,9 +261,14 @@ const Employees = () => {
           />
           <ReusableTable
             columns={employeeTableColumns}
-            data={filteredEmployeeData}
-            rowsPerPage={5}
-            totalResults={filteredEmployeeData.length}
+            data={employees}
+            rowsPerPage={pageSize}
+            totalResults={totalResults}
+            totalPages={totalPages}
+            currentPage={currentPage}
+            server={true}
+            onPageChange={handlePageChange}
+            alwaysShowPagination
             onRowClick={handleRowClick}
           />
         </>

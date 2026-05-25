@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import ReusableTable from "../../components/ReusableTable";
@@ -10,12 +10,13 @@ import TableToolbar from "../../components/TableToolbar";
 import PlusIcon from "../../assets/images/DashboardImages/plus-large_svgrepo.com.svg";
 import TabSwitcher from "../../components/TabSwitcher";
 import ProfileImage from "../../assets/images/employee/sampleProfile.jpg";
+import { get } from "../../helpers/api_helper";
+import { GET_OFFBOARDS } from "../../helpers/url_helper";
+import { toast } from "react-toastify";
 import {
   dashboardStats,
   offboardingEmployeeColumns,
-  offboardingEmployeeData,
   offboardingStaffColumns,
-  offboardingStaffData,
 } from "../../utils/data";
 
 const OffBoarding = () => {
@@ -31,16 +32,74 @@ const OffBoarding = () => {
   const [staffSearch, setStaffSearch] = useState("");
   const [staffRole, setStaffRole] = useState("All Roles");
   const [staffShift, setStaffShift] = useState("All Shifts");
+  
+  // API state
+  const [offboardingData, setOffboardingData] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [totalResults, setTotalResults] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+
+  // Fetch offboarding records on component mount
+  useEffect(() => {
+    fetchOffboardingRecords();
+  }, [currentPage, pageSize]);
+
+  const fetchOffboardingRecords = async () => {
+    setLoading(true);
+    try {
+      const response = await get(`${GET_OFFBOARDS}?page=${currentPage}&limit=${pageSize}`);
+      console.log("Offboarding records fetched:", response);
+      
+      let records = [];
+      
+      // Handle different response structures
+      if (Array.isArray(response)) {
+        records = response;
+      } else if (response?.results && Array.isArray(response.results)) {
+        records = response.results;
+        setTotalResults(response.totalResults || 0);
+        setTotalPages(response.totalPages || 0);
+      } else if (response?.data && Array.isArray(response.data)) {
+        records = response.data;
+      }
+      
+      setOffboardingData(records);
+    } catch (error) {
+      console.error("Error fetching offboarding records:", error);
+      toast.error("Failed to fetch offboarding records");
+      setOffboardingData([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleRowClick = (row) => {
-    navigate("/admin/peopleHub/off-boarding/EmployeeOffBoardingDetails");
+    navigate("/admin/peopleHub/off-boarding/EmployeeOffBoardingDetails", { state: { offboardId: row.id } });
   };
 
   const handleNewOffBoarding = () => {
     navigate("/admin/peopleHub/off-boarding/createEmployeeOffBoard");
   };
 
-  const filteredEmployeeData = offboardingEmployeeData.filter((row) => {
+  // Transform API data to table format
+  const transformedEmployeeData = offboardingData.map((record) => ({
+    id: record.id || record._id,
+    employee: {
+      name: record.userId?.name || `${record.userId?.firstName || ""} ${record.userId?.lastName || ""}`.trim() || "N/A",
+      role: record.userId?.designation || "N/A",
+      profileImage: record.userId?.profileImage || ProfileImage,
+    },
+    department: record.userId?.department || "N/A",
+    shift: record.userId?.shift || "N/A",
+    exitType: record.exitInformation?.exitType || "N/A",
+    exitReason: record.exitInformation?.exitReason || "N/A",
+    lastWorkingDate: record.exitInformation?.lastWorkingDate || "N/A",
+    status: record.isEmailVerified ? "Verified" : "Pending",
+  }));
+
+  const filteredEmployeeData = transformedEmployeeData.filter((row) => {
     const m1 =
       employeeDept === "All Department" || row.department === employeeDept;
     const m2 = employeeShift === "All Shifts" || row.shift === employeeShift;
@@ -50,12 +109,13 @@ const OffBoarding = () => {
     return m1 && m2 && m3;
   });
 
-  const filteredStaffData = offboardingStaffData.filter((row) => {
-    const m1 = staffRole === "All Roles" || row.role === staffRole;
+  // For staff tab, use same data (can be separated if needed)
+  const filteredStaffData = transformedEmployeeData.filter((row) => {
+    const m1 = staffRole === "All Roles" || row.employee.role === staffRole;
     const m2 = staffShift === "All Shifts" || row.shift === staffShift;
     const m3 =
       !staffSearch ||
-      row.staff.name.toLowerCase().includes(staffSearch.toLowerCase());
+      row.employee.name.toLowerCase().includes(staffSearch.toLowerCase());
     return m1 && m2 && m3;
   });
 
@@ -189,9 +249,14 @@ const OffBoarding = () => {
           <ReusableTable
             columns={employeeColumnsWithRenderer}
             data={filteredEmployeeData}
-            rowsPerPage={5}
-            totalResults={filteredEmployeeData.length}
+            rowsPerPage={pageSize}
+            totalResults={totalResults}
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
             onRowClick={handleRowClick}
+            server={true}
+            loading={loading}
           />
         </>
       ) : (
@@ -219,9 +284,14 @@ const OffBoarding = () => {
           <ReusableTable
             columns={staffColumnsWithRenderer}
             data={filteredStaffData}
-            rowsPerPage={5}
-            totalResults={filteredStaffData.length}
+            rowsPerPage={pageSize}
+            totalResults={totalResults}
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
             onRowClick={handleRowClick}
+            server={true}
+            loading={loading}
           />
         </>
       )}

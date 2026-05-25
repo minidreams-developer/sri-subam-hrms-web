@@ -24,57 +24,90 @@ const ShiftManagement = () => {
   const [error, setError] = useState(null);
   const [sidebarLoading, setSidebarLoading] = useState(false);
   const [shiftDetails, setShiftDetails] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [totalResults, setTotalResults] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [sortBy, setSortBy] = useState("createdAt:desc");
 
-  // Fetch shifts data from API
+  // Fetch shifts data from API with pagination
   useEffect(() => {
-    const fetchShifts = async () => {
-      try {
-        setLoading(true);
-        const response = await get(GET_SHIFTS);
-        console.log("Shifts fetched:", response);
-        
-        // Handle different response structures
-        let data = [];
-        if (Array.isArray(response)) {
-          data = response;
-        } else if (response?.data && Array.isArray(response.data)) {
-          data = response.data;
-        } else if (response?.results && Array.isArray(response.results)) {
-          data = response.results;
-        } else if (typeof response === 'object' && response !== null) {
-          // If response is an object but not an array, try to extract array from it
-          data = Object.values(response).find(val => Array.isArray(val)) || [];
-        }
-        
-        // Map API response to table format
-        const mappedData = data.map(shift => ({
-          id: shift.id || shift._id,
-          shiftCode: shift.shiftCode,
-          shiftName: shift.shiftName,
-          startTime: shift.timings?.[0]?.startTime || shift.startTime || "-",
-          endTime: shift.timings?.[0]?.endTime || shift.endTime || "-",
-          workingHours: shift.totalShiftDuration || "-",
-          shifttype: shift.shiftType || "-",
-          status: shift.isShiftActive ? "Active" : "Inactive",
-          type: shift.shiftType,
-          // Store full object for sidebar
-          ...shift
-        }));
-        
-        setShiftsData(mappedData);
-        setError(null);
-      } catch (err) {
-        console.error("Error fetching shifts:", err);
-        setError(err.message);
-        // Fallback to mock data if API fails
-        setShiftsData(staffLeavesData);
-      } finally {
-        setLoading(false);
-      }
-    };
+    fetchShifts(currentPage, pageSize, sortBy);
+  }, [currentPage, pageSize, sortBy]);
 
-    fetchShifts();
-  }, []);
+  // Helper function to extract time from ISO datetime string (HH:MM format)
+  const extractTime = (dateTimeString) => {
+    if (!dateTimeString) return "-";
+    try {
+      const date = new Date(dateTimeString);
+      const hours = String(date.getHours()).padStart(2, "0");
+      const minutes = String(date.getMinutes()).padStart(2, "0");
+      return `${hours}:${minutes}`;
+    } catch (error) {
+      return dateTimeString;
+    }
+  };
+
+  const fetchShifts = async (page = 1, limit = 10, sort = "createdAt:desc") => {
+    try {
+      setLoading(true);
+      const response = await get(`${GET_SHIFTS}?page=${page}&limit=${limit}&sortBy=${sort}`);
+      console.log("Shifts fetched:", response);
+      
+      // Handle different response structures
+      let data = [];
+      let total = 0;
+      let pages = 0;
+
+      if (Array.isArray(response)) {
+        data = response;
+        total = response.length;
+        pages = 1;
+      } else if (response?.data && Array.isArray(response.data)) {
+        data = response.data;
+        total = response.totalResults || response.data.length;
+        pages = response.totalPages || 1;
+      } else if (response?.results && Array.isArray(response.results)) {
+        data = response.results;
+        total = response.totalResults || response.results.length;
+        pages = response.totalPages || 1;
+      } else if (typeof response === 'object' && response !== null) {
+        const arrayData = Object.values(response).find(val => Array.isArray(val)) || [];
+        data = arrayData;
+        total = response.totalResults || arrayData.length;
+        pages = response.totalPages || 1;
+      }
+      
+      // Map API response to table format
+      const mappedData = data.map(shift => ({
+        id: shift.id || shift._id,
+        shiftCode: shift.shiftCode,
+        shiftName: shift.shiftName,
+        startTime: extractTime(shift.timings?.[0]?.startTime || shift.startTime) || "-",
+        endTime: extractTime(shift.timings?.[0]?.endTime || shift.endTime) || "-",
+        workingHours: shift.totalShiftDuration || "-",
+        shifttype: shift.shiftType || "-",
+        status: shift.isShiftActive ? "Active" : "Inactive",
+        type: shift.shiftType,
+        // Store full object for sidebar
+        ...shift
+      }));
+      
+      setShiftsData(mappedData);
+      setTotalResults(total);
+      setTotalPages(pages);
+      setError(null);
+    } catch (err) {
+      console.error("Error fetching shifts:", err);
+      setError(err.message);
+      // Fallback to mock data if API fails
+      setShiftsData(staffLeavesData);
+      setTotalResults(staffLeavesData.length);
+      setTotalPages(1);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const columns = [
     { header: "Shift Code", accessor: "shiftCode" },
@@ -87,21 +120,19 @@ const ShiftManagement = () => {
     { header: "Action", accessor: "action" },
   ];
 
-  const filtered = (Array.isArray(shiftsData) ? shiftsData : []).filter((row) => {
-    const m1 =
-      leaveType === "All Types" ||
-      String(row.type).toLowerCase() === String(leaveType).toLowerCase();
-    const m2 =
-      !search ||
-      String(row.shiftName).toLowerCase().includes(search.toLowerCase()) ||
-      String(row.shiftCode).toLowerCase().includes(search.toLowerCase());
-    return m1 && m2;
-  });
-
   const handleRowClick = (row) => {
     setSelectedShift(row);
     setIsSidebarOpen(true);
     fetchShiftDetails(row.id);
+  };
+
+  const handlePageChange = (newPage) => {
+    setCurrentPage(newPage);
+  };
+
+  const handlePageSizeChange = (newSize) => {
+    setPageSize(newSize);
+    setCurrentPage(1); // Reset to first page when changing page size
   };
 
   // Fetch detailed shift information
@@ -153,9 +184,13 @@ const ShiftManagement = () => {
       ) : (
         <ReusableTable
           columns={columns}
-          data={filtered}
-          rowsPerPage={5}
-          totalResults={filtered.length}
+          data={shiftsData}
+          rowsPerPage={pageSize}
+          totalResults={totalResults}
+          totalPages={totalPages}
+          currentPage={currentPage}
+          server={true}
+          onPageChange={handlePageChange}
           alwaysShowPagination
           actionType="default"
           onRowClick={handleRowClick}
@@ -198,8 +233,8 @@ const ShiftManagement = () => {
                     label: "Shift Type",
                     value: shiftDetails?.shiftType || selectedShift?.shifttype || "Rotational",
                   },
-                  { label: "Start Time", value: shiftDetails?.timings?.[0]?.startTime || selectedShift?.startTime || "10:30 AM" },
-                  { label: "End Time", value: shiftDetails?.timings?.[0]?.endTime || selectedShift?.endTime || "07:30 PM" },
+                  { label: "Start Time", value: extractTime(shiftDetails?.timings?.[0]?.startTime) || selectedShift?.startTime || "10:30 AM" },
+                  { label: "End Time", value: extractTime(shiftDetails?.timings?.[0]?.endTime) || selectedShift?.endTime || "07:30 PM" },
                   {
                     label: "Total Shift Duration",
                     value: shiftDetails?.totalShiftDuration || selectedShift?.workingHours || "9.00 Hrs",
@@ -243,11 +278,11 @@ const ShiftManagement = () => {
                           </InfoItem>
                           <InfoItem>
                             <Label>Start Time</Label>
-                            <Value>{breakItem.startTime || "-"}</Value>
+                            <Value>{extractTime(breakItem.startTime) || "-"}</Value>
                           </InfoItem>
                           <InfoItem>
                             <Label>End Time</Label>
-                            <Value>{breakItem.endTime || "-"}</Value>
+                            <Value>{extractTime(breakItem.endTime) || "-"}</Value>
                           </InfoItem>
                         </CardGrid>
                       </div>

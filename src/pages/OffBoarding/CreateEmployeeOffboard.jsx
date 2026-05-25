@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import theme from "../../theme/theme";
@@ -14,6 +14,9 @@ import FileUploadComponent from "../../components/FileUploadComponent";
 import AddNewFieldModal from "../../components/AddNewFieldModal";
 import MinusIcon from "../../assets/images/employee/minus.svg";
 import ConfirmationModal from "../../components/ConfirmationModal";
+import { get, post } from "../../helpers/api_helper";
+import { GENERATE_EMPLOYEE_ID, GET_ALL_EMPLOYEES, DEPARTMENTS, TEAMS, CREATE_OFFBOARD } from "../../helpers/url_helper";
+import { toast } from "react-toastify";
 
 const CreateEmployeeOffboard = () => {
   const navigate = useNavigate();
@@ -47,12 +50,148 @@ const CreateEmployeeOffboard = () => {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isConfirmationModalOpen, setIsConfirmationModalOpen] = useState(false);
+  const [employeeIdLoading, setEmployeeIdLoading] = useState(false);
+  const [employeeOptions, setEmployeeOptions] = useState([]);
+  const [employeesLoading, setEmployeesLoading] = useState(false);
+  const [departmentsLoading, setDepartmentsLoading] = useState(false);
+  const [departmentOptions, setDepartmentOptions] = useState([]);
+  const [teamsLoading, setTeamsLoading] = useState(false);
+  const [teamOptions, setTeamOptions] = useState([]);
 
-  const employeeOptions = [
-    { value: "john", label: "John Doe" },
-    { value: "jane", label: "Jane Smith" },
-    { value: "bob", label: "Bob Johnson" },
-  ];
+  // Generate Employee ID on component mount
+  useEffect(() => {
+    generateEmployeeId();
+    fetchEmployees();
+    fetchDepartments();
+    fetchTeams();
+  }, []);
+
+  const generateEmployeeId = async () => {
+    setEmployeeIdLoading(true);
+    try {
+      const response = await get(GENERATE_EMPLOYEE_ID);
+      console.log("Employee ID generated:", response);
+      
+      // Handle different response structures
+      let employeeId = "";
+      if (typeof response === "string") {
+        employeeId = response;
+      } else if (response?.employeeId) {
+        employeeId = response.employeeId;
+      } else if (response?.data) {
+        employeeId = response.data;
+      } else if (response?.id) {
+        employeeId = response.id;
+      }
+      
+      setFormData((prev) => ({ ...prev, employeeId }));
+    } catch (error) {
+      console.error("Error generating employee ID:", error);
+      toast.error("Failed to generate employee ID");
+    } finally {
+      setEmployeeIdLoading(false);
+    }
+  };
+
+  const fetchEmployees = async () => {
+    setEmployeesLoading(true);
+    try {
+      const response = await get(`${GET_ALL_EMPLOYEES}?page=1&limit=1000`);
+      console.log("Employees fetched:", response);
+      
+      let employees = [];
+      
+      // Handle different response structures
+      if (Array.isArray(response)) {
+        employees = response;
+      } else if (response?.results && Array.isArray(response.results)) {
+        employees = response.results;
+      } else if (response?.data && Array.isArray(response.data)) {
+        employees = response.data;
+      } else if (response?.users && Array.isArray(response.users)) {
+        employees = response.users;
+      }
+      
+      // Map employees to dropdown options
+      const options = employees.map((emp) => ({
+        value: emp.id || emp._id,
+        label: emp.firstName && emp.lastName 
+          ? `${emp.firstName} ${emp.lastName}` 
+          : emp.name || emp.employeeName || "N/A",
+      }));
+      
+      setEmployeeOptions(options);
+    } catch (error) {
+      console.error("Error fetching employees:", error);
+      toast.error("Failed to fetch employees");
+    } finally {
+      setEmployeesLoading(false);
+    }
+  };
+
+  const fetchDepartments = async () => {
+    setDepartmentsLoading(true);
+    try {
+      const response = await get(`${DEPARTMENTS}?page=1&limit=1000`);
+      console.log("Departments fetched:", response);
+      
+      let departments = [];
+      
+      // Handle different response structures
+      if (Array.isArray(response)) {
+        departments = response;
+      } else if (response?.results && Array.isArray(response.results)) {
+        departments = response.results;
+      } else if (response?.data && Array.isArray(response.data)) {
+        departments = response.data;
+      }
+      
+      // Map departments to dropdown options
+      const options = departments.map((dept) => ({
+        value: dept.id || dept._id,
+        label: dept.departmentName || dept.name || "N/A",
+      }));
+      
+      setDepartmentOptions(options);
+    } catch (error) {
+      console.error("Error fetching departments:", error);
+      toast.error("Failed to fetch departments");
+    } finally {
+      setDepartmentsLoading(false);
+    }
+  };
+
+  const fetchTeams = async () => {
+    setTeamsLoading(true);
+    try {
+      const response = await get(`${TEAMS}?page=1&limit=1000`);
+      console.log("Teams fetched:", response);
+      
+      let teams = [];
+      
+      // Handle different response structures
+      if (Array.isArray(response)) {
+        teams = response;
+      } else if (response?.results && Array.isArray(response.results)) {
+        teams = response.results;
+      } else if (response?.data && Array.isArray(response.data)) {
+        teams = response.data;
+      }
+      
+      // Map teams to dropdown options
+      const options = teams.map((team) => ({
+        value: team.id || team._id,
+        label: team.teamName || team.name || "N/A",
+      }));
+      
+      setTeamOptions(options);
+    } catch (error) {
+      console.error("Error fetching teams:", error);
+      toast.error("Failed to fetch teams");
+    } finally {
+      setTeamsLoading(false);
+    }
+  };
 
   const employmentTypeOptions = [
     { value: "fulltime", label: "Full Time" },
@@ -147,9 +286,66 @@ const CreateEmployeeOffboard = () => {
   const handleConfirmation = (data) => {
     console.log("Confirmation data:", data);
     console.log("Form data:", formData, assets, documents);
+    
+    // Submit the offboarding data to the API
+    submitOffboardingData();
     setIsConfirmationModalOpen(false);
-    // Add your submission logic here
-    // navigate to next page or submit data
+  };
+
+  const submitOffboardingData = async () => {
+    try {
+      // Validate required fields
+      if (!formData.employee?.value) {
+        toast.error("Please select an employee");
+        return;
+      }
+
+      // Prepare the request payload according to API spec
+      const payload = {
+        userId: formData.employee.value,
+        exitInformation: {
+          exitType: formData.exitType?.value || "",
+          exitReason: formData.exitReason?.value || "",
+          resignationSubmitionDate: formData.resignationDate ? new Date(formData.resignationDate).toISOString().split('T')[0] : null,
+          lastWorkingDate: formData.lastWorkingDate ? new Date(formData.lastWorkingDate).toISOString().split('T')[0] : null,
+          noticePeriod: formData.noticePeriod?.value || "",
+          actualNoticePeriod: formData.actualNoticeServed?.value || "",
+          waiver: formData.waiver?.value === "yes" ? true : false,
+          exitApprovedBy: formData.exitApprovedBy?.value || "",
+          approvalDate: formData.approvalDate ? new Date(formData.approvalDate).toISOString().split('T')[0] : null,
+        },
+        finalSettlemelastMonthSalary: {
+          lastMonthSalary: false,
+          pendingSalary: false,
+          leaveEncashment: false,
+          bonus_incentives: false,
+          reimbursements: false,
+          noticePay: false,
+          assetDamge: false,
+          loanRecovery: false,
+          advanceSalary: false,
+          taxAdjustments: false,
+          tenth_marksheet: false,
+          twelevth_marksheet: false,
+        },
+        userDocuments: [],
+        verificationEmail: formData.employee?.email || "",
+      };
+
+      // Submit to API
+      const response = await post(CREATE_OFFBOARD, payload);
+      console.log("Offboarding record created:", response);
+      
+      toast.success("Offboarding record created successfully");
+      
+      // Navigate to offboarding list page
+      setTimeout(() => {
+        navigate("/admin/peopleHub/off-boarding");
+      }, 1500);
+    } catch (error) {
+      console.error("Error submitting offboarding data:", error);
+      toast.error(error?.response?.data?.message || "Failed to create offboarding record");
+    }
   };
 
   // Document handlers
@@ -213,10 +409,11 @@ const CreateEmployeeOffboard = () => {
           <Col>
             <InputComponent
               label="Employee ID"
-              placeholder="Enter Employee ID"
+              placeholder="Auto-generated"
               value={formData.employeeId}
               onChange={(e) => handleChange("employeeId", e.target.value)}
               labelMargin="0 0 0.625rem 0"
+              disabled={true}
             />
           </Col>
           <Col>
@@ -229,19 +426,25 @@ const CreateEmployeeOffboard = () => {
                 placeholder="Select Employee"
                 styles={customSelectStyles}
                 isSearchable
+                isLoading={employeesLoading}
               />
             </SelectWrapper>
           </Col>
         </Row>
         <Row>
           <Col>
-            <InputComponent
-              label="Department"
-              placeholder="Enter Department"
-              value={formData.department}
-              onChange={(e) => handleChange("department", e.target.value)}
-              labelMargin="0 0 0.625rem 0"
-            />
+            <SelectWrapper>
+              <Label>Department</Label>
+              <Select
+                options={departmentOptions}
+                value={formData.department}
+                onChange={(value) => handleChange("department", value)}
+                placeholder="Select Department"
+                styles={customSelectStyles}
+                isSearchable
+                isLoading={departmentsLoading}
+              />
+            </SelectWrapper>
           </Col>
           <Col>
             <InputComponent
@@ -255,13 +458,18 @@ const CreateEmployeeOffboard = () => {
         </Row>
         <Row>
           <Col>
-            <InputComponent
-              label="Team"
-              placeholder="Enter Team"
-              value={formData.team}
-              onChange={(e) => handleChange("team", e.target.value)}
-              labelMargin="0 0 0.625rem 0"
-            />
+            <SelectWrapper>
+              <Label>Team</Label>
+              <Select
+                options={teamOptions}
+                value={formData.team}
+                onChange={(value) => handleChange("team", value)}
+                placeholder="Select Team"
+                styles={customSelectStyles}
+                isSearchable
+                isLoading={teamsLoading}
+              />
+            </SelectWrapper>
           </Col>
           <Col>
             <InputComponent

@@ -18,22 +18,49 @@ const Branches = () => {
   const [selectedBranch, setSelectedBranch] = useState(null);
   const [branchesData, setBranchesData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [totalResults, setTotalResults] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [sortBy, setSortBy] = useState("createdAt:desc");
 
-  // Fetch branches on component mount
+  // Fetch branches on component mount and when pagination changes
   useEffect(() => {
-    fetchBranches();
-  }, []);
+    fetchBranches(currentPage, pageSize, sortBy);
+  }, [currentPage, pageSize, sortBy]);
 
-  const fetchBranches = async () => {
+  const fetchBranches = async (page = 1, limit = 10, sort = "createdAt:desc") => {
     setIsLoading(true);
     try {
-      const response = await get(BRANCHES);
+      const response = await get(`${BRANCHES}?page=${page}&limit=${limit}&sortBy=${sort}`);
+      console.log("Branches fetched:", response);
+      
+      // Handle different response structures
+      let branchList = [];
+      let total = 0;
+      let pages = 0;
+      
+      if (Array.isArray(response)) {
+        branchList = response;
+        total = response.length;
+        pages = 1;
+      } else if (response?.results && Array.isArray(response.results)) {
+        branchList = response.results;
+        total = response.totalResults || response.results.length;
+        pages = response.totalPages || 1;
+      } else if (response?.data && Array.isArray(response.data)) {
+        branchList = response.data;
+        total = response.totalResults || response.data.length;
+        pages = response.totalPages || 1;
+      }
       
       // Transform API response to match table format
-      const transformedData = response?.results?.map((branch, index) => ({
+      const transformedData = branchList.map((branch, index) => ({
         no: (index + 1).toString(),
         branchName: branch.branchName || "N/A",
-        branchHead: branch.branchHead || "N/A",
+        branchHead: typeof branch.branchHead === 'object' 
+          ? (branch.branchHead?.name || branch.branchHead?.firstName + ' ' + branch.branchHead?.lastName || "N/A")
+          : (branch.branchHead || "N/A"),
         branchNumber: branch.branchNumber || branch.id || "N/A",
         noOfPeople: branch.departments?.length || 0,
         status: branch.branchStatus || branch.activeStatus || "Active",
@@ -41,9 +68,11 @@ const Branches = () => {
         actions: "...",
         // Store original data for sidebar
         originalData: branch,
-      })) || [];
+      }));
 
       setBranchesData(transformedData);
+      setTotalResults(total);
+      setTotalPages(pages);
     } catch (error) {
       const errorMessage =
         error.response?.data?.message ||
@@ -75,19 +104,15 @@ const Branches = () => {
     { key: "actions", label: "Action" },
   ];
 
-  const filteredData = branchesData.filter((row) => {
-    if (!searchValue) return true;
-    const search = searchValue.toLowerCase();
-    return (
-      row.branchName.toLowerCase().includes(search) ||
-      row.branchHead.toLowerCase().includes(search) ||
-      row.branchNumber.toLowerCase().includes(search)
-    );
-  });
+  const filteredData = branchesData;
 
   const handleRowClick = (row) => {
     setSelectedBranch(row);
     setIsSidebarOpen(true);
+  };
+
+  const handlePageChange = (newPage) => {
+    setCurrentPage(newPage);
   };
 
   const handleAddBranch = () => {
@@ -118,8 +143,13 @@ const Branches = () => {
       <ReusableTable
         columns={branchesColumns}
         data={filteredData}
-        rowsPerPage={5}
-        totalResults={filteredData.length}
+        rowsPerPage={pageSize}
+        totalResults={totalResults}
+        totalPages={totalPages}
+        currentPage={currentPage}
+        server={true}
+        onPageChange={handlePageChange}
+        alwaysShowPagination
         onRowClick={handleRowClick}
       />
 

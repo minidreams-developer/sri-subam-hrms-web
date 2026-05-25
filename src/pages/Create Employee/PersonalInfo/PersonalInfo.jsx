@@ -1,4 +1,4 @@
-import { useState, forwardRef, useImperativeHandle } from "react";
+import { useState, forwardRef, useImperativeHandle, useEffect } from "react";
 import styled from "styled-components";
 import theme from "../../../theme/theme";
 import InputComponent from "../../../components/InputComponent";
@@ -6,6 +6,9 @@ import CalenderInput from "../../../components/CalenderInput";
 import Select from "react-select";
 import { customSelectStyles } from "../../../theme/reactSelectStyles";
 import UploadIcon from "../../../assets/images/employee/upload2.svg";
+import { get } from "../../../helpers/api_helper";
+import { GENERATE_EMPLOYEE_ID } from "../../../helpers/url_helper";
+import { toast } from "react-toastify";
 
 const PersonalInfo = forwardRef((_, ref) => {
   const [formData, setFormData] = useState({
@@ -38,6 +41,40 @@ const PersonalInfo = forwardRef((_, ref) => {
   const [emergencyContacts, setEmergencyContacts] = useState([
     { emergencyContact: "", emergencyContactName: "", relationship: null },
   ]);
+
+  const [employeeIdLoading, setEmployeeIdLoading] = useState(false);
+
+  // Generate Employee ID on component mount
+  useEffect(() => {
+    generateEmployeeId();
+  }, []);
+
+  const generateEmployeeId = async () => {
+    setEmployeeIdLoading(true);
+    try {
+      const response = await get(GENERATE_EMPLOYEE_ID);
+      console.log("Employee ID generated:", response);
+      
+      // Handle different response structures
+      let employeeId = "";
+      if (typeof response === "string") {
+        employeeId = response;
+      } else if (response?.employeeId) {
+        employeeId = response.employeeId;
+      } else if (response?.data) {
+        employeeId = response.data;
+      } else if (response?.id) {
+        employeeId = response.id;
+      }
+      
+      setFormData((prev) => ({ ...prev, employeeId }));
+    } catch (error) {
+      console.error("Error generating employee ID:", error);
+      toast.error("Failed to generate employee ID");
+    } finally {
+      setEmployeeIdLoading(false);
+    }
+  };
 
   // Expose form data via ref
   useImperativeHandle(ref, () => ({
@@ -155,10 +192,11 @@ const PersonalInfo = forwardRef((_, ref) => {
           <Col>
             <InputComponent
               label="Employee ID"
-              placeholder="Autofilled"
+              placeholder="Auto-generated"
               value={formData.employeeId}
               onChange={(e) => handleChange("employeeId", e.target.value)}
               labelMargin="0 0 0.625rem 0"
+              disabled={true}
             />
           </Col>
         </Row>
