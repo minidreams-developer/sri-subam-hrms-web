@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import theme from "../../theme/theme";
 import SearchInputComponent from "../../components/SearchInputComponent";
@@ -9,25 +9,55 @@ import DotIcon from "../../assets/images/Overtime/actionDot.svg";
 import Arrow from "../../assets/images/DayOff/arrow.svg";
 import CalendarView from "../../components/CalendarView";
 import HolidayListView from "../../components/HolidayListView";
+import { get } from "../../helpers/api_helper";
+import { GET_HOLIDAYS } from "../../helpers/url_helper";
+import { toast } from "react-toastify";
 
 const DayOffAndHoliday = () => {
   const navigate = useNavigate();
-  const location = useLocation();
   const currentDate = new Date();
   const actualCurrentYear = currentDate.getFullYear();
   const [currentYear, setCurrentYear] = useState(actualCurrentYear);
   const [search, setSearch] = useState("");
   const [viewType, setViewType] = useState("Calendar View");
   const [holidays, setHolidays] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(100);
+  const [totalResults, setTotalResults] = useState(0);
 
-  // Check if returning from add page with new holiday
+  // Fetch holidays from API
   useEffect(() => {
-    if (location.state?.newHoliday) {
-      setHolidays((prev) => [...prev, location.state.newHoliday]);
-      // Clear the state
-      window.history.replaceState({}, document.title);
+    fetchHolidays();
+  }, [currentPage, search]);
+
+  const fetchHolidays = async () => {
+    try {
+      setLoading(true);
+      const params = new URLSearchParams();
+      params.append("page", currentPage);
+      params.append("limit", pageSize);
+      
+      if (search) {
+        params.append("holidayTitle", search);
+      }
+
+      const response = await get(`${GET_HOLIDAYS}?${params.toString()}`);
+
+      if (response?.results) {
+        setHolidays(response.results);
+        setTotalResults(response.totalResults || 0);
+      } else if (Array.isArray(response)) {
+        setHolidays(response);
+      }
+    } catch (error) {
+      console.error("Error fetching holidays:", error);
+      toast.error("Failed to fetch holidays");
+      setHolidays([]);
+    } finally {
+      setLoading(false);
     }
-  }, [location]);
+  };
 
   const handlePrevYear = () => {
     setCurrentYear(currentYear - 1);

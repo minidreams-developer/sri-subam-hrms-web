@@ -1,8 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import ReusableTable from "../../../components/ReusableTable";
 import TableToolbar from "../../../components/TableToolbar";
 import PlusIcon from "../../../assets/images/DashboardImages/plus-large_svgrepo.com.svg";
+import { get } from "../../../helpers/api_helper";
+import { GET_LEAVE_REQUESTS } from "../../../helpers/url_helper";
+import { toast } from "react-toastify";
 
 const EmployeeLeaves = () => {
   const navigate = useNavigate();
@@ -13,57 +16,63 @@ const EmployeeLeaves = () => {
     { header: "Type", accessor: "type" },
     { header: "From", accessor: "from" },
     { header: "To", accessor: "to" },
-    { header: "Action", accessor: "action" },
+    { header: "Status", accessor: "status" },
   ];
 
-  // Sample data - you can move this to utils/data.jsx later
-  const employeeLeavesData = [
-    {
-      employeeId: "EMP001",
-      name: "John Doe",
-      department: "IT",
-      type: "Sick Leave",
-      from: "2026-04-10",
-      to: "2026-04-12",
-      action: "...",
-    },
-    {
-      employeeId: "EMP002",
-      name: "Jane Smith",
-      department: "HR",
-      type: "Casual Leave",
-      from: "2026-04-15",
-      to: "2026-04-16",
-      action: "...",
-    },
-    {
-      employeeId: "EMP003",
-      name: "Bob Johnson",
-      department: "Sales",
-      type: "Annual Leave",
-      from: "2026-04-20",
-      to: "2026-04-25",
-      action: "...",
-    },
-    {
-      employeeId: "EMP004",
-      name: "Emily Richards",
-      department: "IT",
-      type: "Permission",
-      from: "2026-04-18",
-      to: "2026-04-18",
-      action: "...",
-    },
-  ];
-
+  const [leaveData, setLeaveData] = useState([]);
   const [search, setSearch] = useState("");
   const [leaveType, setLeaveType] = useState("All Types");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [totalResults, setTotalResults] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [loading, setLoading] = useState(false);
+
+  // Fetch leave requests from API
+  useEffect(() => {
+    const fetchLeaveRequests = async () => {
+      try {
+        setLoading(true);
+        const response = await get(
+          `${GET_LEAVE_REQUESTS}?page=${currentPage}&limit=${pageSize}`
+        );
+
+        const results = response.results || response.data || [];
+        const transformedData = results.map((leave) => ({
+          id: leave._id || leave.id,
+          employeeId: leave.employeeId?.employeeId || leave.employeeId || "N/A",
+          name: leave.employeeId?.name || "N/A",
+          department: leave.employeeId?.department?.name || leave.employeeId?.department || "N/A",
+          type: leave.leaveType || "N/A",
+          from: leave.singleDate
+            ? new Date(leave.singleDate).toLocaleDateString()
+            : new Date(leave.startDate).toLocaleDateString(),
+          to: leave.singleDate
+            ? new Date(leave.singleDate).toLocaleDateString()
+            : new Date(leave.endDate).toLocaleDateString(),
+          status: leave.status || "pending",
+        }));
+
+        setLeaveData(transformedData);
+        setTotalResults(response.totalResults || 0);
+        setTotalPages(response.totalPages || 1);
+      } catch (error) {
+        console.error("Error fetching leave requests:", error);
+        toast.error("Failed to fetch leave requests");
+        setLeaveData([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchLeaveRequests();
+  }, [currentPage, pageSize]);
 
   const handleAddLeave = () => {
     navigate("/admin/time-hub/leaveAttendance/add-LeaveOrPermissions");
   };
 
-  const filtered = employeeLeavesData.filter((row) => {
+  const filtered = leaveData.filter((row) => {
     const m1 =
       leaveType === "All Types" ||
       String(row.type).toLowerCase() === String(leaveType).toLowerCase();
@@ -78,7 +87,7 @@ const EmployeeLeaves = () => {
   return (
     <>
       <TableToolbar
-        title={`All Leaves (${String(filtered.length).padStart(2, "0")})`}
+        title={`All Leaves (${String(totalResults).padStart(2, "0")})`}
         searchPosition="right"
         searchPlaceholder="Search Employee"
         searchValue={search}
@@ -101,9 +110,14 @@ const EmployeeLeaves = () => {
       <ReusableTable
         columns={columns}
         data={filtered}
-        rowsPerPage={5}
-        totalResults={filtered.length}
+        rowsPerPage={pageSize}
+        totalResults={totalResults}
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setCurrentPage}
+        onPageSizeChange={setPageSize}
         alwaysShowPagination
+        loading={loading}
       />
     </>
   );

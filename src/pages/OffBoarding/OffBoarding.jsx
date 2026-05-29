@@ -68,7 +68,16 @@ const OffBoarding = () => {
       setOffboardingData(records);
     } catch (error) {
       console.error("Error fetching offboarding records:", error);
-      toast.error("Failed to fetch offboarding records");
+      
+      // Check if it's a backend parsing error
+      if (error?.response?.status === 400 && error?.response?.data?.message?.includes("Cast to ObjectId")) {
+        console.error("Backend API Error: ObjectId parsing failed");
+        console.error("This indicates the backend is incorrectly parsing query parameters as MongoDB IDs");
+        toast.error("Backend API error: Please contact support");
+      } else {
+        toast.error("Failed to fetch offboarding records");
+      }
+      
       setOffboardingData([]);
     } finally {
       setLoading(false);
@@ -85,38 +94,32 @@ const OffBoarding = () => {
 
   // Transform API data to table format
   const transformedEmployeeData = offboardingData.map((record) => ({
-    id: record.id || record._id,
+    id: record._id,
     employee: {
       name: record.userId?.name || `${record.userId?.firstName || ""} ${record.userId?.lastName || ""}`.trim() || "N/A",
-      role: record.userId?.designation || "N/A",
+      role: record.userId?.employeeId || "N/A",
       profileImage: record.userId?.profileImage || ProfileImage,
     },
-    department: record.userId?.department || "N/A",
-    shift: record.userId?.shift || "N/A",
     exitType: record.exitInformation?.exitType || "N/A",
     exitReason: record.exitInformation?.exitReason || "N/A",
     lastWorkingDate: record.exitInformation?.lastWorkingDate || "N/A",
+    exitApprovedBy: record.exitInformation?.exitApprovedBy || "N/A",
     status: record.isEmailVerified ? "Verified" : "Pending",
   }));
 
   const filteredEmployeeData = transformedEmployeeData.filter((row) => {
-    const m1 =
-      employeeDept === "All Department" || row.department === employeeDept;
-    const m2 = employeeShift === "All Shifts" || row.shift === employeeShift;
     const m3 =
       !employeeSearch ||
       row.employee.name.toLowerCase().includes(employeeSearch.toLowerCase());
-    return m1 && m2 && m3;
+    return m3;
   });
 
   // For staff tab, use same data (can be separated if needed)
   const filteredStaffData = transformedEmployeeData.filter((row) => {
-    const m1 = staffRole === "All Roles" || row.employee.role === staffRole;
-    const m2 = staffShift === "All Shifts" || row.shift === staffShift;
     const m3 =
       !staffSearch ||
       row.employee.name.toLowerCase().includes(staffSearch.toLowerCase());
-    return m1 && m2 && m3;
+    return m3;
   });
 
   // Custom columns with employee renderer

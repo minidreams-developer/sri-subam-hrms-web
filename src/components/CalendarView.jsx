@@ -54,9 +54,9 @@ const CalendarView = ({ currentYear = new Date().getFullYear(), showAttendance =
 
         mergedData[monthKey][day] = {
           type: "holiday",
-          label: holiday.name,
+          label: holiday.holidayTitle || holiday.name,
           hours: null,
-          description: holiday.remarks || `Holiday for ${holiday.people || "all"}`,
+          description: holiday.description || holiday.Remarks || `Holiday for ${holiday.people || "all"}`,
         };
       }
     });

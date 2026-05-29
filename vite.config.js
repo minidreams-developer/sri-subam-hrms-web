@@ -10,6 +10,6 @@ export default defineConfig({
   preview: {
     host: true,
     port: 4173,
-    allowedHosts: ["rekla-admin-panel-p3nvd.ondigitalocean.app"],
+  
   },
 });

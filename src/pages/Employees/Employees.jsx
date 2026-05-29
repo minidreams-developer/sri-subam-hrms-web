@@ -85,17 +85,32 @@ const Employees = () => {
       
       if (employeeList.length > 0) {
         // Transform API response to match table format
-        const transformedEmployees = employeeList.map((emp) => ({
-          id: emp.id,
-          name: emp.name || emp.employeeName,
-          email: emp.email,
-          phone: emp.phone,
-          department: emp.employee?.workInformation?.department || emp.department || "N/A",
-          designation: emp.employee?.workInformation?.designation || emp.designation || "N/A",
-          shift: emp.employee?.workInformation?.shift || emp.shift || "N/A",
-          status: emp.employee?.employeeStatus || emp.status || "Active",
-          joinDate: emp.employee?.workInformation?.joinedDate || emp.dateOfJoining,
-        }));
+        const transformedEmployees = employeeList.map((emp) => {
+          // Extract joined date
+          const joinedDate = emp.workInformation?.joinedDate || emp.dateOfJoining;
+          const formattedDate = joinedDate 
+            ? new Date(joinedDate).toLocaleDateString("en-GB", {
+                day: "2-digit",
+                month: "2-digit",
+                year: "numeric",
+              })
+            : "N/A";
+
+          return {
+            id: emp.id || emp._id,
+            employeeId: emp.employeeId || "N/A",
+            name: emp.name || emp.employeeName || "N/A",
+            email: emp.email || "N/A",
+            phone: emp.phone || "N/A",
+            department: emp.workInformation?.department || emp.department || "N/A",
+            designation: emp.workInformation?.designation || emp.designation || "N/A",
+            shift: emp.workInformation?.shiftId || emp.shift || "N/A",
+            status: emp.isActive ? "Active" : "Inactive",
+            joinDate: formattedDate,
+            gender: emp.gender || "N/A",
+            role: emp.role || "employee",
+          };
+        });
         console.log("Transformed Employees:", transformedEmployees);
         setEmployees(transformedEmployees);
         setTotalResults(total);

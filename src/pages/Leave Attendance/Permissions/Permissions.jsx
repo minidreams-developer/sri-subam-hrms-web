@@ -1,9 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import ReusableTable from "../../../components/ReusableTable";
-import { staffLeavesData } from "../../../utils/data";
+import { get } from "../../../helpers/api_helper";
+import { GET_LEAVE_REQUESTS } from "../../../helpers/url_helper";
 import TableToolbar from "../../../components/TableToolbar";
 import PlusIcon from "../../../assets/images/DashboardImages/plus-large_svgrepo.com.svg";
+import { toast } from "react-toastify";
 
 const Permissions = () => {
   const navigate = useNavigate();
@@ -14,16 +16,71 @@ const Permissions = () => {
     { header: "Total Hrs", accessor: "type" },
     { header: "From", accessor: "from" },
     { header: "To", accessor: "to" },
-    { header: "Action", accessor: "action" },
+    { header: "Status", accessor: "status" },
   ];
+
+  const [permissionData, setPermissionData] = useState([]);
   const [search, setSearch] = useState("");
   const [leaveType, setLeaveType] = useState("All Types");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [totalResults, setTotalResults] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [loading, setLoading] = useState(false);
+
+  // Fetch permissions (leave requests with type "Permission") from API
+  useEffect(() => {
+    const fetchPermissions = async () => {
+      try {
+        setLoading(true);
+        const response = await get(
+          `${GET_LEAVE_REQUESTS}?page=${currentPage}&limit=${pageSize}&leaveType=Permission`
+        );
+
+        const results = response.results || response.data || [];
+        const transformedData = results.map((permission) => ({
+          id: permission._id || permission.id,
+          staffId: permission.employeeId?.employeeId || permission.employeeId || "N/A",
+          name: permission.employeeId?.name || "N/A",
+          department: permission.employeeId?.department?.name || permission.employeeId?.department || "N/A",
+          type: permission.leaveType || "Permission",
+          from: permission.singleDate
+            ? new Date(permission.singleDate).toLocaleTimeString("en-US", {
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: false,
+              })
+            : "N/A",
+          to: permission.singleDate
+            ? new Date(permission.singleDate).toLocaleTimeString("en-US", {
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: false,
+              })
+            : "N/A",
+          status: permission.status || "pending",
+        }));
+
+        setPermissionData(transformedData);
+        setTotalResults(response.totalResults || 0);
+        setTotalPages(response.totalPages || 1);
+      } catch (error) {
+        console.error("Error fetching permissions:", error);
+        toast.error("Failed to fetch permissions");
+        setPermissionData([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPermissions();
+  }, [currentPage, pageSize]);
 
   const handleAddPermission = () => {
     navigate("/admin/time-hub/leaveAttendance/add-LeaveOrPermissions?type=permission");
   };
 
-  const filtered = staffLeavesData.filter((row) => {
+  const filtered = permissionData.filter((row) => {
     const m1 =
       leaveType === "All Types" ||
       String(row.type).toLowerCase() === String(leaveType).toLowerCase();
@@ -38,7 +95,7 @@ const Permissions = () => {
   return (
     <>
       <TableToolbar
-        title={`All Leaves (${String(filtered.length).padStart(2, "0")})`}
+        title={`All Permissions (${String(totalResults).padStart(2, "0")})`}
         searchPosition="right"
         searchPlaceholder="Search Agents"
         searchValue={search}
@@ -61,9 +118,14 @@ const Permissions = () => {
       <ReusableTable
         columns={columns}
         data={filtered}
-        rowsPerPage={5}
-        totalResults={filtered.length}
+        rowsPerPage={pageSize}
+        totalResults={totalResults}
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setCurrentPage}
+        onPageSizeChange={setPageSize}
         alwaysShowPagination
+        loading={loading}
       />
     </>
   );

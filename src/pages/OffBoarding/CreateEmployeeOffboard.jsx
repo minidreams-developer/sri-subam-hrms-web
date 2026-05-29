@@ -57,6 +57,10 @@ const CreateEmployeeOffboard = () => {
   const [departmentOptions, setDepartmentOptions] = useState([]);
   const [teamsLoading, setTeamsLoading] = useState(false);
   const [teamOptions, setTeamOptions] = useState([]);
+  const [usersLoading, setUsersLoading] = useState(false);
+  const [userOptions, setUserOptions] = useState([]);
+  const [employeeSearchLoading, setEmployeeSearchLoading] = useState(false);
+  const [employeeIdOptions, setEmployeeIdOptions] = useState([]);
 
   // Generate Employee ID on component mount
   useEffect(() => {
@@ -64,7 +68,128 @@ const CreateEmployeeOffboard = () => {
     fetchEmployees();
     fetchDepartments();
     fetchTeams();
+    fetchUsers();
+    fetchEmployeeIds();
   }, []);
+
+  // Fetch all employee IDs for dropdown
+  const fetchEmployeeIds = async () => {
+    setEmployeeSearchLoading(true);
+    try {
+      const response = await get(`${GET_ALL_EMPLOYEES}?page=1&limit=1000`);
+      console.log("Employee IDs fetched:", response);
+
+      let employees = [];
+
+      // Handle different response structures
+      if (Array.isArray(response)) {
+        employees = response;
+      } else if (response?.results && Array.isArray(response.results)) {
+        employees = response.results;
+      } else if (response?.data && Array.isArray(response.data)) {
+        employees = response.data;
+      } else if (response?.users && Array.isArray(response.users)) {
+        employees = response.users;
+      }
+
+      // Map employees to dropdown options with employee ID
+      const options = employees
+        .filter((emp) => emp.employeeId) // Only include employees with employeeId
+        .map((emp) => ({
+          value: emp.employeeId,
+          label: emp.employeeId,
+          employeeData: emp, // Store full employee data for auto-population
+        }));
+
+      setEmployeeIdOptions(options);
+    } catch (error) {
+      console.error("Error fetching employee IDs:", error);
+      toast.error("Failed to fetch employee IDs");
+    } finally {
+      setEmployeeSearchLoading(false);
+    }
+  };
+
+  // Search employee by Employee ID
+  const handleEmployeeIdSearch = async (selectedOption) => {
+    if (!selectedOption) {
+      setFormData((prev) => ({ ...prev, employee: null, employeeId: "" }));
+      return;
+    }
+
+    try {
+      const empId = selectedOption.value;
+      setFormData((prev) => ({ ...prev, employeeId: empId }));
+
+      // Use the stored employee data or fetch if not available
+      let employee = selectedOption.employeeData;
+
+      if (!employee) {
+        // Fallback: search by employee ID if data not in option
+        const response = await get(`/v1/users/?empId=${empId}`);
+        console.log("Employee search response:", response);
+
+        // Handle different response structures
+        if (Array.isArray(response) && response.length > 0) {
+          employee = response[0];
+        } else if (response?.results && Array.isArray(response.results) && response.results.length > 0) {
+          employee = response.results[0];
+        } else if (response?.data && Array.isArray(response.data) && response.data.length > 0) {
+          employee = response.data[0];
+        } else if (response?.users && Array.isArray(response.users) && response.users.length > 0) {
+          employee = response.users[0];
+        } else if (response && typeof response === "object" && !Array.isArray(response)) {
+          employee = response;
+        }
+      }
+
+      if (employee) {
+        // Extract employee name
+        const employeeName = employee.firstName && employee.lastName
+          ? `${employee.firstName} ${employee.lastName}`
+          : employee.name || employee.employeeName || "N/A";
+
+        // Set employee in form
+        setFormData((prev) => ({
+          ...prev,
+          employee: {
+            value: employee.id || employee._id,
+            label: employeeName,
+          },
+          // Auto-populate other fields if available
+          department: employee.department ? {
+            value: employee.department.id || employee.department._id || employee.department,
+            label: employee.department.departmentName || employee.department.name || employee.department,
+          } : null,
+          designation: employee.designation || employee.position || "",
+          team: employee.team ? {
+            value: employee.team.id || employee.team._id || employee.team,
+            label: employee.team.teamName || employee.team.name || employee.team,
+          } : null,
+          reportingPerson: employee.reportingPerson ? {
+            value: employee.reportingPerson.id || employee.reportingPerson._id || employee.reportingPerson,
+            label: employee.reportingPerson.firstName && employee.reportingPerson.lastName
+              ? `${employee.reportingPerson.firstName} ${employee.reportingPerson.lastName}`
+              : employee.reportingPerson.name || employee.reportingPerson,
+          } : null,
+          dateOfJoining: employee.dateOfJoining ? new Date(employee.dateOfJoining) : null,
+          employmentType: employee.employmentType ? {
+            value: employee.employmentType.toLowerCase(),
+            label: employee.employmentType,
+          } : null,
+        }));
+
+        toast.success("Employee found successfully");
+      } else {
+        toast.error("Employee not found");
+        setFormData((prev) => ({ ...prev, employee: null }));
+      }
+    } catch (error) {
+      console.error("Error searching employee:", error);
+      toast.error(error?.response?.data?.message || "Failed to search employee");
+      setFormData((prev) => ({ ...prev, employee: null }));
+    }
+  };
 
   const generateEmployeeId = async () => {
     setEmployeeIdLoading(true);
@@ -193,6 +318,42 @@ const CreateEmployeeOffboard = () => {
     }
   };
 
+  const fetchUsers = async () => {
+    setUsersLoading(true);
+    try {
+      const response = await get(`${GET_ALL_EMPLOYEES}?page=1&limit=1000`);
+      console.log("Users fetched:", response);
+      
+      let users = [];
+      
+      // Handle different response structures
+      if (Array.isArray(response)) {
+        users = response;
+      } else if (response?.results && Array.isArray(response.results)) {
+        users = response.results;
+      } else if (response?.data && Array.isArray(response.data)) {
+        users = response.data;
+      } else if (response?.users && Array.isArray(response.users)) {
+        users = response.users;
+      }
+      
+      // Map users to dropdown options
+      const options = users.map((user) => ({
+        value: user.id || user._id,
+        label: user.firstName && user.lastName 
+          ? `${user.firstName} ${user.lastName}` 
+          : user.name || user.email || "N/A",
+      }));
+      
+      setUserOptions(options);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      toast.error("Failed to fetch users");
+    } finally {
+      setUsersLoading(false);
+    }
+  };
+
   const employmentTypeOptions = [
     { value: "fulltime", label: "Full Time" },
     { value: "parttime", label: "Part Time" },
@@ -300,37 +461,48 @@ const CreateEmployeeOffboard = () => {
         return;
       }
 
+      // Helper function to convert date to YYYY-MM-DD format
+      const formatDateToString = (dateObj) => {
+        if (!dateObj) return null;
+        if (typeof dateObj === "string") return dateObj;
+        return dateObj.toISOString().split("T")[0];
+      };
+
       // Prepare the request payload according to API spec
       const payload = {
         userId: formData.employee.value,
+        // Exit Information
         exitInformation: {
           exitType: formData.exitType?.value || "",
           exitReason: formData.exitReason?.value || "",
-          resignationSubmitionDate: formData.resignationDate ? new Date(formData.resignationDate).toISOString().split('T')[0] : null,
-          lastWorkingDate: formData.lastWorkingDate ? new Date(formData.lastWorkingDate).toISOString().split('T')[0] : null,
+          resignationSubmitionDate: formatDateToString(formData.resignationDate),
+          lastWorkingDate: formatDateToString(formData.lastWorkingDate),
           noticePeriod: formData.noticePeriod?.value || "",
           actualNoticePeriod: formData.actualNoticeServed?.value || "",
           waiver: formData.waiver?.value === "yes" ? true : false,
           exitApprovedBy: formData.exitApprovedBy?.value || "",
-          approvalDate: formData.approvalDate ? new Date(formData.approvalDate).toISOString().split('T')[0] : null,
+          approvalDate: formatDateToString(formData.approvalDate),
         },
+        // Final Settlement (from form checkboxes)
         finalSettlemelastMonthSalary: {
-          lastMonthSalary: false,
-          pendingSalary: false,
-          leaveEncashment: false,
-          bonus_incentives: false,
-          reimbursements: false,
-          noticePay: false,
-          assetDamge: false,
-          loanRecovery: false,
-          advanceSalary: false,
-          taxAdjustments: false,
-          tenth_marksheet: false,
-          twelevth_marksheet: false,
+          lastMonthSalary: formData.lastMonthSalary || false,
+          pendingSalary: formData.pendingSalary || false,
+          leaveEncashment: formData.leaveEncashment || false,
+          bonus_incentives: formData.bonusIncentives || false,
+          reimbursements: formData.reimbursements || false,
+          noticePay: formData.noticePay || false,
+          assetDamge: formData.assetDamage || false,
+          loanRecovery: formData.loanRecovery || false,
+          advanceSalary: formData.advanceSalary || false,
+          taxAdjustments: formData.taxAdjustments || false,
+          tenth_marksheet: formData.tenthMarksheet || false,
+          twelevth_marksheet: formData.twelfthMarksheet || false,
         },
         userDocuments: [],
-        verificationEmail: formData.employee?.email || "",
+        verificationEmail: formData.employee?.label || "",
       };
+
+      console.log("Submitting offboarding payload:", payload);
 
       // Submit to API
       const response = await post(CREATE_OFFBOARD, payload);
@@ -407,14 +579,18 @@ const CreateEmployeeOffboard = () => {
         <SectionTitle>Employee Details</SectionTitle>
         <Row>
           <Col>
-            <InputComponent
-              label="Employee ID"
-              placeholder="Auto-generated"
-              value={formData.employeeId}
-              onChange={(e) => handleChange("employeeId", e.target.value)}
-              labelMargin="0 0 0.625rem 0"
-              disabled={true}
-            />
+            <SelectWrapper>
+              <Label>Employee ID</Label>
+              <Select
+                options={employeeIdOptions}
+                value={employeeIdOptions.find((opt) => opt.value === formData.employeeId) || null}
+                onChange={(option) => handleEmployeeIdSearch(option)}
+                placeholder="Select Employee ID"
+                styles={customSelectStyles}
+                isSearchable
+                isLoading={employeeSearchLoading}
+              />
+            </SelectWrapper>
           </Col>
           <Col>
             <SelectWrapper>
@@ -426,7 +602,7 @@ const CreateEmployeeOffboard = () => {
                 placeholder="Select Employee"
                 styles={customSelectStyles}
                 isSearchable
-                isLoading={employeesLoading}
+                isLoading={employeesLoading || employeeSearchLoading}
               />
             </SelectWrapper>
           </Col>
@@ -472,13 +648,18 @@ const CreateEmployeeOffboard = () => {
             </SelectWrapper>
           </Col>
           <Col>
-            <InputComponent
-              label="Reporting Person"
-              placeholder="Reporting Person"
-              value={formData.reportingPerson}
-              onChange={(e) => handleChange("reportingPerson", e.target.value)}
-              labelMargin="0 0 0.625rem 0"
-            />
+            <SelectWrapper>
+              <Label>Reporting Person</Label>
+              <Select
+                options={userOptions}
+                value={formData.reportingPerson}
+                onChange={(value) => handleChange("reportingPerson", value)}
+                placeholder="Select Reporting Person"
+                styles={customSelectStyles}
+                isSearchable
+                isLoading={usersLoading}
+              />
+            </SelectWrapper>
           </Col>
         </Row>
         <Row>
@@ -605,12 +786,13 @@ const CreateEmployeeOffboard = () => {
             <SelectWrapper>
               <Label>Exit Approved By</Label>
               <Select
-                options={approverOptions}
+                options={userOptions}
                 value={formData.exitApprovedBy}
                 onChange={(value) => handleChange("exitApprovedBy", value)}
                 placeholder="Select Employee"
                 styles={customSelectStyles}
                 isSearchable
+                isLoading={usersLoading}
               />
             </SelectWrapper>
           </Col>

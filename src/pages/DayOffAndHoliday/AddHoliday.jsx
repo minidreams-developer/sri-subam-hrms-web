@@ -7,44 +7,45 @@ import { customSelectStyles } from "../../theme/reactSelectStyles";
 import InputComponent from "../../components/InputComponent";
 import CalenderInput from "../../components/CalenderInput";
 import Button from "../../components/Button";
+import { post } from "../../helpers/api_helper";
+import { CREATE_HOLIDAY } from "../../helpers/url_helper";
+import { toast } from "react-toastify";
 
 const AddHoliday = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     month: "",
     date: "",
-    name: "",
-    people: "",
-    leaveType: "",
+    holidayTitle: "",
+    people: [],
+    description: "",
     nextWorkingDay: "",
-    remarks: "",
+    Remarks: "",
+    status: true,
+    holidayImage: "",
   });
+  const [loading, setLoading] = useState(false);
 
   const monthOptions = [
-    { value: "january", label: "January" },
-    { value: "february", label: "February" },
-    { value: "march", label: "March" },
-    { value: "april", label: "April" },
-    { value: "may", label: "May" },
-    { value: "june", label: "June" },
-    { value: "july", label: "July" },
-    { value: "august", label: "August" },
-    { value: "september", label: "September" },
-    { value: "october", label: "October" },
-    { value: "november", label: "November" },
-    { value: "december", label: "December" },
+    { value: 1, label: "January" },
+    { value: 2, label: "February" },
+    { value: 3, label: "March" },
+    { value: 4, label: "April" },
+    { value: 5, label: "May" },
+    { value: 6, label: "June" },
+    { value: 7, label: "July" },
+    { value: 8, label: "August" },
+    { value: 9, label: "September" },
+    { value: 10, label: "October" },
+    { value: 11, label: "November" },
+    { value: 12, label: "December" },
   ];
 
-  const peopleOptions = [
-    { value: "all", label: "All Employees" },
-    { value: "staff", label: "Staff Only" },
-    { value: "employees", label: "Employees Only" },
-  ];
-
-  const leaveTypeOptions = [
-    { value: "shift1", label: "Shift 1" },
-    { value: "shift2", label: "Shift 2" },
-    { value: "shift3", label: "Shift 3" },
+  const descriptionOptions = [
+    { value: "National Holiday", label: "National Holiday" },
+    { value: "Festival", label: "Festival" },
+    { value: "Company Holiday", label: "Company Holiday" },
+    { value: "Special Day", label: "Special Day" },
   ];
 
   const handleInputChange = (field, value) => {
@@ -55,29 +56,47 @@ const AddHoliday = () => {
     navigate("/admin/time-hub/dayOffHolidays");
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     // Validate required fields
-    if (!formData.month || !formData.date || !formData.name) {
-      alert("Please fill in all required fields");
+    if (!formData.month || !formData.date || !formData.holidayTitle) {
+      toast.error("Please fill in all required fields");
       return;
     }
 
-    // Create new holiday object
-    const newHoliday = {
-      id: Date.now(),
-      month: formData.month,
-      date: formData.date,
-      name: formData.name,
-      people: formData.people,
-      leaveType: formData.leaveType,
-      nextWorkingDay: formData.nextWorkingDay,
-      remarks: formData.remarks,
-    };
+    try {
+      setLoading(true);
 
-    console.log("Holiday saved:", newHoliday);
-    
-    // Navigate back with the new holiday data
-    navigate("/admin/time-hub/dayOffHolidays", { state: { newHoliday } });
+      // Format dates to ISO string format
+      const dateObj = new Date(formData.date);
+      const nextWorkingDayObj = formData.nextWorkingDay ? new Date(formData.nextWorkingDay) : null;
+
+      // Create payload matching API spec
+      const payload = {
+        holidayTitle: formData.holidayTitle,
+        description: formData.description,
+        month: formData.month,
+        date: dateObj.toISOString(),
+        nextWorkingDay: nextWorkingDayObj ? nextWorkingDayObj.toISOString() : null,
+        status: formData.status,
+        holidayImage: formData.holidayImage,
+        Remarks: formData.Remarks,
+      };
+
+      // Submit to API
+      const response = await post(CREATE_HOLIDAY, payload);
+
+      if (response?.id) {
+        toast.success("Holiday created successfully");
+        navigate("/admin/time-hub/dayOffHolidays");
+      } else {
+        toast.error("Failed to create holiday");
+      }
+    } catch (error) {
+      console.error("Error creating holiday:", error);
+      toast.error(error?.response?.data?.message || "Error creating holiday");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -108,33 +127,22 @@ const AddHoliday = () => {
 
           <FormGroup>
             <InputComponent
-              label="Name"
-              value={formData.name}
-              onChange={(e) => handleInputChange("name", e.target.value)}
-              placeholder="Holiday event"
+              label="Holiday Title"
+              value={formData.holidayTitle}
+              onChange={(e) => handleInputChange("holidayTitle", e.target.value)}
+              placeholder="e.g., New Year"
               labelMargin="0 0 0.625rem 0"
               height="45px"
             />
           </FormGroup>
 
           <FormGroup>
-            <FieldLabel>People</FieldLabel>
+            <FieldLabel>Description</FieldLabel>
             <Select
-              options={peopleOptions}
-              value={peopleOptions.find((opt) => opt.value === formData.people)}
-              onChange={(option) => handleInputChange("people", option?.value)}
-              placeholder="Select People"
-              styles={customSelectStyles}
-            />
-          </FormGroup>
-
-          <FormGroup>
-            <FieldLabel>Leave Type</FieldLabel>
-            <Select
-              options={leaveTypeOptions}
-              value={leaveTypeOptions.find((opt) => opt.value === formData.leaveType)}
-              onChange={(option) => handleInputChange("leaveType", option?.value)}
-              placeholder="Select Shift"
+              options={descriptionOptions}
+              value={descriptionOptions.find((opt) => opt.value === formData.description)}
+              onChange={(option) => handleInputChange("description", option?.value)}
+              placeholder="Select Description"
               styles={customSelectStyles}
             />
           </FormGroup>
@@ -147,13 +155,24 @@ const AddHoliday = () => {
               labelMargin="0 0 0.625rem 0"
             />
           </FormGroup>
+
+          <FormGroup>
+            <InputComponent
+              label="Holiday Image URL (Optional)"
+              value={formData.holidayImage}
+              onChange={(e) => handleInputChange("holidayImage", e.target.value)}
+              placeholder="https://example.com/image.png"
+              labelMargin="0 0 0.625rem 0"
+              height="45px"
+            />
+          </FormGroup>
         </FormGrid>
 
         <FormGroup $fullWidth>
           <FieldLabel>Remarks (Optional)</FieldLabel>
           <TextArea
-            value={formData.remarks}
-            onChange={(e) => handleInputChange("remarks", e.target.value)}
+            value={formData.Remarks}
+            onChange={(e) => handleInputChange("Remarks", e.target.value)}
             placeholder="Enter Remarks"
             rows={4}
           />
@@ -172,9 +191,10 @@ const AddHoliday = () => {
             fontWeight="600"
             fontFamily="Inter-SemiBold"
             onClick={handleCancel}
+            disabled={loading}
           />
           <Button
-            text="Save"
+            text={loading ? "Saving..." : "Save"}
             bg={theme.colors.primary}
             color={theme.colors.white}
             width="150px"
@@ -183,6 +203,7 @@ const AddHoliday = () => {
             fontWeight="600"
             fontFamily="Inter-SemiBold"
             onClick={handleSave}
+            disabled={loading}
           />
         </ButtonRow>
     </>

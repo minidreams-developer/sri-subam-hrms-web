@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import styled from "styled-components";
 import theme from "../../theme/theme";
 import ReusableTable from "../../components/ReusableTable";
@@ -9,6 +9,9 @@ import AttendanceStreak from "../../assets/images/Badges/AttendanceStreak.svg";
 import ZeroAbsenceChamp from "../../assets/images/Badges/ZeroAbsenceChamp.svg";
 import PerfectMonth from "../../assets/images/Badges/PerfectMonth.svg";
 import NeverLate from "../../assets/images/Badges/NeverLate.svg";
+import { get } from "../../helpers/api_helper";
+import { GET_LEADERBOARD } from "../../helpers/url_helper";
+import { toast } from "react-toastify";
 
 const Leaderboard = () => {
   const badgeIcons = {
@@ -17,6 +20,91 @@ const Leaderboard = () => {
     "Zero Absence Champ": ZeroAbsenceChamp,
     "Perfect Month": PerfectMonth,
     "Never Late": NeverLate,
+  };
+
+  const [search, setSearch] = useState("");
+  const [department, setDepartment] = useState("All Department");
+  const [leaderboardData, setLeaderboardData] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [totalResults, setTotalResults] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+
+  // Fetch leaderboard data on component mount and when pagination changes
+  useEffect(() => {
+    fetchLeaderboard(currentPage, pageSize);
+  }, [currentPage, pageSize]);
+
+  const fetchLeaderboard = async (page = 1, limit = 10) => {
+    setIsLoading(true);
+    try {
+      const response = await get(`${GET_LEADERBOARD}?page=${page}&limit=${limit}&sortBy=totalPoints:desc`);
+      console.log("Leaderboard API Response:", response);
+
+      let leaderboardList = [];
+      let total = 0;
+      let pages = 0;
+
+      // Handle different response structures
+      if (response && Array.isArray(response)) {
+        leaderboardList = response;
+        total = response.length;
+        pages = 1;
+      } else if (response && response.results && Array.isArray(response.results)) {
+        leaderboardList = response.results;
+        total = response.totalResults || response.results.length;
+        pages = response.totalPages || 1;
+      } else if (response && response.data && Array.isArray(response.data)) {
+        leaderboardList = response.data;
+        total = response.totalResults || response.data.length;
+        pages = response.totalPages || 1;
+      }
+
+      if (leaderboardList.length > 0) {
+        // Transform API response to table format with rank
+        const transformedData = leaderboardList.map((item, index) => {
+          // Get user name
+          const userName = item.user?.name || item.user?.firstName + " " + item.user?.lastName || "N/A";
+          
+          // Get primary badge (first one in array)
+          const primaryBadge = item.badges && item.badges.length > 0 ? item.badges[0] : "N/A";
+          
+          // Format streak days
+          const streakDisplay = item.streakDays ? `${item.streakDays} days` : "0 days";
+
+          return {
+            id: item._id || item.id,
+            rank: String((page - 1) * limit + index + 1),
+            name: userName,
+            totalPoints: String(item.totalPoints || 0),
+            weekTotalPoints: String(item.weekPoints || 0),
+            badges: primaryBadge,
+            currentStreak: streakDisplay,
+            action: "...",
+            allBadges: item.badges || [],
+            todayPoints: item.todayPoints || 0,
+          };
+        });
+
+        console.log("Transformed Leaderboard Data:", transformedData);
+        setLeaderboardData(transformedData);
+        setTotalResults(total);
+        setTotalPages(pages);
+      } else {
+        console.warn("No leaderboard entries found");
+        setLeaderboardData([]);
+        setTotalResults(0);
+        setTotalPages(0);
+      }
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || error.message || "Failed to fetch leaderboard";
+      toast.error(errorMessage);
+      console.error("Fetch leaderboard error:", error);
+      setLeaderboardData([]);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const columns = [
@@ -30,7 +118,7 @@ const Leaderboard = () => {
       render: (row) => (
         <BadgeContainer>
           <BadgeIcon 
-            src={badgeIcons[row.badges]} 
+            src={badgeIcons[row.badges] || PunctualPro} 
             alt={row.badges}
           />
           <BadgeName>{row.badges}</BadgeName>
@@ -45,60 +133,8 @@ const Leaderboard = () => {
     { header: "Action", accessor: "action" },
   ];
 
-  const leaderboardData = [
-    {
-      rank: "1",
-      name: "John Doe",
-      totalPoints: "950",
-      weekTotalPoints: "120",
-      badges: "Punctual Pro",
-      currentStreak: "7 days",
-      action: "...",
-    },
-    {
-      rank: "2",
-      name: "Jane Smith",
-      totalPoints: "920",
-      weekTotalPoints: "115",
-      badges: "Attendance Streak",
-      currentStreak: "5 days",
-      action: "...",
-    },
-    {
-      rank: "3",
-      name: "Bob Johnson",
-      totalPoints: "890",
-      weekTotalPoints: "110",
-      badges: "Zero Absence Champ",
-      currentStreak: "10 days",
-      action: "...",
-    },
-    {
-      rank: "4",
-      name: "Emily Richards",
-      totalPoints: "850",
-      weekTotalPoints: "105",
-      badges: "Perfect Month",
-      currentStreak: "3 days",
-      action: "...",
-    },
-    {
-      rank: "5",
-      name: "Michael Brown",
-      totalPoints: "820",
-      weekTotalPoints: "100",
-      badges: "Never Late",
-      currentStreak: "4 days",
-      action: "...",
-    },
-  ];
-
-  const [search, setSearch] = useState("");
-  const [department, setDepartment] = useState("All Department");
-
   const filtered = leaderboardData.filter((row) => {
-    const m1 =
-      department === "All Department" || row.department === department;
+    const m1 = department === "All Department" || row.department === department;
     const m2 =
       !search ||
       row.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -106,10 +142,14 @@ const Leaderboard = () => {
     return m1 && m2;
   });
 
+  const handlePageChange = (newPage) => {
+    setCurrentPage(newPage);
+  };
+
   return (
     <Container>
       <TableToolbar
-        title={`Total Participate (${String(filtered.length).padStart(3, "0")})`}
+        title={`Total Participate (${String(totalResults).padStart(3, "0")})`}
         searchPosition="right"
         searchPlaceholder="Search Employee"
         searchValue={search}
@@ -126,8 +166,12 @@ const Leaderboard = () => {
       <ReusableTable
         columns={columns}
         data={filtered}
-        rowsPerPage={10}
-        totalResults={filtered.length}
+        rowsPerPage={pageSize}
+        totalResults={totalResults}
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={handlePageChange}
+        isLoading={isLoading}
         alwaysShowPagination
       />
     </Container>

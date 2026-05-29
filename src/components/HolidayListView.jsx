@@ -11,84 +11,18 @@ const HolidayListView = ({ holidays = [], currentYear }) => {
   useEffect(() => {
     // Group holidays by month
     const grouped = {};
-    
-    // Sample holidays for demonstration
-    const sampleHolidays = [
-      // January
-      { date: new Date(2026, 0, 1), name: "New Year", description: "New Year Holiday for staffs Only" },
-      { date: new Date(2026, 0, 14), name: "Pongal", description: "Pongal Holiday for every staff and employees" },
-      { date: new Date(2026, 0, 15), name: "Mattupongal", description: "Pongal Holiday for every staff and employees" },
-      { date: new Date(2026, 0, 26), name: "Republic Day", description: "Republic Day Holiday for every staff and employees" },
-      
-      // February
-      { date: new Date(2026, 1, 14), name: "Valentine's Day", description: "Valentine's Day Holiday for all staff" },
-      { date: new Date(2026, 1, 20), name: "Maha Shivaratri", description: "Maha Shivaratri Holiday for every staff and employees" },
-      { date: new Date(2026, 1, 28), name: "National Science Day", description: "Science Day Holiday for technical staff" },
-      
-      // March
-      { date: new Date(2026, 2, 8), name: "International Women's Day", description: "Women's Day Holiday for female staff" },
-      { date: new Date(2026, 2, 14), name: "Holi", description: "Holi Holiday for every staff and employees" },
-      { date: new Date(2026, 2, 25), name: "Ugadi", description: "Ugadi Holiday for every staff and employees" },
-      
-      // April
-      { date: new Date(2026, 3, 2), name: "Good Friday", description: "Good Friday Holiday for every staff and employees" },
-      { date: new Date(2026, 3, 14), name: "Tamil New Year", description: "Tamil New Year Holiday for every staff and employees" },
-      { date: new Date(2026, 3, 21), name: "Mahavir Jayanti", description: "Mahavir Jayanti Holiday for every staff and employees" },
-      
-      // May
-      { date: new Date(2026, 4, 1), name: "May Day", description: "Labour Day Holiday for all staff" },
-      { date: new Date(2026, 4, 12), name: "Buddha Purnima", description: "Buddha Purnima Holiday for every staff and employees" },
-      { date: new Date(2026, 4, 26), name: "Eid al-Fitr", description: "Eid Holiday for every staff and employees" },
-      
-      // June
-      { date: new Date(2026, 5, 15), name: "Eid al-Adha", description: "Bakrid Holiday for every staff and employees" },
-      { date: new Date(2026, 5, 21), name: "International Yoga Day", description: "Yoga Day Holiday for all staff" },
-      
-      // July
-      { date: new Date(2026, 6, 4), name: "Guru Purnima", description: "Guru Purnima Holiday for every staff and employees" },
-      { date: new Date(2026, 6, 15), name: "Muharram", description: "Muharram Holiday for every staff and employees" },
-      
-      // August
-      { date: new Date(2026, 7, 15), name: "Independence Day", description: "Independence Day Holiday for every staff and employees" },
-      { date: new Date(2026, 7, 22), name: "Raksha Bandhan", description: "Raksha Bandhan Holiday for all staff" },
-      { date: new Date(2026, 7, 30), name: "Janmashtami", description: "Janmashtami Holiday for every staff and employees" },
-      
-      // September
-      { date: new Date(2026, 8, 5), name: "Teachers' Day", description: "Teachers Day Holiday for educational staff" },
-      { date: new Date(2026, 8, 13), name: "Onam", description: "Onam Holiday for every staff and employees" },
-      { date: new Date(2026, 8, 24), name: "Milad un-Nabi", description: "Prophet's Birthday Holiday for every staff and employees" },
-      
-      // October
-      { date: new Date(2026, 9, 2), name: "Gandhi Jayanti", description: "Gandhi Jayanti Holiday for every staff and employees" },
-      { date: new Date(2026, 9, 13), name: "Dussehra", description: "Dussehra Holiday for every staff and employees" },
-      { date: new Date(2026, 9, 23), name: "Diwali", description: "Diwali Holiday for every staff and employees" },
-      { date: new Date(2026, 9, 24), name: "Diwali (Second Day)", description: "Diwali Holiday for every staff and employees" },
-      
-      // November
-      { date: new Date(2026, 10, 1), name: "Karnataka Rajyotsava", description: "Karnataka Formation Day Holiday for Karnataka staff" },
-      { date: new Date(2026, 10, 12), name: "Guru Nanak Jayanti", description: "Guru Nanak Birthday Holiday for every staff and employees" },
-      { date: new Date(2026, 10, 26), name: "Constitution Day", description: "Constitution Day Holiday for all staff" },
-      
-      // December
-      { date: new Date(2026, 11, 25), name: "Christmas", description: "Christmas Holiday for every staff and employees" },
-      { date: new Date(2026, 11, 31), name: "New Year's Eve", description: "Year End Holiday for all staff" },
-    ];
 
-    // Combine sample holidays with passed holidays
-    const allHolidays = [...sampleHolidays];
-    
-    holidays.forEach((holiday) => {
-      if (holiday.date) {
-        allHolidays.push({
-          date: new Date(holiday.date),
-          name: holiday.name,
-          description: holiday.remarks || `Holiday for ${holiday.people || "all"}`,
-        });
-      }
-    });
+    // Transform API holidays to display format
+    const transformedHolidays = holidays.map((holiday) => ({
+      date: new Date(holiday.date),
+      holidayTitle: holiday.holidayTitle,
+      description: holiday.description || "Holiday",
+      remarks: holiday.Remarks,
+      id: holiday.id,
+    }));
 
     // Filter by current year and group by month
-    allHolidays.forEach((holiday) => {
+    transformedHolidays.forEach((holiday) => {
       const holidayYear = holiday.date.getFullYear();
       if (holidayYear === currentYear) {
         const monthName = holiday.date.toLocaleString("en-US", { month: "long", year: "numeric" });
@@ -169,7 +103,7 @@ const HolidayListView = ({ holidays = [], currentYear }) => {
                   {monthData.holidays.map((holiday, index) => (
                     <HolidayItem key={index}>
                       <HolidayDate>{formatDate(holiday.date)}</HolidayDate>
-                      <HolidayName>{holiday.name}</HolidayName>
+                      <HolidayName>{holiday.holidayTitle}</HolidayName>
                       <HolidayDescription>{holiday.description}</HolidayDescription>
                       <MenuIcon>
                         <img src={DotMenuIcon} alt="menu" />

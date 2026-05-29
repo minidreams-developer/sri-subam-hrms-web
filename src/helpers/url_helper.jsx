@@ -64,3 +64,32 @@ export const UPDATE_OFFBOARD = "/v1/off-board/:offBoardId";
 export const DELETE_OFFBOARD = "/v1/off-board/:offBoardId";
 export const SEND_OTP = "/v1/off-board/:offBoardId/send-otp";
 export const VERIFY_OTP = "/v1/off-board/:offBoardId/verify-otp";
+
+// Leave Requests API
+export const LEAVE_REQUESTS = "/v1/leave-requests";
+export const CREATE_LEAVE_REQUEST = "/v1/leave-requests";
+export const GET_LEAVE_REQUESTS = "/v1/leave-requests";
+export const GET_LEAVE_REQUEST_BY_ID = "/v1/leave-requests/:leaveRequestId";
+export const GET_LEAVE_REQUESTS_BY_EMPLOYEE = "/v1/leave-requests/employee/:employeeId";
+export const UPDATE_LEAVE_REQUEST = "/v1/leave-requests/:leaveRequestId";
+export const UPDATE_LEAVE_REQUEST_STATUS = "/v1/leave-requests/:leaveRequestId/status";
+export const DELETE_LEAVE_REQUEST = "/v1/leave-requests/:leaveRequestId";
+
+// Holidays API
+export const HOLIDAYS = "/v1/holidays";
+export const CREATE_HOLIDAY = "/v1/holidays";
+export const GET_HOLIDAYS = "/v1/holidays";
+export const GET_HOLIDAY_BY_ID = "/v1/holidays/:holidayId";
+export const UPDATE_HOLIDAY = "/v1/holidays/:holidayId";
+export const DELETE_HOLIDAY = "/v1/holidays/:holidayId";
+export const ADD_PERSON_TO_HOLIDAY = "/v1/holidays/:holidayId/people";
+export const REMOVE_PERSON_FROM_HOLIDAY = "/v1/holidays/:holidayId/people";
+
+// Leaderboard API
+export const LEADERBOARD = "/v1/leaderboard";
+export const CREATE_LEADERBOARD = "/v1/leaderboard";
+export const GET_LEADERBOARD = "/v1/leaderboard";
+export const GET_LEADERBOARD_BY_ID = "/v1/leaderboard/:leaderboardId";
+export const GET_LEADERBOARD_BY_USER = "/v1/leaderboard/user/:userId";
+export const UPDATE_LEADERBOARD = "/v1/leaderboard/:leaderboardId";
+export const DELETE_LEADERBOARD = "/v1/leaderboard/:leaderboardId";
