@@ -93,3 +93,23 @@ export const GET_LEADERBOARD_BY_ID = "/v1/leaderboard/:leaderboardId";
 export const GET_LEADERBOARD_BY_USER = "/v1/leaderboard/user/:userId";
 export const UPDATE_LEADERBOARD = "/v1/leaderboard/:leaderboardId";
 export const DELETE_LEADERBOARD = "/v1/leaderboard/:leaderboardId";
+
+// Attendance API
+export const ATTENDANCE_RECORDS = "/v1/attendance";
+export const CREATE_ATTENDANCE = "/v1/attendance";
+export const GET_ATTENDANCE_RECORDS = "/v1/attendance";
+export const GET_ATTENDANCE_BY_ID = "/v1/attendance/:attendanceId";
+export const GET_ATTENDANCE_BY_EMPLOYEE = "/v1/attendance/employee/:employeeId";
+export const UPDATE_ATTENDANCE = "/v1/attendance/:attendanceId";
+export const DELETE_ATTENDANCE = "/v1/attendance/:attendanceId";
+export const GET_ATTENDANCE_STATS = "/v1/attendance/stats";
+
+// Overtime API
+export const OVERTIME_RECORDS = "/v1/overtime";
+export const CREATE_OVERTIME = "/v1/overtime";
+export const GET_OVERTIME_RECORDS = "/v1/overtime";
+export const GET_OVERTIME_BY_ID = "/v1/overtime/:overtimeId";
+export const GET_OVERTIME_BY_EMPLOYEE = "/v1/overtime/employee/:employeeId";
+export const UPDATE_OVERTIME = "/v1/overtime/:overtimeId";
+export const DELETE_OVERTIME = "/v1/overtime/:overtimeId";
+export const GET_OVERTIME_STATS = "/v1/overtime/stats";

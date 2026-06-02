@@ -67,8 +67,8 @@ const OverTimeManage = () => {
         onChange={setActiveTab}
       />
       {activeTab === "Pending" && <Pending />}
-      {activeTab === "Approved" && <Approved />}
-      {activeTab === "Rejected" && <Approved />}
+      {activeTab === "Approved" && <Approved statusFilter="approved" />}
+      {activeTab === "Rejected" && <Approved statusFilter="rejected" />}
     </Container>
   );
 };

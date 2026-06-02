@@ -118,21 +118,23 @@ const AddLeave = () => {
       
       // Find and set designation from designations list
       if (employee.designation) {
-        const selectedDesignation = designations.find(
+        const selectedDesignation = designationOptions.find(
           (des) => des.label.toLowerCase() === employee.designation.toLowerCase()
         );
         setPosition(selectedDesignation || null);
       }
       
-      // Find and set department from departments list
+      // Find and set department from departments list - match by value or name
       if (employee.department) {
         const selectedDept = departments.find(
-          (dept) => dept.label.toLowerCase() === employee.department.toLowerCase()
+          (dept) => 
+            dept.label.toLowerCase() === employee.department.toLowerCase() ||
+            dept.value === employee.department
         );
         setDepartment(selectedDept || null);
       }
     }
-  }, [employee, departments, designations]);
+  }, [employee, departments]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -474,5 +476,18 @@ const ButtonRow = styled.div`
   display: flex;
   gap: 1rem;
   margin-top: 2rem;
-  width: 80%;
+  width: 100%;
+  max-width: 80%;
+  flex-wrap: wrap;
+  align-items: center;
+
+  @media (max-width: 768px) {
+    width: 100%;
+    max-width: 100%;
+    flex-direction: column;
+    
+    button {
+      width: 100% !important;
+    }
+  }
 `;

@@ -41,6 +41,7 @@ import DaySettings from "../pages/Settings/DaySettings/DaySettings";
 import SeriesConfigurationPage from "../pages/Settings/SeriesConfiguration";
 import AddSeriesPage from "../pages/Settings/AddSeriesPage";
 import AttendancePage from "../pages/Attendance/Attendance";
+import AddAttendance from "../pages/Attendance/Add";
 
 const publicRoutes = [
   { path: "/", component: <Login /> },
@@ -113,6 +114,10 @@ const privateRoutes = [
       {
         path: "time-hub/attendance",
         element: <AttendancePage />,
+      },
+      {
+        path: "time-hub/attendance/add",
+        element: <AddAttendance />,
       },
       {
         path: "time-hub/overTime-management",

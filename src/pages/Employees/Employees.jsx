@@ -96,17 +96,29 @@ const Employees = () => {
               })
             : "N/A";
 
+          // Extract department name from object or use as string
+          const departmentValue = emp.workInformation?.department || emp.department || "N/A";
+          const departmentName = typeof departmentValue === "object" 
+            ? departmentValue?.departmentName || departmentValue?.name || "N/A"
+            : departmentValue;
+
+          // Extract shift name from object or use as string
+          const shiftValue = emp.workInformation?.shiftId || emp.shift || "N/A";
+          const shiftName = typeof shiftValue === "object"
+            ? shiftValue?.shiftName || shiftValue?.name || "N/A"
+            : shiftValue;
+
           return {
             id: emp.id || emp._id,
             employeeId: emp.employeeId || "N/A",
             name: emp.name || emp.employeeName || "N/A",
             email: emp.email || "N/A",
             phone: emp.phone || "N/A",
-            department: emp.workInformation?.department || emp.department || "N/A",
+            department: departmentName,
             designation: emp.workInformation?.designation || emp.designation || "N/A",
-            shift: emp.workInformation?.shiftId || emp.shift || "N/A",
+            shift: shiftName,
             status: emp.isActive ? "Active" : "Inactive",
-            joinDate: formattedDate,
+            joinedDate: formattedDate,
             gender: emp.gender || "N/A",
             role: emp.role || "employee",
           };
