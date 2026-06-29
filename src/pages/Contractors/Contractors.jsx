@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import deleteIcon from "../../assets/contractor/SVG.svg";
 import clockIcon from "../../assets/contractor/iconify-icon.svg";
@@ -7,6 +8,7 @@ import advanceIcon from "../../assets/contractor/iconify-icon (2).svg";
 import reportIcon from "../../assets/contractor/SVG (1).svg";
 
 const Contractors = () => {
+  const navigate = useNavigate();
   const [contractors] = useState([
     {
       id: 1,
@@ -65,7 +67,9 @@ const Contractors = () => {
               <ButtonIcon src={reportIcon} alt="reports" />
               Reports
             </ReportsButton>
-            <AddButton>+ Add Contractor</AddButton>
+            <AddButton onClick={() => navigate("/admin/contractors/add")}>
+              + Add Contractor
+            </AddButton>
           </HeaderRight>
         </HeaderContent>
       </PageHeader>
