@@ -42,6 +42,10 @@ import SeriesConfigurationPage from "../pages/Settings/SeriesConfiguration";
 import AddSeriesPage from "../pages/Settings/AddSeriesPage";
 import AttendancePage from "../pages/Attendance/Attendance";
 import AddAttendance from "../pages/Attendance/Add";
+import ContractorOverview from "../pages/Contractors/Overview";
+import ContractorOverviewAnalysis from "../pages/Contractors/OverviewAnalysis";
+import ContractorList from "../pages/Contractors/Contractors";
+import ContractorPayments from "../pages/Contractors/Payments";
 
 const publicRoutes = [
   { path: "/", component: <Login /> },
@@ -210,6 +214,22 @@ const privateRoutes = [
       {
         path: "settings/seriesConfiguration/add",
         element: <AddSeriesPage />,
+      },
+      {
+        path: "contractors/overview",
+        element: <ContractorOverview />,
+      },
+      {
+        path: "contractors/overviewanalysis",
+        element: <ContractorOverviewAnalysis />,
+      },
+      {
+        path: "contractors/contractors",
+        element: <ContractorList />,
+      },
+      {
+        path: "contractors/payments",
+        element: <ContractorPayments />,
       },
     ],
   },

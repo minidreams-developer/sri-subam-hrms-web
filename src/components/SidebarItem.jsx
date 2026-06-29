@@ -22,6 +22,25 @@ const SidebarItems = [
     iconDark: AnnIcon,
   },
   {
+    name: "Contractors",
+    icon: GroupIcon,
+    iconDark: GroupIcon,
+    submenu: [
+      {
+        name: "Overview",
+        path: "/admin/contractors/overview",
+      },
+      {
+        name: "Contractors",
+        path: "/admin/contractors/contractors",
+      },
+      {
+        name: "Payments",
+        path: "/admin/contractors/payments",
+      },
+    ],
+  },
+  {
     name: "People Hub",
     icon: GroupIcon,
     iconDark: GroupIcon,
