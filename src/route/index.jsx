@@ -50,6 +50,9 @@ import BioDatReport from "../pages/Contractors/BioDatReport";
 import AddContractor from "../pages/Contractors/AddContractor";
 import WorkJobDetails from "../pages/Contractors/WorkJobDetails";
 import AllContractorsReport from "../pages/Contractors/AllContractorsReport";
+import PaymentReport from "../pages/Contractors/PaymentReport";
+import MakePayment from "../pages/Contractors/MakePayment";
+import PaymentReceipt from "../pages/Contractors/PaymentReceipt";
 
 
 const publicRoutes = [
@@ -251,6 +254,18 @@ const privateRoutes = [
       {
         path: "contractors/report/all-contractors",
         element: <AllContractorsReport />,
+      },
+      {
+        path: "contractors/payment-report",
+        element: <PaymentReport />,
+      },
+      {
+        path: "contractors/pay/:contractorName",
+        element: <MakePayment />,
+      },
+      {
+        path: "contractors/payment-receipt/:contractorName",
+        element: <PaymentReceipt />,
       },
     ],
   },

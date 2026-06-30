@@ -140,7 +140,9 @@ const Contractors = () => {
                 <IconImage src={clockIcon} alt="clock" />
                 Log Work
               </LogButton>
-              <PayButton>₹ Pay</PayButton>
+              <PayButton onClick={() => navigate(`/admin/contractors/pay/${contractor.name}`)}>
+                ₹ Pay
+              </PayButton>
             </ActionButtons>
           </Card>
         ))}
