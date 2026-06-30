@@ -10,6 +10,8 @@ import reportIcon from "../../assets/contractor/SVG (1).svg";
 const Contractors = () => {
   const navigate = useNavigate();
   const [showReportModal, setShowReportModal] = useState(false);
+  const [showLogWorkModal, setShowLogWorkModal] = useState(false);
+  const [selectedContractor, setSelectedContractor] = useState(null);
   const [reportData, setReportData] = useState({
     reportType: "All Contractors",
     period: "May 2026",
@@ -20,9 +22,10 @@ const Contractors = () => {
       initial: "S",
       name: "Safeq",
       role: "itboomi",
+      contractorId: "CON-10024",
       specialization: ["HVAC", "Active"],
       specialColors: ["#0047AB", "#16A34A"],
-      date: "Friday\n10/April/2026",
+      date: "Friday\n10/Apr/2026",
       todayPay: "$0.00",
       earnedPay: "$0.00",
       advanceReceived: "$0.00",
@@ -34,6 +37,7 @@ const Contractors = () => {
       initial: "RC",
       name: "Rathna Kurrar",
       role: "Carpenter",
+      contractorId: "CON-10025",
       specialization: ["Carpentry", "Active"],
       specialColors: ["#16A34A", "#16A34A"],
       date: "Friday\n15/Aug/2026",
@@ -48,6 +52,7 @@ const Contractors = () => {
       initial: "A",
       name: "Arjun",
       role: "Electrician",
+      contractorId: "CON-10026",
       specialization: ["Plumbing", "Active"],
       specialColors: ["#DC2626", "#16A34A"],
       date: "Friday\n16/Aug/2020",
@@ -81,7 +86,7 @@ const Contractors = () => {
 
       <CardsGrid>
         {contractors.map((contractor) => (
-          <Card key={contractor.id}>
+          <Card key={contractor.id} onClick={() => navigate(`/admin/contractors/${contractor.id}/details`)}>
             <CardTop>
               <CardHeader>
                 <AvatarWithInfo>
@@ -135,8 +140,8 @@ const Contractors = () => {
               </PaymentItem>
             </PaymentSection>
 
-            <ActionButtons>
-              <LogButton>
+            <ActionButtons onClick={(e) => e.stopPropagation()}>
+              <LogButton onClick={() => { setSelectedContractor(contractor); setShowLogWorkModal(true); }}>
                 <IconImage src={clockIcon} alt="clock" />
                 Log Work
               </LogButton>
@@ -218,6 +223,54 @@ const Contractors = () => {
               </ProceedButton>
             </ModalButtons>
           </ModalContent>
+        </ModalOverlay>
+      )}
+
+      {/* Log Work Modal */}
+      {showLogWorkModal && selectedContractor && (
+        <ModalOverlay onClick={() => setShowLogWorkModal(false)}>
+          <LogWorkModalContent onClick={(e) => e.stopPropagation()}>
+            <LogWorkModalHeader>
+              <LogWorkModalTitle>Log Work</LogWorkModalTitle>
+              <LogWorkCloseButton onClick={() => setShowLogWorkModal(false)}>
+                ✕
+              </LogWorkCloseButton>
+            </LogWorkModalHeader>
+
+            <FormGroup>
+              <Label>Contractor Name</Label>
+              <DisabledInput value={selectedContractor.name} disabled />
+            </FormGroup>
+
+            <FormGroup>
+              <Label>Contractor ID</Label>
+              <DisabledInput value={selectedContractor.contractorId} disabled />
+            </FormGroup>
+
+            <FormGroup>
+              <Label>Branch</Label>
+              <Select>
+                <option value="">Select Branch</option>
+                <option value="headquarters">Headquarters</option>
+                <option value="north">North Region</option>
+              </Select>
+            </FormGroup>
+
+            <LogWorkModalButtons>
+              <CancelModalButton onClick={() => setShowLogWorkModal(false)}>
+                Close
+              </CancelModalButton>
+              <EnterWorkLogButton onClick={() => {
+                // Navigate to work job details
+                navigate("/admin/contractors/work-job-details", {
+                  state: { contractor: selectedContractor }
+                });
+                setShowLogWorkModal(false);
+              }}>
+                Enter Work-Log →
+              </EnterWorkLogButton>
+            </LogWorkModalButtons>
+          </LogWorkModalContent>
         </ModalOverlay>
       )}
     </Container>
@@ -684,10 +737,85 @@ const CancelModalButton = styled.button`
 
 const ProceedButton = styled.button`
   padding: 0.75rem 1.5rem;
-  background: #0047AB;
+  background: #0047ab;
   color: white;
   border: none;
   border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  font-family: "Inter", sans-serif;
+  transition: all 0.2s;
+
+  &:hover {
+    background: #003580;
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+`;
+
+// Log Work Modal Styled Components
+const LogWorkModalContent = styled.div`
+  background: white;
+  border-radius: 8px;
+  padding: 1.5rem;
+  width: 90%;
+  max-width: 600px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+`;
+
+const LogWorkModalHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+`;
+
+const LogWorkModalTitle = styled.h2`
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #222;
+  margin: 0;
+  font-family: "Inter", sans-serif;
+`;
+
+const LogWorkCloseButton = styled.button`
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: #666;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+`;
+
+const DisabledInput = styled.input`
+  padding: 0.75rem;
+  border: 1px solid #E7E7E7;
+  border-radius: 6px;
+  font-family: "Inter", sans-serif;
+  font-size: 0.9rem;
+  background: #F5F5F5;
+  color: #333;
+  cursor: not-allowed;
+  font-weight: 500;
+`;
+
+const LogWorkModalButtons = styled.div`
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  margin-top: 2rem;
+`;
+
+const EnterWorkLogButton = styled.button`
+  padding: 0.75rem 2rem;
+  background: #0047ab;
+  color: white;
+  border: none;
+  border-radius: 8px;
   font-weight: 600;
   font-size: 0.9rem;
   cursor: pointer;

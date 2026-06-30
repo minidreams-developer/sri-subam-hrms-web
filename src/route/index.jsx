@@ -53,6 +53,9 @@ import AllContractorsReport from "../pages/Contractors/AllContractorsReport";
 import PaymentReport from "../pages/Contractors/PaymentReport";
 import MakePayment from "../pages/Contractors/MakePayment";
 import PaymentReceipt from "../pages/Contractors/PaymentReceipt";
+import ContractorDetails from "../pages/Contractors/ContractorDetails";
+import ContractorPrintView from "../pages/Contractors/ContractorPrintView";
+import ContractorWorkSummaryReport from "../pages/Contractors/ContractorWorkSummaryReport";
 
 
 const publicRoutes = [
@@ -264,9 +267,21 @@ const privateRoutes = [
         element: <MakePayment />,
       },
       {
-        path: "contractors/payment-receipt/:contractorName",
-        element: <PaymentReceipt />,
-      },
+          path: "contractors/payment-receipt/:contractorName",
+          element: <PaymentReceipt />,
+        },
+        {
+          path: "contractors/:id/details",
+          element: <ContractorDetails />,
+        },
+        {
+          path: "contractors/:id/print",
+          element: <ContractorPrintView />,
+        },
+        {
+          path: "contractors/:id/report",
+          element: <ContractorWorkSummaryReport />,
+        },
     ],
   },
 ];
