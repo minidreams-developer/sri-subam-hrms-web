@@ -9,6 +9,11 @@ import reportIcon from "../../assets/contractor/SVG (1).svg";
 
 const Contractors = () => {
   const navigate = useNavigate();
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportData, setReportData] = useState({
+    reportType: "All Contractors",
+    period: "May 2026",
+  });
   const [contractors] = useState([
     {
       id: 1,
@@ -63,7 +68,7 @@ const Contractors = () => {
             <Subtitle>Manage your contractor database</Subtitle>
           </HeaderLeft>
           <HeaderRight>
-            <ReportsButton>
+            <ReportsButton onClick={() => setShowReportModal(true)}>
               <ButtonIcon src={reportIcon} alt="reports" />
               Reports
             </ReportsButton>
@@ -140,6 +145,79 @@ const Contractors = () => {
           </Card>
         ))}
       </CardsGrid>
+
+      {/* Report Modal */}
+      {showReportModal && (
+        <ModalOverlay onClick={() => setShowReportModal(false)}>
+          <ModalContent onClick={(e) => e.stopPropagation()}>
+            <ModalTitle>Generate Report</ModalTitle>
+
+            <FormGroup>
+              <Label>Report Type</Label>
+              <Select
+                value={reportData.reportType}
+                onChange={(e) =>
+                  setReportData({ ...reportData, reportType: e.target.value })
+                }
+              >
+                <option value="All Contractors">All Contractors</option>
+                <option value="Bio Data Report">Bio Data Report</option>
+              </Select>
+            </FormGroup>
+
+            {reportData.reportType === "Bio Data Report" && (
+              <FormGroup>
+                <Label>Contractor Name</Label>
+                <Select
+                  value={reportData.contractorName || ""}
+                  onChange={(e) =>
+                    setReportData({ ...reportData, contractorName: e.target.value })
+                  }
+                >
+                  <option value="">Select Contractor</option>
+                  <option value="Manraj">Manraj</option>
+                  <option value="Ramesh">Ramesh</option>
+                  <option value="Kumar">Kumar</option>
+                </Select>
+              </FormGroup>
+            )}
+
+            <FormGroup>
+              <Label>Period</Label>
+              <Input
+                type="text"
+                value={reportData.period}
+                onChange={(e) =>
+                  setReportData({ ...reportData, period: e.target.value })
+                }
+                placeholder="May 2026"
+              />
+            </FormGroup>
+
+            <ModalButtons>
+              <CancelModalButton onClick={() => setShowReportModal(false)}>
+                Cancel
+              </CancelModalButton>
+              <ProceedButton
+                onClick={() => {
+                  if (reportData.reportType === "Bio Data Report") {
+                    navigate("/admin/contractors/bio-data-report", {
+                      state: { reportData },
+                    });
+                  } else {
+                    navigate("/admin/contractors/report/all-contractors", {
+                      state: { period: reportData.period },
+                    });
+                  }
+                  setShowReportModal(false);
+                }}
+              >
+                Proceed →
+              </ProceedButton>
+            </ModalButtons>
+          </ModalContent>
+        </ModalOverlay>
+      )}
     </Container>
   );
 };
@@ -385,16 +463,6 @@ const DateSection = styled.div`
   gap: 0.5rem;
 `;
 
-const DateText = styled.p`
-  font-size: 0.75rem;
-  color: #333;
-  margin: 0;
-  white-space: pre-line;
-  line-height: 1.3;
-  font-family: "Inter", sans-serif;
-  font-weight: 500;
-`;
-
 const PaymentSection = styled.div`
   display: flex;
   flex-direction: column;
@@ -495,6 +563,137 @@ const PayButton = styled.button`
   &:hover {
     background: #F0F5FF;
     border-color: #003580;
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+`;
+
+// Modal Styled Components
+const ModalOverlay = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+`;
+
+const ModalContent = styled.div`
+  background: white;
+  border-radius: 12px;
+  padding: 2rem;
+  width: 90%;
+  max-width: 400px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+`;
+
+const ModalTitle = styled.h2`
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #222;
+  margin: 0 0 1.5rem 0;
+  font-family: "Inter", sans-serif;
+`;
+
+const FormGroup = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+`;
+
+const Label = styled.label`
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #222;
+  font-family: "Inter", sans-serif;
+`;
+
+const Select = styled.select`
+  padding: 0.75rem;
+  border: 1px solid #D1D5DB;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-family: "Inter", sans-serif;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:focus {
+    outline: none;
+    border-color: #0047AB;
+    box-shadow: 0 0 0 3px rgba(0, 71, 171, 0.1);
+  }
+
+  option {
+    padding: 0.5rem;
+  }
+`;
+
+const Input = styled.input`
+  padding: 0.75rem;
+  border: 1px solid #D1D5DB;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-family: "Inter", sans-serif;
+  transition: all 0.2s;
+
+  &:focus {
+    outline: none;
+    border-color: #0047AB;
+    box-shadow: 0 0 0 3px rgba(0, 71, 171, 0.1);
+  }
+
+  &::placeholder {
+    color: #999;
+  }
+`;
+
+const ModalButtons = styled.div`
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  margin-top: 2rem;
+`;
+
+const CancelModalButton = styled.button`
+  padding: 0.75rem 1.5rem;
+  background: white;
+  color: #222;
+  border: 1px solid #D1D5DB;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  font-family: "Inter", sans-serif;
+  transition: all 0.2s;
+
+  &:hover {
+    background: #F5F7FA;
+    border-color: #999;
+  }
+`;
+
+const ProceedButton = styled.button`
+  padding: 0.75rem 1.5rem;
+  background: #0047AB;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  font-family: "Inter", sans-serif;
+  transition: all 0.2s;
+
+  &:hover {
+    background: #003580;
   }
 
   &:active {

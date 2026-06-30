@@ -74,10 +74,6 @@ const WorkJobDetails = () => {
     navigate("/admin/contractors/contractors");
   };
 
-  const handleCancel = () => {
-    navigate("/admin/contractors/add");
-  };
-
   const handleBack = () => {
     window.history.back();
   };

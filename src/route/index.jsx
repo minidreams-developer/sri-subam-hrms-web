@@ -46,8 +46,11 @@ import ContractorOverview from "../pages/Contractors/Overview";
 import ContractorOverviewAnalysis from "../pages/Contractors/OverviewAnalysis";
 import ContractorList from "../pages/Contractors/Contractors";
 import ContractorPayments from "../pages/Contractors/Payments";
+import BioDatReport from "../pages/Contractors/BioDatReport";
 import AddContractor from "../pages/Contractors/AddContractor";
 import WorkJobDetails from "../pages/Contractors/WorkJobDetails";
+import AllContractorsReport from "../pages/Contractors/AllContractorsReport";
+
 
 const publicRoutes = [
   { path: "/", component: <Login /> },
@@ -240,6 +243,14 @@ const privateRoutes = [
       {
         path: "contractors/payments",
         element: <ContractorPayments />,
+      },
+      {
+        path: "contractors/bio-data-report",
+        element: <BioDatReport />,
+      },
+      {
+        path: "contractors/report/all-contractors",
+        element: <AllContractorsReport />,
       },
     ],
   },
