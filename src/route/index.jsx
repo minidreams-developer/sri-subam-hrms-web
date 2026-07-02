@@ -27,6 +27,7 @@ import Leaderboard from "../pages/Leaderboard/Leaderboard";
 import DayOffAndHoliday from "../pages/DayOffAndHoliday/DayOffAndHoliday";
 import AddHoliday from "../pages/DayOffAndHoliday/AddHoliday";
 import Payroll from "../pages/Payroll/Payroll";
+import Payslip from "../pages/Payroll/Payslip";
 import Paysheet from "../pages/Paysheet/Paysheet";
 import StopPayroll from "../pages/StopPayroll/StopPayroll";
 import NewStopPayroll from "../pages/StopPayroll/NewStopPayroll";
@@ -56,6 +57,7 @@ import PaymentReceipt from "../pages/Contractors/PaymentReceipt";
 import ContractorDetails from "../pages/Contractors/ContractorDetails";
 import ContractorPrintView from "../pages/Contractors/ContractorPrintView";
 import ContractorWorkSummaryReport from "../pages/Contractors/ContractorWorkSummaryReport";
+import Announcement from "../pages/Announcement/Announcement";
 
 
 const publicRoutes = [
@@ -175,6 +177,10 @@ const privateRoutes = [
         element: <Payroll />,
       },
       {
+        path: "pay-hub/payslip",
+        element: <Payslip />,
+      },
+      {
         path: "pay-hub/paysheet",
         element: <Paysheet />,
       },
@@ -281,6 +287,10 @@ const privateRoutes = [
         {
           path: "contractors/:id/report",
           element: <ContractorWorkSummaryReport />,
+        },
+        {
+          path: "announcement",
+          element: <Announcement />,
         },
     ],
   },

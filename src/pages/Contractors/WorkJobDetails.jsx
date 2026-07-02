@@ -1,47 +1,93 @@
 import React, { useState } from "react";
 import styled from "styled-components";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
+import theme from "../../theme/theme";
+import deleteIcon from "../../assets/contractor/SVG.svg";
 
 const WorkJobDetails = () => {
   const navigate = useNavigate();
-  const [branch, setBranch] = useState("Headquarters");
-  const [entryDate, setEntryDate] = useState("2026-04-24");
-  const [workDate, setWorkDate] = useState("2026-04-24");
-  const [selectedFiles, setSelectedFiles] = useState([]);
+  const location = useLocation();
+  const contractor = location.state?.contractor;
+
+  const [formData, setFormData] = useState({
+    branch: "Headquarters",
+    entryDate: "24 Apr 2026",
+    workDoneDate: "24 Apr 2026",
+    reference: ""
+  });
+
   const [jobItems, setJobItems] = useState([
-    { id: 1, jobItem: "AC Installation", quantity: 2, unit: "Piece", priceUnit: 120.00, total: 240.00, remarks: "Building A, F1.3" },
-    { id: 2, jobItem: "", quantity: 2, unit: "-", priceUnit: 120.00, total: 0.00, remarks: "Add remarks..." }
+    {
+      id: 1,
+      jobItem: "AC Installation",
+      quantity: 2,
+      unit: "Piece",
+      priceUnit: 120.00,
+      total: 240.00,
+      remarks: "Building A, 1st Fl."
+    },
+    {
+      id: 2,
+      jobItem: "",
+      quantity: 2,
+      unit: "",
+      priceUnit: 0.00,
+      total: 0.00,
+      remarks: ""
+    }
   ]);
 
-  const formatDate = (dateStr) => {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-  };
+  const [uploadedFiles, setUploadedFiles] = useState([]);
+  const [isDragging, setIsDragging] = useState(false);
 
   const addJobItem = () => {
-    const newId = jobItems.length + 1;
-    setJobItems([...jobItems, { id: newId, jobItem: "", quantity: 0, unit: "-", priceUnit: 0.00, total: 0.00, remarks: "Add remarks..." }]);
+    const newItem = {
+      id: Date.now(),
+      jobItem: "",
+      quantity: "",
+      unit: "",
+      priceUnit: "",
+      total: "",
+      remarks: ""
+    };
+    setJobItems([...jobItems, newItem]);
   };
 
-  const deleteJobItem = (id) => {
-    setJobItems(jobItems.filter(item => item.id !== id));
-  };
-
-  const handleFileChange = (e) => {
-    if (e.target.files && e.target.files.length > 0) {
-      setSelectedFiles([...selectedFiles, ...Array.from(e.target.files)]);
-    }
+  const handleFileSelect = (e) => {
+    const files = Array.from(e.target.files);
+    const newFiles = files.map(file => ({
+      id: Date.now() + Math.random(),
+      file,
+      name: file.name,
+      type: file.type
+    }));
+    setUploadedFiles([...uploadedFiles, ...newFiles]);
   };
 
   const handleDrop = (e) => {
     e.preventDefault();
-    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      setSelectedFiles([...selectedFiles, ...Array.from(e.dataTransfer.files)]);
-    }
+    setIsDragging(false);
+    const files = Array.from(e.dataTransfer.files);
+    const newFiles = files.map(file => ({
+      id: Date.now() + Math.random(),
+      file,
+      name: file.name,
+      type: file.type
+    }));
+    setUploadedFiles([...uploadedFiles, ...newFiles]);
   };
 
   const handleDragOver = (e) => {
     e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = () => {
+    setIsDragging(false);
+  };
+
+  const removeFile = (id) => {
+    setUploadedFiles(uploadedFiles.filter(file => file.id !== id));
   };
 
   return (
@@ -49,53 +95,69 @@ const WorkJobDetails = () => {
       <PageHeader>
         <Breadcrumb>
           <Crumb>Contractors</Crumb>
-          <Crumb>›</Crumb>
+          <CrumbSeparator>›</CrumbSeparator>
           <Crumb active>Log Work Entry</Crumb>
         </Breadcrumb>
-        <Title>Add Work Entry For Manoj</Title>
       </PageHeader>
 
-      <FormContent>
-        {/* Branch & Dates Section */}
+      <ContentWrapper>
+        <Title>Add Work Entry For {contractor?.name || "Contractor"}</Title>
+
+        {/* Form Sections */}
         <Section>
           <FormRow>
-            <FieldGroup full>
+            <FormGroup>
               <Label>Branch</Label>
-              <Select value={branch} onChange={(e) => setBranch(e.target.value)}>
-                <option>Headquarters</option>
-                <option>North Region</option>
-                <option>South Region</option>
+              <Select
+                value={formData.branch}
+                onChange={(e) => setFormData({...formData, branch: e.target.value})}
+              >
+                <option value="Headquarters">Headquarters</option>
+                <option value="North Region">North Region</option>
               </Select>
-            </FieldGroup>
+            </FormGroup>
           </FormRow>
+
           <FormRow>
-            <FieldGroup>
+            <FormGroup>
               <Label>Entry Date</Label>
-              <DateInput 
-                type="date" 
-                value={entryDate} 
-                onChange={(e) => setEntryDate(e.target.value)} 
-              />
-            </FieldGroup>
-            <FieldGroup>
+              <DateWrapper>
+                <Input type="text" value={formData.entryDate} />
+                <CalendarIcon>📅</CalendarIcon>
+              </DateWrapper>
+            </FormGroup>
+            <FormGroup>
               <Label>Work Done Date</Label>
-              <DateInput 
-                type="date" 
-                value={workDate} 
-                onChange={(e) => setWorkDate(e.target.value)} 
+              <DateWrapper>
+                <Input type="text" value={formData.workDoneDate} />
+                <CalendarIcon>📅</CalendarIcon>
+              </DateWrapper>
+            </FormGroup>
+          </FormRow>
+
+          <FormRow>
+            <FormGroup>
+              <Label>Reference</Label>
+              <Input
+                type="text"
+                placeholder="Write Something"
+                value={formData.reference}
+                onChange={(e) => setFormData({...formData, reference: e.target.value})}
               />
-            </FieldGroup>
+            </FormGroup>
           </FormRow>
         </Section>
 
         {/* Job Items Section */}
         <Section>
-          <SectionTitle>Job Items</SectionTitle>
+          <SectionHeader>
+            <SectionTitle>Job Items</SectionTitle>
+          </SectionHeader>
           <TableWrapper>
             <Table>
               <TableHead>
                 <TableRow>
-                  <Th>S. No</Th>
+                  <Th>S.No</Th>
                   <Th>Job Item</Th>
                   <Th>Quantity</Th>
                   <Th>Unit</Th>
@@ -109,56 +171,111 @@ const WorkJobDetails = () => {
                 {jobItems.map((item, index) => (
                   <TableRow key={item.id}>
                     <Td>{index + 1}</Td>
-                    <Td><CellInput type="text" placeholder="Select Job Item" value={item.jobItem} /></Td>
-                    <Td><CellInput type="number" value={item.quantity} /></Td>
-                    <Td><CellInput type="text" value={item.unit} /></Td>
-                    <Td><CellInput type="text" value={`$${item.priceUnit.toFixed(2)}`} /></Td>
-                    <Td><CellInput type="text" value={`$${item.total.toFixed(2)}`} disabled /></Td>
-                    <Td><CellInput type="text" placeholder="Add remarks..." value={item.remarks} /></Td>
-                    <Td><DeleteButton onClick={() => deleteJobItem(item.id)}>🗑️</DeleteButton></Td>
+                    <Td>
+                      <CellInput
+                        type="text"
+                        value={item.jobItem}
+                        placeholder="Select Job Items"
+                      />
+                    </Td>
+                    <Td>
+                      <CellInput
+                        type="number"
+                        value={item.quantity}
+                      />
+                    </Td>
+                    <Td>
+                      <CellSelect value={item.unit}>
+                        <option value="">Select Unit</option>
+                        <option value="Piece">Piece</option>
+                        <option value="Hour">Hour</option>
+                      </CellSelect>
+                    </Td>
+                    <Td>
+                      <CellInput
+                        type="number"
+                        value={item.priceUnit}
+                      />
+                    </Td>
+                    <Td>
+                      <CellInput
+                        type="number"
+                        value={item.total}
+                        disabled
+                      />
+                    </Td>
+                    <Td>
+                      <CellInput
+                        type="text"
+                        value={item.remarks}
+                        placeholder="Add Remarks"
+                      />
+                    </Td>
+                    <Td>
+                      <DeleteButton>
+                        <DeleteIcon src={deleteIcon} alt="delete" />
+                      </DeleteButton>
+                    </Td>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
           </TableWrapper>
-          <AddJobButton onClick={addJobItem}>+ Add Next Job Item</AddJobButton>
+
+          <AddRowButton onClick={addJobItem}>
+            + Add Next Job Item
+          </AddRowButton>
         </Section>
 
         {/* Attachments Section */}
         <Section>
-          <SectionTitle>Attachments (Optional)</SectionTitle>
-          <Dropzone 
-            onClick={() => document.getElementById('file-upload').click()} 
+          <SectionHeader>
+            <SectionTitle>Attachments (Optional)</SectionTitle>
+          </SectionHeader>
+          <DropZone
+            onClick={() => document.getElementById('file-upload').click()}
             onDrop={handleDrop}
             onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            $isDragging={isDragging}
           >
-            <input 
-              id="file-upload" 
-              type="file" 
-              style={{ display: 'none' }} 
-              multiple 
-              onChange={handleFileChange}
+            <input
+              type="file"
+              id="file-upload"
+              hidden
+              multiple
+              accept=".pdf,.jpg,.jpeg,.png,.svg"
+              onChange={handleFileSelect}
             />
-            <UploadIcon>⬆️</UploadIcon>
-            <DropText>Click to upload or drag and drop</DropText>
-            <DropSubtext>SVG, PNG, JPG, PDF or DOC (max. 50MB)</DropSubtext>
-          </Dropzone>
-          {selectedFiles.length > 0 && (
-            <FileList>
-              {selectedFiles.map((file, idx) => (
-                <FileItem key={idx}>
-                  {file.name}
-                </FileItem>
+            <DropZoneText>
+              <DropIcon>📎</DropIcon>
+              Click to upload or drag and drop<br />
+              SVG, PNG, JPG or PDF (max. 800 × 800px)
+            </DropZoneText>
+          </DropZone>
+
+          {uploadedFiles.length > 0 && (
+            <UploadedFilesList>
+              {uploadedFiles.map(file => (
+                <UploadedFile key={file.id}>
+                  <FileName>{file.name}</FileName>
+                  <RemoveButton onClick={() => removeFile(file.id)}>×</RemoveButton>
+                </UploadedFile>
               ))}
-            </FileList>
+            </UploadedFilesList>
           )}
         </Section>
-      </FormContent>
 
-      <Footer>
-        <CancelButton onClick={() => navigate(-1)}>Cancel</CancelButton>
-        <SaveButton>💾 Save Entry</SaveButton>
-      </Footer>
+        {/* Buttons */}
+        <Footer>
+          <CancelButton onClick={() => navigate("/admin/contractors/contractors")}>
+            Cancel
+          </CancelButton>
+          <SaveButton>
+            💾 Save Entry
+          </SaveButton>
+        </Footer>
+      </ContentWrapper>
     </Container>
   );
 };
@@ -166,66 +283,93 @@ const WorkJobDetails = () => {
 // Styled Components
 const Container = styled.div`
   width: 100%;
-  padding: 1.5rem;
-  background: #F5F7FA;
+
   min-height: 100vh;
 `;
 
 const PageHeader = styled.div`
-  margin-bottom: 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
 `;
 
 const Breadcrumb = styled.div`
   display: flex;
   gap: 0.5rem;
+  align-items: center;
   font-size: 0.85rem;
   color: #666;
   font-family: "Inter", sans-serif;
   font-weight: 500;
-  margin-bottom: 1rem;
 `;
 
 const Crumb = styled.span`
-  color: ${props => props.active ? "#0047AB" : "#666"};
-  cursor: pointer;
-`;
-
-const Title = styled.h1`
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: #222;
-  margin: 0;
+  color: ${props => props.active ? "#222" : "#666"};
   font-family: "Inter", sans-serif;
 `;
 
-const FormContent = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
+const CrumbSeparator = styled.span`
+  color: #666;
+`;
+
+const SearchInput = styled.input`
+  padding: 0.6rem 1rem;
+  border: 1px solid ${theme.colors.border};
+  border-radius: 6px;
+  font-family: "Inter", sans-serif;
+  font-size: 0.85rem;
+  color: ${theme.colors.textColor};
+  background: ${theme.colors.white};
+  width: 220px;
+
+  &::placeholder {
+    color: ${theme.colors.secondaryText};
+  }
+`;
+
+const ContentWrapper = styled.div`
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+`;
+
+const Title = styled.h1`
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #222;
+  margin: 0 0 1.5rem 0;
+  font-family: "Inter", sans-serif;
 `;
 
 const Section = styled.div`
-  background: white;
-  padding: 1.25rem;
-  border-radius: 12px;
-  border: 1px solid #E7E7E7;
+  margin-bottom: 1.5rem;
+`;
+
+const SectionHeader = styled.div`
+  margin-bottom: 0.75rem;
 `;
 
 const SectionTitle = styled.h3`
   font-size: 1rem;
   font-weight: 700;
   color: #222;
-  margin: 0 0 1rem 0;
+  margin: 0;
   font-family: "Inter", sans-serif;
 `;
 
 const FormRow = styled.div`
-  display: flex;
-  gap: 1rem;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-bottom: 1rem;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
 `;
 
-const FieldGroup = styled.div`
-  flex: ${props => props.full ? "1" : "1"};
+const FormGroup = styled.div`
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
@@ -234,39 +378,67 @@ const FieldGroup = styled.div`
 const Label = styled.label`
   font-size: 0.85rem;
   font-weight: 600;
-  color: #333;
+  color: #222;
   font-family: "Inter", sans-serif;
+`;
+
+const Input = styled.input`
+  padding: 0.75rem;
+  border: 1px solid ${theme.colors.border};
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-family: "Inter", sans-serif;
+  transition: all 0.2s;
+  background: white;
+  width: 100%;
+  box-sizing: border-box;
+
+  &:focus {
+    outline: none;
+    border-color: #0047AB;
+  }
+
+  &::placeholder {
+    color: #999;
+  }
 `;
 
 const Select = styled.select`
   padding: 0.75rem;
-  border: 1px solid #E7E7E7;
+  border: 1px solid ${theme.colors.border};
   border-radius: 6px;
-  font-family: "Inter", sans-serif;
   font-size: 0.9rem;
-  background: #F5F5F5;
+  font-family: "Inter", sans-serif;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s;
+  width: 100%;
+  box-sizing: border-box;
+
+  &:focus {
+    outline: none;
+    border-color: #0047AB;
+  }
 `;
 
-const DateInput = styled.input`
-  padding: 0.75rem;
-  border: 1px solid #E7E7E7;
-  border-radius: 6px;
-  font-family: "Inter", sans-serif;
-  font-size: 0.9rem;
-  background: white;
-  width: 100%;
-  cursor: pointer;
+const DateWrapper = styled.div`
+  position: relative;
+`;
 
-  &::-webkit-calendar-picker-indicator {
-    font-size: 1.2rem;
-    cursor: pointer;
-    opacity: 1;
-  }
+const CalendarIcon = styled.span`
+  position: absolute;
+  right: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 1rem;
+  color: #666;
 `;
 
 const TableWrapper = styled.div`
   overflow-x: auto;
-  margin-bottom: 1rem;
+  border: 1px solid ${theme.colors.border};
+  border-radius: 8px;
+  margin-bottom: 0.75rem;
 `;
 
 const Table = styled.table`
@@ -275,15 +447,15 @@ const Table = styled.table`
 `;
 
 const TableHead = styled.thead`
-  background: #F5F5F5;
+  background: ${theme.colors.bgColor};
 `;
 
 const TableRow = styled.tr`
-  border-bottom: 1px solid #E7E7E7;
+  border-bottom: 1px solid ${theme.colors.border};
 `;
 
 const Th = styled.th`
-  padding: 0.75rem 0.5rem;
+  padding: 0.75rem 0.75rem;
   text-align: left;
   font-family: "Inter", sans-serif;
   font-size: 0.75rem;
@@ -294,37 +466,55 @@ const Th = styled.th`
 const TableBody = styled.tbody``;
 
 const Td = styled.td`
-  padding: 0.75rem 0.5rem;
+  padding: 0.5rem 0.75rem;
 `;
 
 const CellInput = styled.input`
   width: 100%;
   padding: 0.5rem 0.75rem;
-  border: 1px solid #E7E7E7;
+  border: 1px solid ${theme.colors.border};
   border-radius: 6px;
   font-family: "Inter", sans-serif;
   font-size: 0.85rem;
-  background: ${props => props.disabled ? "#F5F5F5" : "white"};
+  background: white;
+  box-sizing: border-box;
+`;
+
+const CellSelect = styled.select`
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid ${theme.colors.border};
+  border-radius: 6px;
+  font-family: "Inter", sans-serif;
+  font-size: 0.85rem;
+  background: white;
 `;
 
 const DeleteButton = styled.button`
   background: none;
   border: none;
-  font-size: 1rem;
   cursor: pointer;
   padding: 0.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 `;
 
-const AddJobButton = styled.button`
+const DeleteIcon = styled.img`
+  width: 16px;
+  height: 16px;
+`;
+
+const AddRowButton = styled.button`
   width: 100%;
   padding: 0.75rem;
   border: 1px dashed #0047AB;
   border-radius: 6px;
-  background: white;
+  background: transparent;
   color: #0047AB;
   font-family: "Inter", sans-serif;
   font-weight: 600;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   cursor: pointer;
   transition: all 0.2s;
 
@@ -333,86 +523,108 @@ const AddJobButton = styled.button`
   }
 `;
 
-const Dropzone = styled.div`
-  border: 2px dashed #CCCCCC;
+const DropZone = styled.div`
+  border: 2px dashed ${(props) => props.$isDragging ? theme.colors.primary : theme.colors.border};
   border-radius: 8px;
   padding: 2rem;
   text-align: center;
   cursor: pointer;
   transition: all 0.2s;
+  background: ${(props) => props.$isDragging ? '#F0F5FF' : 'white'};
 
   &:hover {
-    border-color: #0047AB;
+    border-color: ${theme.colors.primary};
     background: #F0F5FF;
   }
 `;
 
-const UploadIcon = styled.div`
+const DropZoneText = styled.div`
+  font-family: "Inter", sans-serif;
+  font-size: 0.85rem;
+  color: #666;
+`;
+
+const DropIcon = styled.div`
   font-size: 2rem;
   margin-bottom: 0.5rem;
 `;
 
-const DropText = styled.p`
-  font-family: "Inter", sans-serif;
-  font-size: 0.9rem;
-  font-weight: 500;
-  color: #0047AB;
-  margin: 0 0 0.25rem 0;
-`;
-
-const DropSubtext = styled.p`
-  font-family: "Inter", sans-serif;
-  font-size: 0.75rem;
-  color: #888;
-  margin: 0;
-`;
-
-const FileList = styled.div`
+const UploadedFilesList = styled.div`
   margin-top: 1rem;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
 `;
 
-const FileItem = styled.div`
-  padding: 0.75rem;
-  background: #F5F5F5;
+const UploadedFile = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: ${theme.colors.bgColor};
+  border: 1px solid ${theme.colors.border};
   border-radius: 6px;
-  font-family: "Inter", sans-serif;
+`;
+
+const FileName = styled.span`
   font-size: 0.85rem;
-  color: #333;
+  color: ${theme.colors.textColor};
+  font-family: "Inter", sans-serif;
+`;
+
+const RemoveButton = styled.button`
+  background: none;
+  border: none;
+  font-size: 1.25rem;
+  cursor: pointer;
+  color: #666;
+  padding: 0;
+  line-height: 1;
+
+  &:hover {
+    color: #DC2626;
+  }
 `;
 
 const Footer = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 1.5rem;
-  padding: 1rem 0;
+  margin-top: 2rem;
 `;
 
 const CancelButton = styled.button`
-  padding: 0.75rem 1.5rem;
-  border: 1px solid #CCCCCC;
+  padding: 0.75rem 2rem;
+  border: 1px solid ${theme.colors.border};
   border-radius: 8px;
   background: white;
-  color: #333;
+  color: #222;
   font-family: "Inter", sans-serif;
   font-weight: 600;
   font-size: 0.9rem;
   cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background: #F5F5F5;
+  }
 `;
 
 const SaveButton = styled.button`
-  padding: 0.75rem 1.5rem;
+  padding: 0.75rem 2rem;
   border: none;
   border-radius: 8px;
-  background: #FACC15;
-  color: #222;
+  background: linear-gradient(90deg, #FFB017 0%, #FFC700 100%);
+  color: white;
   font-family: "Inter", sans-serif;
   font-weight: 700;
   font-size: 0.9rem;
   cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    opacity: 0.9;
+  }
 `;
 
 export default WorkJobDetails;

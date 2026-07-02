@@ -1,0 +1,471 @@
+import { useState, useRef, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import styled from "styled-components";
+import theme from "../../theme/theme";
+
+const Payslip = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [showDropdown, setShowDropdown] = useState(false);
+  const dropdownRef = useRef(null);
+  
+  // Get data from location state (or use default sample data)
+  const payslipData = location.state || {
+    employeeName: "Sangeetha",
+    employeeId: "EMP001",
+    department: "IT",
+    state: "Tamil Nadu",
+    dateOfJoining: "10 Apr 2021",
+    pfNo: "TN/XXX/XXXXX",
+    esiNo: "XXXXX/XXXXX",
+    designation: "Store Manager",
+    uanNumber: "101042309812",
+    workingDays: "22",
+    monthYear: "April 2026",
+    netPayable: "₹9,800.00",
+    netPayableWords: "Rupees Nine Thousand Eight Hundred Only",
+    earnings: [
+      { label: "Basic Pay", amount: "₹9,000.00" },
+      { label: "House Rent Allowance", amount: "₹1,000.00" },
+      { label: "Conveyance", amount: "₹500.00" },
+      { label: "Medical Allowance", amount: "₹500.00" },
+      { label: "OT Pay", amount: "₹0.00" },
+    ],
+    deductions: [
+      { label: "Provident Fund", amount: "₹1,080.00" },
+      { label: "ESI", amount: "₹0.00" },
+      { label: "Professional Tax", amount: "₹0.00" },
+      { label: "TDS", amount: "₹0.00" },
+      { label: "Loss of Pay", amount: "₹0.00" },
+    ],
+  };
+
+  const totalEarnings = payslipData.earnings.reduce((sum, item) => {
+    // Remove ₹ and commas, then parse as number
+    const amount = parseFloat(item.amount.replace(/₹|,/g, ""));
+    return sum + amount;
+  }, 0);
+
+  const totalDeductions = payslipData.deductions.reduce((sum, item) => {
+    const amount = parseFloat(item.amount.replace(/₹|,/g, ""));
+    return sum + amount;
+  }, 0);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleDownload = (type) => {
+    // Placeholder for actual download logic
+    if (type === "sheet") {
+      alert("Downloading Payslip Sheet...");
+    } else if (type === "pdf") {
+      alert("Downloading Payslip PDF...");
+    }
+    setShowDropdown(false);
+  };
+
+  return (
+    <Container>
+      <PayslipContainer>
+        <PayslipHeader>
+        <PayslipCompanyInfo>
+          <PayslipCompanyName>Ace Workforce</PayslipCompanyName>
+          <PayslipCompanyTag>Industrial & Facility Management</PayslipCompanyTag>
+        </PayslipCompanyInfo>
+        <PayslipActions>
+          <DropdownContainer ref={dropdownRef}>
+            <DropdownButton onClick={() => setShowDropdown(!showDropdown)}>
+              Download ▼
+            </DropdownButton>
+            {showDropdown && (
+              <DropdownMenu>
+                <DropdownItem onClick={() => handleDownload("sheet")}>
+                  Download Sheet
+                </DropdownItem>
+                <DropdownItem onClick={() => handleDownload("pdf")}>
+                  Download PDF
+                </DropdownItem>
+              </DropdownMenu>
+            )}
+          </DropdownContainer>
+          <PayslipBackButton onClick={() => navigate(-1)}>Back</PayslipBackButton>
+        </PayslipActions>
+      </PayslipHeader>
+
+        <PayslipTitle>PAYSLIP</PayslipTitle>
+
+        <PayslipEmployeeInfo>
+          <EmployeeInfoColumn>
+            <InfoRow>
+              <InfoLabel>Employee Name</InfoLabel>
+              <InfoValue>{payslipData.employeeName}</InfoValue>
+            </InfoRow>
+            <InfoRow>
+              <InfoLabel>Date of Joining</InfoLabel>
+              <InfoValue>{payslipData.dateOfJoining}</InfoValue>
+            </InfoRow>
+            <InfoRow>
+              <InfoLabel>Designation</InfoLabel>
+              <InfoValue>{payslipData.designation}</InfoValue>
+            </InfoRow>
+          </EmployeeInfoColumn>
+          <EmployeeInfoColumn>
+            <InfoRow>
+              <InfoLabel>Employee ID</InfoLabel>
+              <InfoValue>{payslipData.employeeId}</InfoValue>
+            </InfoRow>
+            <InfoRow>
+              <InfoLabel>PF No.</InfoLabel>
+              <InfoValue>{payslipData.pfNo}</InfoValue>
+            </InfoRow>
+            <InfoRow>
+              <InfoLabel>UAN Number</InfoLabel>
+              <InfoValue>{payslipData.uanNumber}</InfoValue>
+            </InfoRow>
+          </EmployeeInfoColumn>
+          <EmployeeInfoColumn>
+            <InfoRow>
+              <InfoLabel>Department</InfoLabel>
+              <InfoValue>{payslipData.department}</InfoValue>
+            </InfoRow>
+            <InfoRow>
+              <InfoLabel>ESI No.</InfoLabel>
+              <InfoValue>{payslipData.esiNo}</InfoValue>
+            </InfoRow>
+          </EmployeeInfoColumn>
+          <EmployeeInfoColumn>
+            <InfoRow>
+              <InfoLabel>State</InfoLabel>
+              <InfoValue>{payslipData.state}</InfoValue>
+            </InfoRow>
+            <InfoRow>
+              <InfoLabel>Working Days</InfoLabel>
+              <InfoValue>{payslipData.workingDays}</InfoValue>
+            </InfoRow>
+          </EmployeeInfoColumn>
+        </PayslipEmployeeInfo>
+
+        <PayslipEarningsDeductions>
+          <EarningsSection>
+            <SectionTitle>EARNINGS</SectionTitle>
+            <EarningsDeductionsList>
+              {payslipData.earnings.map((item, index) => (
+                <EDRow key={index}>
+                  <EDLabel>{item.label}</EDLabel>
+                  <EDValue>{item.amount}</EDValue>
+                </EDRow>
+              ))}
+              <EDTotalRow>
+                <EDLabel>Gross Earnings</EDLabel>
+                <EDValue>₹{totalEarnings.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</EDValue>
+              </EDTotalRow>
+            </EarningsDeductionsList>
+          </EarningsSection>
+
+          <DeductionsSection>
+            <SectionTitle>DEDUCTIONS</SectionTitle>
+            <EarningsDeductionsList>
+              {payslipData.deductions.map((item, index) => (
+                <EDRow key={index}>
+                  <EDLabel>{item.label}</EDLabel>
+                  <EDValue>{item.amount}</EDValue>
+                </EDRow>
+              ))}
+              <EDTotalRow>
+                <EDLabel>Total Deductions</EDLabel>
+                <EDValue>₹{totalDeductions.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</EDValue>
+              </EDTotalRow>
+            </EarningsDeductionsList>
+          </DeductionsSection>
+        </PayslipEarningsDeductions>
+
+        <PayslipNetPay>
+          <NetPayInfo>
+            <NetPayLabel>Net Payable</NetPayLabel>
+            <NetPayAmount>{payslipData.netPayable}</NetPayAmount>
+            <NetPayWords>{payslipData.netPayableWords}</NetPayWords>
+          </NetPayInfo>
+          <NetPayMonth>{payslipData.monthYear}</NetPayMonth>
+        </PayslipNetPay>
+
+        <PayslipFooter>
+          <PayslipNote>This is a computer generated document and does not require a signature</PayslipNote>
+        </PayslipFooter>
+      </PayslipContainer>
+    </Container>
+  );
+};
+
+export default Payslip;
+
+const Container = styled.div`
+  width: 100%;
+  padding: 2rem;
+`;
+
+const PayslipContainer = styled.div`
+  max-width: 1000px;
+  margin: 0 auto;
+  font-family: "Inter", sans-serif;
+  background: ${theme.colors.white};
+  border-radius: 16px;
+  padding: 2rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+`;
+
+const PayslipHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1.5rem;
+`;
+
+const PayslipCompanyInfo = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+`;
+
+const PayslipCompanyName = styled.h1`
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #222;
+  margin: 0;
+`;
+
+const PayslipCompanyTag = styled.p`
+  font-size: 0.875rem;
+  color: #666;
+  margin: 0;
+`;
+
+const PayslipActions = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+`;
+
+const PayslipBackButton = styled.button`
+  padding: 0.5rem 1rem;
+  background: ${theme.colors.bgColor};
+  color: ${theme.colors.textColor};
+  border: 1px solid ${theme.colors.border};
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: "Inter", sans-serif;
+  transition: all 0.2s;
+
+  &:hover {
+    background: ${theme.colors.secondaryWhite};
+  }
+`;
+
+const DropdownContainer = styled.div`
+  position: relative;
+  display: inline-block;
+`;
+
+const DropdownButton = styled.button`
+  padding: 0.5rem 1rem;
+  background: ${theme.colors.primary};
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: "Inter", sans-serif;
+  transition: all 0.2s;
+
+  &:hover {
+    opacity: 0.9;
+  }
+`;
+
+const DropdownMenu = styled.div`
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 0.5rem;
+  background: white;
+  border: 1px solid ${theme.colors.border};
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  z-index: 100;
+  min-width: 180px;
+`;
+
+const DropdownItem = styled.div`
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  color: ${theme.colors.textColor};
+  font-family: "Inter", sans-serif;
+  cursor: pointer;
+  transition: all 0.2s;
+  &:first-child {
+    border-radius: 8px 8px 0 0;
+  }
+  &:last-child {
+    border-radius: 0 0 8px 8px;
+  }
+  &:hover {
+    background: ${theme.colors.secondaryPrimary};
+  }
+`;
+
+const PayslipTitle = styled.h2`
+  text-align: center;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #222;
+  margin: 0 0 1.5rem 0;
+`;
+
+const PayslipEmployeeInfo = styled.div`
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+`;
+
+const EmployeeInfoColumn = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+`;
+
+const InfoRow = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+`;
+
+const InfoLabel = styled.span`
+  font-size: 0.8rem;
+  color: #888;
+  font-weight: 500;
+`;
+
+const InfoValue = styled.span`
+  font-size: 0.9rem;
+  color: #222;
+  font-weight: 600;
+`;
+
+const PayslipEarningsDeductions = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  margin-bottom: 2rem;
+`;
+
+const EarningsSection = styled.div`
+  display: flex;
+  flex-direction: column;
+`;
+
+const DeductionsSection = styled.div`
+  display: flex;
+  flex-direction: column;
+`;
+
+const SectionTitle = styled.h3`
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #222;
+  margin: 0 0 1rem 0;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #e0e0e0;
+`;
+
+const EarningsDeductionsList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+`;
+
+const EDRow = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+`;
+
+const EDTotalRow = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 0.75rem;
+  margin-top: 0.5rem;
+  border-top: 1px solid #e0e0e0;
+`;
+
+const EDLabel = styled.span`
+  font-size: 0.875rem;
+  color: #666;
+  font-weight: 500;
+`;
+
+const EDValue = styled.span`
+  font-size: 0.875rem;
+  color: #222;
+  font-weight: 600;
+`;
+
+const PayslipNetPay = styled.div`
+  background: ${theme.colors.bgColor};
+  padding: 1.5rem;
+  border-radius: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+`;
+
+const NetPayInfo = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+`;
+
+const NetPayLabel = styled.span`
+  font-size: 0.9rem;
+  color: #666;
+  font-weight: 500;
+`;
+
+const NetPayAmount = styled.span`
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: ${theme.colors.primary};
+`;
+
+const NetPayWords = styled.span`
+  font-size: 0.875rem;
+  color: #666;
+`;
+
+const NetPayMonth = styled.span`
+  font-size: 1rem;
+  color: #222;
+  font-weight: 600;
+`;
+
+const PayslipFooter = styled.div`
+  text-align: center;
+`;
+
+const PayslipNote = styled.p`
+  font-size: 0.75rem;
+  color: #999;
+  margin: 0;
+`;
+
