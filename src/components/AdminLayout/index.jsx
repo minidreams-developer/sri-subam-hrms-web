@@ -148,7 +148,7 @@ const AdminLayout = () => {
       <MainContent open={sidebarOpen}>
         <Header>
           <CoverLeft>
-            <Hamburger onClick={() => setSidebarOpen(!sidebarOpen)}>
+            <Hamburger onClick={() => setSidebarOpen(!sidebarOpen)} title="Sidebar is fixed width">
               <MdMenu />
             </Hamburger>
             <TextWrap>
@@ -178,29 +178,31 @@ const LayoutContainer = styled.div`
 `;
 
 const Sidebar = styled.div`
-  width: ${(props) => (props.open ? "16.25rem" : "90px")};
+  width: 16.25rem;
+  min-width: 16.25rem;
+  max-width: 16.25rem;
   background-color: #ffffff;
   color: ${theme.colors.white};
-  transition: width 0.3s ease-in-out;
   display: flex;
   flex-direction: column;
   padding: 1.5rem 1.25rem;
   box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+  overflow-y: auto;
+  position: relative;
 `;
 
 const LogoSection = styled.div`
   display: flex;
   align-items: center;
   margin: 0 0 2.5rem 0;
-  justify-content: ${(props) => (props.open ? "flex-start" : "center")};
-  gap: ${(props) => (props.open ? "0.75rem" : "0")};
+  justify-content: flex-start;
+  gap: 0.75rem;
 `;
 
 const Logo = styled.img`
-  height: ${(props) => (props.open ? "2rem" : "2rem")};
+  height: 2rem;
   width: auto;
   object-fit: contain;
-  transition: all 0.3s ease-in-out;
   cursor: pointer;
 `;
 
@@ -237,7 +239,7 @@ const SidebarItem = styled.li`
 
   span {
     color: ${(props) => (props.$isactive ? theme.colors.white : "#1B2436")};
-    display: ${(props) => (props.open ? "inline" : "none")};
+    display: inline;
     transition: opacity 0.3s ease;
   }
 
@@ -326,7 +328,6 @@ const MainContent = styled.div`
   flex-grow: 1;
   display: flex;
   flex-direction: column;
-  transition: margin-left 0.3s ease-in-out;
   height: 100vh;
   overflow: hidden;
 `;

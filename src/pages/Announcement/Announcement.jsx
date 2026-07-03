@@ -89,12 +89,15 @@ const Announcement = () => {
   if (showNewAnnouncement) {
     return (
       <Container>
-            <Title>Announcement</Title>
-            <br/>
+        <PageHeader>
+          <Breadcrumb>
+            <Crumb onClick={() => setShowNewAnnouncement(false)} style={{cursor: 'pointer'}}>Announcement</Crumb>
+            <CrumbSeparator>›</CrumbSeparator>
+            <Crumb active>New Announcement</Crumb>
+          </Breadcrumb>
+        </PageHeader>
 
         <ContentWrapper>
-      
-
           {/* Form Sections */}
           <Section>
             <FormRow>
@@ -202,7 +205,7 @@ const Announcement = () => {
           </FilterSelect>
           <Button
             text="+ New Announcement"
-       
+            
             color={theme.colors.white}
             fontWeight="600"
             onClick={() => setShowNewAnnouncement(true)}
@@ -238,7 +241,9 @@ const Announcement = () => {
 // Styled Components
 const Container = styled.div`
   width: 100%;
- 
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
 `;
 
 const PageHeader = styled.div`
