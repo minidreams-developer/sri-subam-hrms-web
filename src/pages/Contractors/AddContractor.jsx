@@ -112,7 +112,8 @@ const AddContractor = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     console.log("Form submitted:", formData);
-    // Add API call here
+    // Add API call here to save contractor
+    // After successful save, redirect to work & job details
     navigate("/admin/contractors/work-job-details");
   };
 

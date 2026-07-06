@@ -1,5 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import styled from "styled-components";
+import axios from "axios";
+import { toast } from "react-toastify";
 import SearchInputComponent from "../../components/SearchInputComponent";
 import Button from "../../components/Button";
 import theme from "../../theme/theme";
@@ -9,45 +11,92 @@ const Announcement = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [filter, setFilter] = useState("All");
   const [showNewAnnouncement, setShowNewAnnouncement] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [announcements, setAnnouncements] = useState([]);
+  const [announcementsLoading, setAnnouncementsLoading] = useState(true);
+  const [announcementsError, setAnnouncementsError] = useState(null);
   const [formData, setFormData] = useState({
     title: "",
     message: "",
+    scheduleDateAndTime: "",
   });
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const [isDragging, setIsDragging] = useState(false);
 
-  const announcements = [
-    {
-      id: 1,
-      title: "Lorem Ipsum is simply dummy",
-      content: "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley.",
-      date: "26 Dec - 03:26 pm",
-      hasImage: false,
-    },
-    {
-      id: 2,
-      title: "Lorem ipsum dolor sit amet consectetur. Duis arcu condimentum massa odio purus.",
-      content: "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley.",
-      date: "26 Dec - 03:26 pm",
-      hasImage: false,
-    },
-    {
-      id: 3,
-      title: "Lorem Ipsum is simply dummy",
-      content: "Lorem Ipsum is simply dummy text of the printing and typesetting industry.",
-      date: "26 Dec - 03:26 pm",
-      hasImage: true,
-      images: [1, 2],
-    },
-    {
-      id: 4,
-      title: "Lorem ipsum dolor sit amet consectetur. Duis arcu condimentum massa odio purus.",
-      content: "",
-      date: "26 Dec - 03:26 pm",
-      hasImage: true,
-      images: [1],
-    },
-  ];
+  // Fetch announcements on component mount
+  useEffect(() => {
+    const fetchAnnouncements = async () => {
+      try {
+        setAnnouncementsLoading(true);
+        setAnnouncementsError(null);
+        
+        const apiUrl = `${import.meta.env.VITE_API_BASE_URL}/v1/announcements`;
+        console.log("🔗 Fetching announcements from:", apiUrl);
+        
+        const response = await axios.get(apiUrl, {
+          headers: {
+            "Content-Type": "application/json"
+          }
+        });
+
+        console.log("✅ Announcements fetched successfully:", response.data);
+        
+        // Transform API data to component format
+        const results = response.data?.results || [];
+        const transformedAnnouncements = (Array.isArray(results) ? results : []).map((announcement) => {
+          const images = announcement.images && announcement.images.length > 0 
+            ? announcement.images.map(img => ({
+                _id: img._id,
+                imgName: img.imgName,
+                imgUrl: img.imgUrl
+              }))
+            : [];
+          
+          console.log("📸 Processing announcement images:", {
+            title: announcement.title,
+            hasImages: announcement.images && announcement.images.length > 0,
+            imageCount: announcement.images?.length || 0,
+            images: images
+          });
+
+          return {
+            id: announcement._id || announcement.id,
+            title: announcement.title || "Untitled",
+            content: announcement.content || announcement.description || "",
+            date: new Date(announcement.scheduleDateAndTime || announcement.createdAt).toLocaleDateString('en-US', {
+              year: 'numeric',
+              month: 'short',
+              day: 'numeric'
+            }) + " - " + new Date(announcement.scheduleDateAndTime || announcement.createdAt).toLocaleTimeString('en-US', {
+              hour: '2-digit',
+              minute: '2-digit'
+            }),
+            hasImage: images.length > 0,
+            images: images
+          };
+        });
+
+        setAnnouncements(transformedAnnouncements);
+      } catch (error) {
+        console.error("❌ Error fetching announcements:", {
+          status: error.response?.status,
+          data: error.response?.data,
+          message: error.message
+        });
+        
+        const errorMessage = error.response?.data?.message || 
+                            error.response?.data?.error || 
+                            error.message || 
+                            "Failed to fetch announcements";
+        setAnnouncementsError(errorMessage);
+        toast.error(errorMessage);
+      } finally {
+        setAnnouncementsLoading(false);
+      }
+    };
+
+    fetchAnnouncements();
+  }, []);
 
   const handleFileSelect = (e) => {
     const files = Array.from(e.target.files);
@@ -84,6 +133,118 @@ const Announcement = () => {
 
   const removeFile = (id) => {
     setUploadedFiles(uploadedFiles.filter(file => file.id !== id));
+  };
+
+  const handlePublish = async () => {
+    // Validate form
+    if (!formData.title?.trim()) {
+      toast.error("Title is required");
+      return;
+    }
+    if (!formData.message?.trim()) {
+      toast.error("Message is required");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      // Build images array from uploaded files
+      const images = uploadedFiles.map((file, index) => ({
+        imgName: file.name.split('.')[0] || `image-${index}`,
+        imgUrl: URL.createObjectURL(file.file) // In production, upload file and get URL from API
+      }));
+
+      // Build payload according to API spec
+      const payload = {
+        title: formData.title?.trim() || "",
+        description: formData.message?.substring(0, 100) || "",
+        content: formData.message?.trim() || "",
+        scheduleDateAndTime: formData.scheduleDateAndTime || new Date().toISOString(),
+        images: images
+      };
+
+      console.log("📤 Submitting announcement payload:", JSON.stringify(payload, null, 2));
+      const apiUrl = `${import.meta.env.VITE_API_BASE_URL}/v1/announcements`;
+      console.log("🔗 API URL:", apiUrl);
+
+      const response = await axios.post(apiUrl, payload, {
+        headers: {
+          "Content-Type": "application/json"
+        }
+      });
+
+      console.log("✅ Announcement published successfully:", response.data);
+      toast.success("Announcement published successfully!");
+      
+      // Reset form
+      setFormData({
+        title: "",
+        message: "",
+        scheduleDateAndTime: "",
+      });
+      setUploadedFiles([]);
+      setShowNewAnnouncement(false);
+
+      // Refresh announcements list
+      const fetchAnnouncements = async () => {
+        try {
+          const apiUrl = `${import.meta.env.VITE_API_BASE_URL}/v1/announcements`;
+          const response = await axios.get(apiUrl, {
+            headers: {
+              "Content-Type": "application/json"
+            }
+          });
+
+          const results = response.data?.results || [];
+          const transformedAnnouncements = (Array.isArray(results) ? results : []).map((announcement) => {
+            return {
+              id: announcement._id || announcement.id,
+              title: announcement.title || "Untitled",
+              content: announcement.content || announcement.description || "",
+              date: new Date(announcement.scheduleDateAndTime || announcement.createdAt).toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+              }) + " - " + new Date(announcement.scheduleDateAndTime || announcement.createdAt).toLocaleTimeString('en-US', {
+                hour: '2-digit',
+                minute: '2-digit'
+              }),
+              hasImage: announcement.images && announcement.images.length > 0,
+              images: announcement.images && announcement.images.length > 0 
+                ? announcement.images.map(img => ({
+                    _id: img._id,
+                    imgName: img.imgName,
+                    imgUrl: img.imgUrl
+                  }))
+                : []
+            };
+          });
+
+          setAnnouncements(transformedAnnouncements);
+        } catch (error) {
+          console.error("❌ Error refreshing announcements:", error);
+        }
+      };
+
+      fetchAnnouncements();
+      
+    } catch (error) {
+      console.error("❌ Error publishing announcement:", {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        message: error.message
+      });
+      
+      const errorMessage = error.response?.data?.message || 
+                          error.response?.data?.error || 
+                          error.message || 
+                          "Failed to publish announcement";
+      toast.error(errorMessage);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (showNewAnnouncement) {
@@ -123,6 +284,8 @@ const Announcement = () => {
                 />
               </FormGroup>
             </FormRow>
+
+         
           </Section>
 
           {/* Attachments Section */}
@@ -170,11 +333,11 @@ const Announcement = () => {
               Schedule
             </ScheduleButton>
             <ButtonGroup>
-              <CancelButton onClick={() => setShowNewAnnouncement(false)}>
+              <CancelButton onClick={() => setShowNewAnnouncement(false)} disabled={isSubmitting}>
                 Cancel
               </CancelButton>
-              <PublishButton>
-                Publish
+              <PublishButton onClick={handlePublish} disabled={isSubmitting}>
+                {isSubmitting ? "Publishing..." : "Publish"}
               </PublishButton>
             </ButtonGroup>
           </Footer>
@@ -214,25 +377,48 @@ const Announcement = () => {
       </Toolbar>
 
       <AnnouncementsList>
-        {announcements.map((announcement) => (
-          <AnnouncementCard key={announcement.id}>
-            <CardHeader>
-              <IconWrapper>
-                <IconImage src={megaphoneIcon} alt="announcement" />
-              </IconWrapper>
-              <CardTitle>{announcement.title}</CardTitle>
-              <CardDate>{announcement.date}</CardDate>
-            </CardHeader>
-            {announcement.content && <CardContent>{announcement.content}</CardContent>}
-            {announcement.hasImage && announcement.images && (
-              <CardImages>
-                {announcement.images.map((_, idx) => (
-                  <ImagePlaceholder key={idx} />
-                ))}
-              </CardImages>
-            )}
-          </AnnouncementCard>
-        ))}
+        {announcementsLoading ? (
+          <LoadingMessage>Loading announcements...</LoadingMessage>
+        ) : announcementsError ? (
+          <ErrorMessage>{announcementsError}</ErrorMessage>
+        ) : announcements.length === 0 ? (
+          <EmptyMessage>No announcements found</EmptyMessage>
+        ) : (
+          announcements.map((announcement) => (
+            <AnnouncementCard key={announcement.id}>
+              <CardHeader>
+                <IconWrapper>
+                  <IconImage src={megaphoneIcon} alt="announcement" />
+                </IconWrapper>
+                <CardTitle>{announcement.title}</CardTitle>
+                <CardDate>{announcement.date}</CardDate>
+              </CardHeader>
+              {announcement.content && <CardContent>{announcement.content}</CardContent>}
+              {announcement.hasImage && announcement.images && announcement.images.length > 0 && (
+                <CardImages>
+                  {announcement.images.map((image, idx) => {
+                    console.log("🖼️ Rendering image:", { imgName: image.imgName, imgUrl: image.imgUrl });
+                    return (
+                      <ImagePlaceholder 
+                        key={image._id || idx} 
+                        src={image.imgUrl}
+                        alt={image.imgName || `Image ${idx}`}
+                        title={image.imgName || `Image ${idx}`}
+                        onError={(e) => {
+                          console.error("❌ Image failed to load:", { src: image.imgUrl, error: e });
+                          e.target.style.display = 'none';
+                        }}
+                        onLoad={() => {
+                          console.log("✅ Image loaded successfully:", image.imgUrl);
+                        }}
+                      />
+                    );
+                  })}
+                </CardImages>
+              )}
+            </AnnouncementCard>
+          ))
+        )}
       </AnnouncementsList>
     </Container>
   );
@@ -341,6 +527,29 @@ const AnnouncementsList = styled.div`
   gap: 0.75rem;
 `;
 
+const LoadingMessage = styled.div`
+  text-align: center;
+  padding: 2rem;
+  color: #666;
+  font-family: "Inter", sans-serif;
+`;
+
+const ErrorMessage = styled.div`
+  text-align: center;
+  padding: 2rem;
+  color: #dc2626;
+  font-family: "Inter", sans-serif;
+  background: #fee2e2;
+  border-radius: 8px;
+`;
+
+const EmptyMessage = styled.div`
+  text-align: center;
+  padding: 2rem;
+  color: #666;
+  font-family: "Inter", sans-serif;
+`;
+
 const AnnouncementCard = styled.div`
   background: white;
   border-radius: 8px;
@@ -403,11 +612,18 @@ const CardImages = styled.div`
   flex-wrap: wrap;
 `;
 
-const ImagePlaceholder = styled.div`
+const ImagePlaceholder = styled.img`
   width: 120px;
   height: 80px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  object-fit: cover;
   border-radius: 8px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: 1px solid #ddd;
+  display: block;
+  
+  &:not([src]) {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  }
 `;
 
 // New Announcement Form Styles
@@ -601,8 +817,13 @@ const CancelButton = styled.button`
   cursor: pointer;
   transition: all 0.2s;
 
-  &:hover {
+  &:hover:not(:disabled) {
     background: #F5F5F5;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
   }
 `;
 
@@ -618,8 +839,13 @@ const PublishButton = styled.button`
   cursor: pointer;
   transition: all 0.2s;
 
-  &:hover {
+  &:hover:not(:disabled) {
     background: #003580;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
   }
 `;
 

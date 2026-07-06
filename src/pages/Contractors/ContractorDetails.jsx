@@ -1,6 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import styled from "styled-components";
 import { useNavigate, useParams } from "react-router-dom";
+import axios from "axios";
+import { toast } from "react-toastify";
 
 const ContractorDetails = () => {
   const navigate = useNavigate();
@@ -8,12 +10,77 @@ const ContractorDetails = () => {
   const [activeTab, setActiveTab] = useState("day");
   const [activeFilter, setActiveFilter] = useState("all");
   const [showReportModal, setShowReportModal] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [contractor, setContractor] = useState(null);
   const [reportFilters, setReportFilters] = useState({
     branch: "All Branches",
     reportType: "Custom",
     fromDate: "01/04/2026",
     toDate: "30/04/2026",
   });
+
+  // Fetch contractor details from API
+  useEffect(() => {
+    const fetchContractorDetails = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        const apiUrl = `${import.meta.env.VITE_API_BASE_URL}/v1/contractors/${id}`;
+        console.log("🔗 Fetching contractor details from:", apiUrl);
+        
+        const response = await axios.get(apiUrl, {
+          headers: {
+            "Content-Type": "application/json"
+          }
+        });
+
+        console.log("✅ Contractor details fetched successfully:", response.data);
+        
+        // Transform API data to component format
+        const data = response.data;
+        const transformedContractor = {
+          id: data.id || data._id,
+          name: data.name || "Unknown",
+          role: data.workInformation?.specialty || "Contractor",
+          phone: `📞 +${data.phone}` || "N/A",
+          totalAmount: data.totalEarned || 0,
+          paidAmount: data.payOut || 0,
+          balanceAmount: data.outstanding || 0,
+          totalEarned: data.totalEarned || 0,
+          payOut: data.payOut || 0,
+          outstanding: data.outstanding || 0,
+          tags: [data.workInformation?.specialty || "General", "Active"],
+          // Store original data for reference
+          _originalData: data
+        };
+
+        setContractor(transformedContractor);
+      } catch (error) {
+        console.error("❌ Error fetching contractor details:", {
+          status: error.response?.status,
+          statusText: error.response?.statusText,
+          data: error.response?.data,
+          message: error.message
+        });
+        
+        const errorMessage = error.response?.data?.message || 
+                            error.response?.data?.error || 
+                            error.message || 
+                            "Failed to fetch contractor details";
+        
+        setError(errorMessage);
+        toast.error(`Failed to load contractor: ${errorMessage}`);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (id) {
+      fetchContractorDetails();
+    }
+  }, [id]);
 
   const handlePrint = (section) => {
     // Navigate to print view with section parameter
@@ -26,32 +93,67 @@ const ContractorDetails = () => {
     setShowReportModal(false);
   };
 
-  // Sample data
-  const contractor = {
-    id: id || "1",
-    name: "Safeq",
-    role: "itboomi",
-    phone: "+1-234-567-8900",
-    totalAmount: "$1,450.00",
-    paidAmount: "$1,000.00",
-    balanceAmount: "$450.00",
-    tags: ["HVAC", "Active"]
-  };
+  // Sample data for job items and work logs - will be replaced by API data
+  const jobItemsHQ = contractor?._originalData?.workInformation?.jobItems 
+    ? (Array.isArray(contractor._originalData.workInformation.jobItems) 
+        ? contractor._originalData.workInformation.jobItems 
+        : [contractor._originalData.workInformation.jobItems])
+      .filter(item => item.region === "headquarters")
+      .map((item, idx) => ({
+        date: new Date(contractor._originalData.workInformation.joinedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        job: item.jobItems || "Job Detail",
+        quantity: item.unit || "1",
+        price: `$${item.price || 0}`,
+        total: `$${item.price || 0}`
+      }))
+    : [{ date: "Apr 8", job: "Job Detail", quantity: "1", price: "$20.00", total: "$20.00" }];
 
-  const jobItemsHQ = [
-    { date: "Apr 8", job: "Job Detail", quantity: "1", price: "$20.00", total: "$20.00" },
-    { date: "Apr 8", job: "AC Installation", quantity: "2 Pieces", price: "$20.00", total: "$20.00" }
-  ];
-
-  const jobItemsNR = [
-    { date: "Apr 10", job: "Job Detail", quantity: "1", price: "$10.00", total: "$10.00" }
-  ];
+  const jobItemsNR = contractor?._originalData?.workInformation?.jobItems 
+    ? (Array.isArray(contractor._originalData.workInformation.jobItems) 
+        ? contractor._originalData.workInformation.jobItems 
+        : [contractor._originalData.workInformation.jobItems])
+      .filter(item => item.region === "north")
+      .map((item, idx) => ({
+        date: new Date(contractor._originalData.workInformation.joinedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        job: item.jobItems || "Job Detail",
+        quantity: item.unit || "1",
+        price: `$${item.price || 0}`,
+        total: `$${item.price || 0}`
+      }))
+    : [{ date: "Apr 10", job: "Job Detail", quantity: "1", price: "$10.00", total: "$10.00" }];
 
   const dayViewData = [
     { date: "Apr 1", jobName: "AC Installation", location: "Building A, F1.3", hours: "8hrs", pay: "$120.00" },
     { date: "Apr 2", jobName: "Duct Cleaning", location: "Building A, F1.3", hours: "6hrs", pay: "$90.00" },
     { date: "Apr 5", jobName: "Routine Maintenance", location: "Building A, F1.3", hours: "5hrs", pay: "$75.00" }
   ];
+
+  // Loading state
+  if (loading) {
+    return (
+      <Container>
+        <LoadingContainer>
+          <LoadingSpinner />
+          <LoadingText>Loading contractor details...</LoadingText>
+        </LoadingContainer>
+      </Container>
+    );
+  }
+
+  // Error state
+  if (error || !contractor) {
+    return (
+      <Container>
+        <ErrorContainer>
+          <ErrorIcon>⚠️</ErrorIcon>
+          <ErrorText>{error || "Contractor not found"}</ErrorText>
+          <RetryButton onClick={() => window.history.back()}>
+            Go Back
+          </RetryButton>
+        </ErrorContainer>
+      </Container>
+    );
+  }
 
   return (
     <Container>
@@ -197,15 +299,15 @@ const ContractorDetails = () => {
       <StatsSection>
         <StatCard>
           <StatLabel>Total Amount</StatLabel>
-          <StatValue $color="#0047AB">{contractor.totalAmount}</StatValue>
+          <StatValue $color="#0047AB">${contractor?.totalEarned || "$0.00"}</StatValue>
         </StatCard>
         <StatCard>
           <StatLabel>Paid</StatLabel>
-          <StatValue $color="#16A34A">{contractor.paidAmount}</StatValue>
+          <StatValue $color="#16A34A">${contractor?.payOut || "$0.00"}</StatValue>
         </StatCard>
         <StatCard>
           <StatLabel>Balance</StatLabel>
-          <StatValue $color="#DC2626">{contractor.balanceAmount}</StatValue>
+          <StatValue $color="#DC2626">${contractor?.outstanding || "$0.00"}</StatValue>
         </StatCard>
       </StatsSection>
 
@@ -366,6 +468,87 @@ const Container = styled.div`
   padding: 1.5rem;
   background: #F5F7FA;
   min-height: 100vh;
+`;
+
+// Loading and Error States
+const LoadingContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  min-height: 500px;
+  background: white;
+  border-radius: 12px;
+  border: 1px solid #E7E7E7;
+`;
+
+const LoadingSpinner = styled.div`
+  width: 40px;
+  height: 40px;
+  border: 4px solid #E5E7EB;
+  border-top: 4px solid #0047AB;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+`;
+
+const LoadingText = styled.p`
+  font-size: 0.95rem;
+  color: #666;
+  margin: 0;
+  font-family: "Inter", sans-serif;
+`;
+
+const ErrorContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  min-height: 500px;
+  background: white;
+  border-radius: 12px;
+  border: 1px solid #E7E7E7;
+  padding: 2rem;
+`;
+
+const ErrorIcon = styled.div`
+  font-size: 3rem;
+`;
+
+const ErrorText = styled.p`
+  font-size: 0.95rem;
+  color: #DC2626;
+  margin: 0;
+  font-family: "Inter", sans-serif;
+  text-align: center;
+  max-width: 400px;
+`;
+
+const RetryButton = styled.button`
+  padding: 0.75rem 1.5rem;
+  background: #0047AB;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  font-family: "Inter", sans-serif;
+  transition: all 0.25s ease;
+
+  &:hover {
+    background: #003580;
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
 `;
 
 const Breadcrumb = styled.div`

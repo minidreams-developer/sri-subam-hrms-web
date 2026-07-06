@@ -49,6 +49,7 @@ import ContractorList from "../pages/Contractors/Contractors";
 import ContractorPayments from "../pages/Contractors/Payments";
 import BioDatReport from "../pages/Contractors/BioDatReport";
 import AddContractor from "../pages/Contractors/AddContractor";
+import ContractorForm from "../pages/Contractors/ContractorForm";
 import WorkJobDetails from "../pages/Contractors/WorkJobDetails";
 import AllContractorsReport from "../pages/Contractors/AllContractorsReport";
 import PaymentReport from "../pages/Contractors/PaymentReport";
@@ -57,7 +58,12 @@ import PaymentReceipt from "../pages/Contractors/PaymentReceipt";
 import ContractorDetails from "../pages/Contractors/ContractorDetails";
 import ContractorPrintView from "../pages/Contractors/ContractorPrintView";
 import ContractorWorkSummaryReport from "../pages/Contractors/ContractorWorkSummaryReport";
+import AddWorkEntry from "../pages/Contractors/AddWorkEntry";
 import Announcement from "../pages/Announcement/Announcement";
+import Agents from "../pages/People/Agents";
+import CreateAgent from "../pages/Create Agent/CreateAgent";
+import AgentProfile from "../pages/AgentProfile/AgentProfile";
+import LogWorkEntry from "../pages/Contractors/LogWorkEntry";
 
 
 const publicRoutes = [
@@ -246,11 +252,15 @@ const privateRoutes = [
       },
       {
         path: "contractors/add",
-        element: <AddContractor />,
+        element: <ContractorForm />,
       },
       {
         path: "contractors/work-job-details",
         element: <WorkJobDetails />,
+      },
+      {
+        path: "contractors/add-work-entry",
+        element: <AddWorkEntry />,
       },
       {
         path: "contractors/payments",
@@ -291,6 +301,18 @@ const privateRoutes = [
         {
           path: "announcement",
           element: <Announcement />,
+        },
+        {
+          path: "people/agents",
+          element: <Agents />,
+        },
+        {
+          path: "people/agents/create",
+          element: <CreateAgent />,
+        },
+        {
+          path: "people/agents/agentProfile",
+          element: <AgentProfile />,
         },
     ],
   },

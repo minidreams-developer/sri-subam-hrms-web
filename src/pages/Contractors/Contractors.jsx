@@ -1,6 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
+import axios from "axios";
+import { toast } from "react-toastify";
 import deleteIcon from "../../assets/contractor/SVG.svg";
 import clockIcon from "../../assets/contractor/iconify-icon.svg";
 import earnedPayIcon from "../../assets/contractor/iconify-icon (1).svg";
@@ -12,57 +14,102 @@ const Contractors = () => {
   const [showReportModal, setShowReportModal] = useState(false);
   const [showLogWorkModal, setShowLogWorkModal] = useState(false);
   const [selectedContractor, setSelectedContractor] = useState(null);
+  const [contractors, setContractors] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [reportData, setReportData] = useState({
     reportType: "All Contractors",
     period: "May 2026",
   });
-  const [contractors] = useState([
-    {
-      id: 1,
-      initial: "S",
-      name: "Safeq",
-      role: "itboomi",
-      contractorId: "CON-10024",
-      specialization: ["HVAC", "Active"],
-      specialColors: ["#0047AB", "#16A34A"],
-      date: "Friday\n10/Apr/2026",
-      todayPay: "$0.00",
-      earnedPay: "$0.00",
-      advanceReceived: "$0.00",
-      avatarBg: "#E0E7FF",
-      avatarTextColor: "#0047AB",
-    },
-    {
-      id: 2,
-      initial: "RC",
-      name: "Rathna Kurrar",
-      role: "Carpenter",
-      contractorId: "CON-10025",
-      specialization: ["Carpentry", "Active"],
-      specialColors: ["#16A34A", "#16A34A"],
-      date: "Friday\n15/Aug/2026",
-      todayPay: "$5.00",
-      earnedPay: "$5.00",
-      advanceReceived: "$0.00",
-      avatarBg: "#E0E7FF",
-      avatarTextColor: "#16A34A",
-    },
-    {
-      id: 3,
-      initial: "A",
-      name: "Arjun",
-      role: "Electrician",
-      contractorId: "CON-10026",
-      specialization: ["Plumbing", "Active"],
-      specialColors: ["#DC2626", "#16A34A"],
-      date: "Friday\n16/Aug/2020",
-      todayPay: "$0.99",
-      earnedPay: "$0.98",
-      advanceReceived: "$0.98",
-      avatarBg: "#E0E7FF",
-      avatarTextColor: "#DC2626",
-    },
-  ]);
+
+  // Fetch contractors from API
+  useEffect(() => {
+    const fetchContractors = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        const apiUrl = `${import.meta.env.VITE_API_BASE_URL}/v1/contractors`;
+        console.log("🔗 Fetching contractors from:", apiUrl);
+        
+        const response = await axios.get(apiUrl, {
+          headers: {
+            "Content-Type": "application/json"
+          }
+        });
+
+        console.log("✅ Contractors fetched successfully:", response.data);
+        
+        // Transform API data to component format
+        const results = response.data?.results || [];
+        const transformedContractors = (Array.isArray(results) ? results : []).map((contractor, index) => {
+          const initials = (contractor.name || "C")
+            .split(" ")
+            .map(n => n[0])
+            .join("")
+            .toUpperCase()
+            .slice(0, 2);
+
+          // Get specialty from workInformation
+          const specialty = contractor.workInformation?.specialty || contractor.specialty || "Contractor";
+          
+          // Format date
+          const joinedDate = new Date(contractor.workInformation?.joinedDate || contractor.dateOfBirth || Date.now());
+          const dateStr = joinedDate.toLocaleDateString('en-US', { 
+            weekday: 'long', 
+            year: 'numeric', 
+            month: 'short', 
+            day: 'numeric' 
+          });
+
+          return {
+            id: contractor.id || contractor._id || index,
+            initial: initials,
+            name: contractor.name || "Unknown",
+            role: specialty || "Contractor",
+            contractorId: contractor.employeeId || contractor.contractorId || `CON-${10024 + index}`,
+            specialization: [
+              specialty || "General",
+              "Active"
+            ],
+            specialColors: ["#0047AB", "#16A34A"],
+            date: dateStr,
+            todayPay: "$0.00",
+            earnedPay: "$0.00",
+            advanceReceived: "$0.00",
+            avatarBg: "#E0E7FF",
+            avatarTextColor: "#0047AB",
+            // Store original contractor data for details view
+            _originalData: contractor
+          };
+        });
+
+        setContractors(transformedContractors);
+      } catch (error) {
+        console.error("❌ Error fetching contractors:", {
+          status: error.response?.status,
+          statusText: error.response?.statusText,
+          data: error.response?.data,
+          message: error.message
+        });
+        
+        const errorMessage = error.response?.data?.message || 
+                            error.response?.data?.error || 
+                            error.message || 
+                            "Failed to fetch contractors";
+        
+        setError(errorMessage);
+        toast.error(`Failed to load contractors: ${errorMessage}`);
+        
+        // Set empty array on error
+        setContractors([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchContractors();
+  }, []);
 
   return (
     <Container>
@@ -84,74 +131,108 @@ const Contractors = () => {
         </HeaderContent>
       </PageHeader>
 
-      <CardsGrid>
-        {contractors.map((contractor) => (
-          <Card key={contractor.id} onClick={() => navigate(`/admin/contractors/${contractor.id}/details`)}>
-            <CardTop>
-              <CardHeader>
-                <AvatarWithInfo>
-                  <Avatar $bg={contractor.avatarBg} $textColor={contractor.avatarTextColor}>
-                    {contractor.initial}
-                  </Avatar>
-                  <InfoSection>
-                    <Name>{contractor.name}</Name>
-                    <Role>{contractor.role}</Role>
-                  </InfoSection>
-                </AvatarWithInfo>
-                <DeleteButton>
-                  <DeleteIcon src={deleteIcon} alt="delete" />
-                </DeleteButton>
-              </CardHeader>
+      {/* Loading State */}
+      {loading && (
+        <LoadingContainer>
+          <LoadingSpinner />
+          <LoadingText>Loading contractors...</LoadingText>
+        </LoadingContainer>
+      )}
 
-              <Tags>
-                {contractor.specialization.map((spec, idx) => (
-                  <Tag key={idx} $color={contractor.specialColors[idx]}>
-                    {spec}
-                  </Tag>
-                ))}
-              </Tags>
+      {/* Error State */}
+      {error && !loading && (
+        <ErrorContainer>
+          <ErrorIcon>⚠️</ErrorIcon>
+          <ErrorText>{error}</ErrorText>
+          <RetryButton onClick={() => window.location.reload()}>
+            Retry
+          </RetryButton>
+        </ErrorContainer>
+      )}
 
-              <DateSection>
-                <Subtitle>{contractor.date}</Subtitle>
-              </DateSection>
-            </CardTop>
+      {/* Empty State */}
+      {!loading && !error && contractors.length === 0 && (
+        <EmptyContainer>
+          <EmptyIcon>📋</EmptyIcon>
+          <EmptyText>No contractors found</EmptyText>
+          <EmptySubtext>Add your first contractor to get started</EmptySubtext>
+          <AddButton onClick={() => navigate("/admin/contractors/add")}>
+            + Add Contractor
+          </AddButton>
+        </EmptyContainer>
+      )}
 
-            <PaymentSection>
-              <PaymentItem>
-                <PaymentLabel $color="#0047AB">
-                  <PaymentIcon src={clockIcon} alt="clock" />
-                  <PaymentText $color="#0047AB">Today's Pay</PaymentText>
-                </PaymentLabel>
-                <PaymentAmount $color="#0047AB">{contractor.todayPay}</PaymentAmount>
-              </PaymentItem>
-              <PaymentItem>
-                <PaymentLabel $color="#16A34A">
-                  <PaymentIcon src={earnedPayIcon} alt="earned" />
-                  <PaymentText $color="#16A34A">Earned Pay</PaymentText>
-                </PaymentLabel>
-                <PaymentAmount $color="#16A34A">{contractor.earnedPay}</PaymentAmount>
-              </PaymentItem>
-              <PaymentItem>
-                <PaymentLabel $color="#DC2626">
-                  <PaymentIcon src={advanceIcon} alt="advance" />
-                  <PaymentText $color="#DC2626">Advance Received</PaymentText>
-                </PaymentLabel>
-                <PaymentAmount $color="#DC2626">{contractor.advanceReceived}</PaymentAmount>
-              </PaymentItem>
-            </PaymentSection>
+      {/* Contractors Grid */}
+      {!loading && !error && contractors.length > 0 && (
+        <CardsGrid>
+          {contractors.map((contractor) => (
+            <Card key={contractor.id} onClick={() => navigate(`/admin/contractors/${contractor.id}/details`)}>
+              <CardTop>
+                <CardHeader>
+                  <AvatarWithInfo>
+                    <Avatar $bg={contractor.avatarBg} $textColor={contractor.avatarTextColor}>
+                      {contractor.initial}
+                    </Avatar>
+                    <InfoSection>
+                      <Name>{contractor.name}</Name>
+                      <Role>{contractor.role}</Role>
+                    </InfoSection>
+                  </AvatarWithInfo>
+                  <DeleteButton>
+                    <DeleteIcon src={deleteIcon} alt="delete" />
+                  </DeleteButton>
+                </CardHeader>
 
-            <ActionButtons onClick={(e) => e.stopPropagation()}>
-              <LogButton onClick={() => { setSelectedContractor(contractor); setShowLogWorkModal(true); }}>
-                <IconImage src={clockIcon} alt="clock" />
-                Log Work
-              </LogButton>
-              <PayButton onClick={() => navigate(`/admin/contractors/pay/${contractor.name}`)}>
-                ₹ Pay
-              </PayButton>
-            </ActionButtons>
-          </Card>
-        ))}
-      </CardsGrid>
+                <Tags>
+                  {contractor.specialization.map((spec, idx) => (
+                    <Tag key={idx} $color={contractor.specialColors[idx]}>
+                      {spec}
+                    </Tag>
+                  ))}
+                </Tags>
+
+                <DateSection>
+                  <Subtitle>{contractor.date}</Subtitle>
+                </DateSection>
+              </CardTop>
+
+              <PaymentSection>
+                <PaymentItem>
+                  <PaymentLabel $color="#0047AB">
+                    <PaymentIcon src={clockIcon} alt="clock" />
+                    <PaymentText $color="#0047AB">Today's Pay</PaymentText>
+                  </PaymentLabel>
+                  <PaymentAmount $color="#0047AB">{contractor.todayPay}</PaymentAmount>
+                </PaymentItem>
+                <PaymentItem>
+                  <PaymentLabel $color="#16A34A">
+                    <PaymentIcon src={earnedPayIcon} alt="earned" />
+                    <PaymentText $color="#16A34A">Earned Pay</PaymentText>
+                  </PaymentLabel>
+                  <PaymentAmount $color="#16A34A">{contractor.earnedPay}</PaymentAmount>
+                </PaymentItem>
+                <PaymentItem>
+                  <PaymentLabel $color="#DC2626">
+                    <PaymentIcon src={advanceIcon} alt="advance" />
+                    <PaymentText $color="#DC2626">Advance Received</PaymentText>
+                  </PaymentLabel>
+                  <PaymentAmount $color="#DC2626">{contractor.advanceReceived}</PaymentAmount>
+                </PaymentItem>
+              </PaymentSection>
+
+              <ActionButtons onClick={(e) => e.stopPropagation()}>
+                <LogButton onClick={() => { setSelectedContractor(contractor); setShowLogWorkModal(true); }}>
+                  <IconImage src={clockIcon} alt="clock" />
+                  Log Work
+                </LogButton>
+                <PayButton onClick={() => navigate(`/admin/contractors/pay/${contractor.name}`)}>
+                  ₹ Pay
+                </PayButton>
+              </ActionButtons>
+            </Card>
+          ))}
+        </CardsGrid>
+      )}
 
       {/* Report Modal */}
       {showReportModal && (
@@ -261,8 +342,8 @@ const Contractors = () => {
                 Close
               </CancelModalButton>
               <EnterWorkLogButton onClick={() => {
-                // Navigate to work job details
-                navigate("/admin/contractors/work-job-details", {
+                // Navigate to add work entry page
+                navigate("/admin/contractors/add-work-entry", {
                   state: { contractor: selectedContractor }
                 });
                 setShowLogWorkModal(false);
@@ -282,6 +363,119 @@ const Container = styled.div`
   padding: 1rem;
   background: #F5F7FA;
   min-height: 100vh;
+`;
+
+// Loading, Error, Empty States
+const LoadingContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  min-height: 400px;
+  background: white;
+  border-radius: 8px;
+  margin-top: 2rem;
+`;
+
+const LoadingSpinner = styled.div`
+  width: 40px;
+  height: 40px;
+  border: 4px solid #E5E7EB;
+  border-top: 4px solid #0047AB;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+`;
+
+const LoadingText = styled.p`
+  font-size: 0.95rem;
+  color: #666;
+  margin: 0;
+  font-family: "Inter", sans-serif;
+`;
+
+const ErrorContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  min-height: 400px;
+  background: white;
+  border-radius: 8px;
+  margin-top: 2rem;
+  padding: 2rem;
+`;
+
+const ErrorIcon = styled.div`
+  font-size: 3rem;
+`;
+
+const ErrorText = styled.p`
+  font-size: 0.95rem;
+  color: #DC2626;
+  margin: 0;
+  font-family: "Inter", sans-serif;
+  text-align: center;
+  max-width: 400px;
+`;
+
+const RetryButton = styled.button`
+  padding: 0.75rem 1.5rem;
+  background: #0047AB;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  font-family: "Inter", sans-serif;
+  transition: all 0.25s ease;
+
+  &:hover {
+    background: #003580;
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+`;
+
+const EmptyContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  min-height: 400px;
+  background: white;
+  border-radius: 8px;
+  margin-top: 2rem;
+  padding: 2rem;
+`;
+
+const EmptyIcon = styled.div`
+  font-size: 3rem;
+`;
+
+const EmptyText = styled.p`
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #222;
+  margin: 0;
+  font-family: "Inter", sans-serif;
+`;
+
+const EmptySubtext = styled.p`
+  font-size: 0.9rem;
+  color: #888;
+  margin: 0;
+  font-family: "Inter", sans-serif;
 `;
 
 const PageHeader = styled.div`
