@@ -1,29 +1,43 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import TableToolbar from "../../../components/TableToolbar";
 import ReusableTable from "../../../components/ReusableTable";
 import PlusIcon from "../../../assets/images/DashboardImages/plus-large_svgrepo.com.svg";
 import DotMenuIcon from "../../../assets/images/DayOff/dot-menu.svg";
+import { get } from "../../../helpers/api_helper";
+import { GET_ROLES } from "../../../helpers/url_helper";
+import { toast } from "react-toastify";
+import theme from "../../../theme/theme";
 
 const Roles = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
+  const [rolesData, setRolesData] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-  const rolesData = [
-    {
-      roleId: "#RL8740",
-      role: "Senior Manager",
-      description: "Manages team operations and strategic planning",
-      status: "Active",
-    },
-    {
-      roleId: "#RL8741",
-      role: "Team Lead",
-      description: "Leads project teams and coordinates tasks",
-      status: "Active",
-    },
-  ];
+  const fetchRoles = async () => {
+    try {
+      setLoading(true);
+      const response = await get(GET_ROLES);
+      if (response?.results) {
+        setRolesData(response.results);
+      } else if (Array.isArray(response)) {
+        setRolesData(response);
+      }
+    } catch (error) {
+      console.error("Error fetching roles:", error);
+      toast.error(
+        error.response?.data?.message || "Failed to fetch roles. Please try again."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchRoles();
+  }, []);
 
   const columns = [
     {
@@ -32,7 +46,7 @@ const Roles = () => {
     },
     {
       header: "Role",
-      key: "role",
+      key: "name",
     },
     {
       header: "Description",
@@ -40,8 +54,12 @@ const Roles = () => {
     },
     {
       header: "Status",
-      key: "status",
-      render: (row) => <StatusBadge $status={row.status}>{row.status}</StatusBadge>,
+      key: "isActive",
+      render: (row) => (
+        <StatusBadge $status={row.isActive ? "Active" : "Inactive"}>
+          {row.isActive ? "Active" : "Inactive"}
+        </StatusBadge>
+      ),
     },
     {
       header: "Action",
@@ -74,13 +92,17 @@ const Roles = () => {
       />
 
       <TableWrapper>
-        <ReusableTable
-          columns={columns}
-          data={rolesData}
-          itemsPerPage={10}
-          enablePagination={true}
-          alwaysShowPagination={true}
-        />
+        {loading ? (
+          <LoadingText>Loading roles...</LoadingText>
+        ) : (
+          <ReusableTable
+            columns={columns}
+            data={rolesData}
+            itemsPerPage={10}
+            enablePagination={true}
+            alwaysShowPagination={true}
+          />
+        )}
       </TableWrapper>
     </Container>
   );
@@ -122,4 +144,12 @@ const ActionButton = styled.button`
   &:hover {
     opacity: 0.7;
   }
+`;
+
+const LoadingText = styled.div`
+  text-align: center;
+  padding: 2rem;
+  font-size: 1rem;
+  color: ${theme.colors.darkGrey};
+  font-family: "Inter-Medium", sans-serif;
 `;

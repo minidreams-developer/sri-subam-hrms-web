@@ -4,12 +4,13 @@ import theme from "../../theme/theme";
 import InputComponent from "../../components/InputComponent";
 import Button from "../../components/Button";
 import UploadIconSvg from "../../assets/images/Common/upload.svg";
-import Select from "react-select";
-import { customSelectStyles } from "../../theme/reactSelectStyles";
+import { toast } from "react-toastify";
+import { post } from "../../helpers/api_helper";
+import { CREATE_ORGANIZATION } from "../../helpers/url_helper";
 
 const OrganizationDetails = () => {
   const [formData, setFormData] = useState({
-    companyName: null,
+    companyName: "",
     gst: "",
     pan: "",
     tan: "",
@@ -24,13 +25,7 @@ const OrganizationDetails = () => {
   });
 
   const [logoFile, setLogoFile] = useState(null);
-
-  const companyTypeOptions = [
-    { value: "private", label: "Private Limited" },
-    { value: "public", label: "Public Limited" },
-    { value: "partnership", label: "Partnership" },
-    { value: "sole", label: "Sole Proprietorship" },
-  ];
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -47,8 +42,43 @@ const OrganizationDetails = () => {
     console.log("Cancel clicked");
   };
 
-  const handleSave = () => {
-    console.log("Form data:", formData);
+  const handleSave = async () => {
+    try {
+      setLoading(true);
+
+      // Prepare payload according to API specs
+      const payload = {
+        companyName: formData.companyName,
+        email: formData.email,
+        address: {
+          addressLine1: formData.address1,
+          addressLine2: formData.address2,
+          city: formData.city,
+          state: formData.state,
+          pincode: formData.pinCode,
+          country: formData.country,
+        },
+      };
+
+      // Remove any undefined values
+      Object.keys(payload.address).forEach(
+        (key) => !payload.address[key] && delete payload.address[key]
+      );
+      Object.keys(payload).forEach(
+        (key) => !payload[key] && key !== "address" && delete payload[key]
+      );
+
+      const response = await post(CREATE_ORGANIZATION, payload);
+      toast.success("Organization details saved successfully!");
+      console.log("API response:", response);
+    } catch (error) {
+      console.error("Error saving organization details:", error);
+      toast.error(
+        error.response?.data?.message || "Failed to save organization details"
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -79,17 +109,14 @@ const OrganizationDetails = () => {
             {/* Company Name and GST */}
             <Row>
               <Col>
-                <SelectWrapper>
-                  <Label>Company Name</Label>
-                  <Select
-                    options={companyTypeOptions}
-                    value={formData.companyName}
-                    onChange={(value) => handleChange("companyName", value)}
-                    placeholder="Select Type"
-                    styles={customSelectStyles}
-                    isSearchable
-                  />
-                </SelectWrapper>
+                <InputComponent
+                  label="Company Name"
+                  placeholder="Enter Company Name"
+                  value={formData.companyName}
+                  onChange={(e) => handleChange("companyName", e.target.value)}
+                  labelMargin="0 0 0.625rem 0"
+                  height="50px"
+                />
               </Col>
               <Col>
                 <InputComponent
@@ -246,9 +273,10 @@ const OrganizationDetails = () => {
             fontWeight="600"
             fontFamily="Inter-SemiBold"
             onClick={handleCancel}
+            disabled={loading}
           />
           <Button
-            text="Save"
+            text={loading ? "Saving..." : "Save"}
             bg={theme.colors.primary}
             color={theme.colors.white}
             width="150px"
@@ -257,6 +285,7 @@ const OrganizationDetails = () => {
             fontWeight="600"
             fontFamily="Inter-SemiBold"
             onClick={handleSave}
+            disabled={loading}
           />
         </ButtonRow>
       </Section>
@@ -358,14 +387,6 @@ const Row = styled.div`
 
 const Col = styled.div`
   width: 100%;
-`;
-
-const SelectWrapper = styled.div`
-  width: 100%;
-
-  ${Label} {
-    margin-bottom: 0.625rem;
-  }
 `;
 
 const ButtonRow = styled.div`

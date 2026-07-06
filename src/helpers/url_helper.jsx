@@ -113,3 +113,10 @@ export const GET_OVERTIME_BY_EMPLOYEE = "/v1/overtime/employee/:employeeId";
 export const UPDATE_OVERTIME = "/v1/overtime/:overtimeId";
 export const DELETE_OVERTIME = "/v1/overtime/:overtimeId";
 export const GET_OVERTIME_STATS = "/v1/overtime/stats";
+
+// Organizations
+export const CREATE_ORGANIZATION = "/v1/organizations";
+export const GET_ORGANIZATIONS = "/v1/organizations";
+// Roles
+export const CREATE_ROLE = "/v1/roles";
+export const GET_ROLES = "/v1/roles";

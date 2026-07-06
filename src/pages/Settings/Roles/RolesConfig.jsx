@@ -7,20 +7,28 @@ import Button from "../../../components/Button";
 import ModuleAccessRow from "../../../components/ModuleAccessRow";
 import { MdDelete } from "react-icons/md";
 import Switch from "react-switch";
+import { toast } from "react-toastify";
+import { post } from "../../../helpers/api_helper";
+import { CREATE_ROLE } from "../../../helpers/url_helper";
+import { getStoredAuthUser } from "../../../helpers/auth_helper";
 
 const RolesConfig = () => {
   const navigate = useNavigate();
+  const authUser = getStoredAuthUser();
   
   const [formData, setFormData] = useState({
     roleId: "",
     roleName: "",
     description: "",
   });
+  const [loading, setLoading] = useState(false);
 
   const [moduleToggles, setModuleToggles] = useState({
+    contractors: false,
     peopleHub: false,
     timeHub: false,
     payHub: false,
+    settings: false,
   });
 
   const [permissions, setPermissions] = useState({
@@ -28,6 +36,10 @@ const RolesConfig = () => {
     dashboard: { view: false, add: false, edit: false, delete: false, all: false },
     // Announcement
     announcement: { view: false, add: false, edit: false, delete: false, all: false },
+    // Contractors
+    contractorOverview: { view: false, add: false, edit: false, delete: false, all: false },
+    contractorContractors: { view: false, add: false, edit: false, delete: false, all: false },
+    contractorPayments: { view: false, add: false, edit: false, delete: false, all: false },
     // People Hub
     onboarding: { view: false, add: false, edit: false, delete: false, all: false },
     employees: { view: false, add: false, edit: false, delete: false, all: false },
@@ -48,6 +60,15 @@ const RolesConfig = () => {
     paysheet: { view: false, add: false, edit: false, delete: false, all: false },
     stopPayroll: { view: false, add: false, edit: false, delete: false, all: false },
     additionDeductions: { view: false, add: false, edit: false, delete: false, all: false },
+    // Help
+    help: { view: false, add: false, edit: false, delete: false, all: false },
+    // Settings
+    generalSettings: { view: false, add: false, edit: false, delete: false, all: false },
+    organizationDetails: { view: false, add: false, edit: false, delete: false, all: false },
+    daySettings: { view: false, add: false, edit: false, delete: false, all: false },
+    seriesConfiguration: { view: false, add: false, edit: false, delete: false, all: false },
+    departments: { view: false, add: false, edit: false, delete: false, all: false },
+    roles: { view: false, add: false, edit: false, delete: false, all: false },
   });
 
   const handlePermissionChange = (module, permission) => {
@@ -71,10 +92,84 @@ const RolesConfig = () => {
     navigate("/admin/settings/roles");
   };
 
-  const handleSave = () => {
-    console.log("Form data:", formData);
-    console.log("Permissions:", permissions);
-    // Add your save logic here
+  const preparePermissionsPayload = () => {
+    // Define which modules belong to which groups
+    const modulesByGroup = {
+      dashboard: ["dashboard"],
+      announcement: ["announcement"],
+      contractors: ["contractorOverview", "contractorContractors", "contractorPayments"],
+      peopleHub: ["onboarding", "employees", "agents", "teams", "branch", "hierarchy", "offBoarding"],
+      timeHub: ["attendance", "leaveAttendance", "shiftManagement", "overtimeManagement", "leaderboard", "dayOffHolidays"],
+      payHub: ["payroll", "paysheet", "stopPayroll", "additionDeductions"],
+      help: ["help"],
+      settings: ["generalSettings", "organizationDetails", "daySettings", "seriesConfiguration", "departments", "roles"],
+    };
+
+    const permissionsArray = [];
+
+    Object.entries(modulesByGroup).forEach(([group, moduleKeys]) => {
+      const modules = moduleKeys
+        .map((moduleKey) => {
+          const modulePermissions = permissions[moduleKey];
+          if (!modulePermissions) return null;
+
+          // Check if any permission is true
+          const hasAnyPermission = Object.values(modulePermissions).some((val) => val === true);
+
+          return {
+            module: moduleKey,
+            enabled: hasAnyPermission,
+            permissions: {
+              view: modulePermissions.view || false,
+              add: modulePermissions.add || false,
+              edit: modulePermissions.edit || false,
+              delete: modulePermissions.delete || false,
+            },
+          };
+        })
+        .filter(Boolean); // Remove null entries
+
+      if (modules.length > 0) {
+        permissionsArray.push({
+          group: group,
+          modules: modules,
+        });
+      }
+    });
+
+    return permissionsArray;
+  };
+
+  const handleSave = async () => {
+    try {
+      setLoading(true);
+      
+      const payload = {
+        name: formData.roleName,
+        description: formData.description,
+        user: authUser?.user?._id || authUser?.user?.id || "",
+        roleId: formData.roleId,
+        isSystemRole: false,
+        isDefault: false,
+        isActive: true,
+        permissions: preparePermissionsPayload(),
+      };
+
+      console.log("Submitting payload:", payload);
+      const response = await post(CREATE_ROLE, payload);
+      toast.success("Role created successfully!");
+      console.log("Response:", response);
+      
+      // Navigate back to roles list
+      navigate("/admin/settings/roles");
+    } catch (error) {
+      console.error("Error creating role:", error);
+      toast.error(
+        error.response?.data?.message || "Failed to create role. Please try again."
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleDelete = () => {
@@ -138,7 +233,8 @@ const RolesConfig = () => {
 
             {/* Dashboard */}
             <ModuleAccessRow
-              module="Dashboard"
+              moduleKey="dashboard"
+              moduleName="Dashboard"
               permissions={permissions.dashboard}
               onPermissionChange={handlePermissionChange}
               disabled={false}
@@ -146,10 +242,51 @@ const RolesConfig = () => {
 
             {/* Announcement */}
             <ModuleAccessRow
-              module="Announcement"
+              moduleKey="announcement"
+              moduleName="Announcement"
               permissions={permissions.announcement}
               onPermissionChange={handlePermissionChange}
               disabled={false}
+            />
+
+            {/* Contractors */}
+            <ModuleSection>
+              <ModuleSectionHeader>
+                <ModuleSectionTitle>Contractors</ModuleSectionTitle>
+                <Switch
+                  checked={moduleToggles.contractors}
+                  onChange={() => handleModuleToggle("contractors")}
+                  onColor={theme.colors.primary}
+                  offColor="#ccc"
+                  height={24}
+                  width={48}
+                  handleDiameter={20}
+                  uncheckedIcon={false}
+                  checkedIcon={false}
+                />
+              </ModuleSectionHeader>
+            </ModuleSection>
+
+            <ModuleAccessRow
+              moduleKey="contractorOverview"
+              moduleName="Overview"
+              permissions={permissions.contractorOverview}
+              onPermissionChange={handlePermissionChange}
+              disabled={!moduleToggles.contractors}
+            />
+            <ModuleAccessRow
+              moduleKey="contractorContractors"
+              moduleName="Contractors"
+              permissions={permissions.contractorContractors}
+              onPermissionChange={handlePermissionChange}
+              disabled={!moduleToggles.contractors}
+            />
+            <ModuleAccessRow
+              moduleKey="contractorPayments"
+              moduleName="Payments"
+              permissions={permissions.contractorPayments}
+              onPermissionChange={handlePermissionChange}
+              disabled={!moduleToggles.contractors}
             />
 
             {/* People Hub */}
@@ -171,43 +308,50 @@ const RolesConfig = () => {
             </ModuleSection>
 
             <ModuleAccessRow
-              module="Onboarding"
+              moduleKey="onboarding"
+              moduleName="Onboarding"
               permissions={permissions.onboarding}
               onPermissionChange={handlePermissionChange}
               disabled={!moduleToggles.peopleHub}
             />
             <ModuleAccessRow
-              module="Employees"
+              moduleKey="employees"
+              moduleName="Employees"
               permissions={permissions.employees}
               onPermissionChange={handlePermissionChange}
               disabled={!moduleToggles.peopleHub}
             />
             <ModuleAccessRow
-              module="Agents"
+              moduleKey="agents"
+              moduleName="Agents"
               permissions={permissions.agents}
               onPermissionChange={handlePermissionChange}
               disabled={!moduleToggles.peopleHub}
             />
             <ModuleAccessRow
-              module="Teams"
+              moduleKey="teams"
+              moduleName="Teams"
               permissions={permissions.teams}
               onPermissionChange={handlePermissionChange}
               disabled={!moduleToggles.peopleHub}
             />
             <ModuleAccessRow
-              module="Branch"
+              moduleKey="branch"
+              moduleName="Branch"
               permissions={permissions.branch}
               onPermissionChange={handlePermissionChange}
               disabled={!moduleToggles.peopleHub}
             />
             <ModuleAccessRow
-              module="Hierarchy"
+              moduleKey="hierarchy"
+              moduleName="Hierarchy"
               permissions={permissions.hierarchy}
               onPermissionChange={handlePermissionChange}
               disabled={!moduleToggles.peopleHub}
             />
             <ModuleAccessRow
-              module="Off-Boarding"
+              moduleKey="offBoarding"
+              moduleName="Off-Boarding"
               permissions={permissions.offBoarding}
               onPermissionChange={handlePermissionChange}
               disabled={!moduleToggles.peopleHub}
@@ -232,37 +376,43 @@ const RolesConfig = () => {
             </ModuleSection>
 
             <ModuleAccessRow
-              module="Attendance"
+              moduleKey="attendance"
+              moduleName="Attendance"
               permissions={permissions.attendance}
               onPermissionChange={handlePermissionChange}
               disabled={!moduleToggles.timeHub}
             />
             <ModuleAccessRow
-              module="Leave Attendance"
+              moduleKey="leaveAttendance"
+              moduleName="Leave Attendance"
               permissions={permissions.leaveAttendance}
               onPermissionChange={handlePermissionChange}
               disabled={!moduleToggles.timeHub}
             />
             <ModuleAccessRow
-              module="Overtime Management"
-              permissions={permissions.overtimeManagement}
-              onPermissionChange={handlePermissionChange}
-              disabled={!moduleToggles.timeHub}
-            />
-            <ModuleAccessRow
-              module="Shift Management"
+              moduleKey="shiftManagement"
+              moduleName="Shift Management"
               permissions={permissions.shiftManagement}
               onPermissionChange={handlePermissionChange}
               disabled={!moduleToggles.timeHub}
             />
             <ModuleAccessRow
-              module="Leaderboard"
+              moduleKey="overtimeManagement"
+              moduleName="Overtime Management"
+              permissions={permissions.overtimeManagement}
+              onPermissionChange={handlePermissionChange}
+              disabled={!moduleToggles.timeHub}
+            />
+            <ModuleAccessRow
+              moduleKey="leaderboard"
+              moduleName="Leaderboard"
               permissions={permissions.leaderboard}
               onPermissionChange={handlePermissionChange}
               disabled={!moduleToggles.timeHub}
             />
             <ModuleAccessRow
-              module="Day Off & Holidays"
+              moduleKey="dayOffHolidays"
+              moduleName="Day Off & Holidays"
               permissions={permissions.dayOffHolidays}
               onPermissionChange={handlePermissionChange}
               disabled={!moduleToggles.timeHub}
@@ -287,35 +437,109 @@ const RolesConfig = () => {
             </ModuleSection>
 
             <ModuleAccessRow
-              module="Payroll"
+              moduleKey="payroll"
+              moduleName="Payroll"
               permissions={permissions.payroll}
               onPermissionChange={handlePermissionChange}
               disabled={!moduleToggles.payHub}
             />
             <ModuleAccessRow
-              module="Paysheet"
+              moduleKey="paysheet"
+              moduleName="Paysheet"
               permissions={permissions.paysheet}
               onPermissionChange={handlePermissionChange}
               disabled={!moduleToggles.payHub}
             />
             <ModuleAccessRow
-              module="Stop Payroll"
+              moduleKey="stopPayroll"
+              moduleName="Stop Payroll"
               permissions={permissions.stopPayroll}
               onPermissionChange={handlePermissionChange}
               disabled={!moduleToggles.payHub}
             />
             <ModuleAccessRow
-              module="Addition & Deductions"
+              moduleKey="additionDeductions"
+              moduleName="Addition & Deductions"
               permissions={permissions.additionDeductions}
               onPermissionChange={handlePermissionChange}
               disabled={!moduleToggles.payHub}
+            />
+
+            {/* Help */}
+            <ModuleAccessRow
+              moduleKey="help"
+              moduleName="Help"
+              permissions={permissions.help}
+              onPermissionChange={handlePermissionChange}
+              disabled={false}
+            />
+
+            {/* Settings */}
+            <ModuleSection>
+              <ModuleSectionHeader>
+                <ModuleSectionTitle>Settings</ModuleSectionTitle>
+                <Switch
+                  checked={moduleToggles.settings}
+                  onChange={() => handleModuleToggle("settings")}
+                  onColor={theme.colors.primary}
+                  offColor="#ccc"
+                  height={24}
+                  width={48}
+                  handleDiameter={20}
+                  uncheckedIcon={false}
+                  checkedIcon={false}
+                />
+              </ModuleSectionHeader>
+            </ModuleSection>
+
+            <ModuleAccessRow
+              moduleKey="generalSettings"
+              moduleName="General Settings"
+              permissions={permissions.generalSettings}
+              onPermissionChange={handlePermissionChange}
+              disabled={!moduleToggles.settings}
+            />
+            <ModuleAccessRow
+              moduleKey="organizationDetails"
+              moduleName="Organization Details"
+              permissions={permissions.organizationDetails}
+              onPermissionChange={handlePermissionChange}
+              disabled={!moduleToggles.settings}
+            />
+            <ModuleAccessRow
+              moduleKey="daySettings"
+              moduleName="Day Settings"
+              permissions={permissions.daySettings}
+              onPermissionChange={handlePermissionChange}
+              disabled={!moduleToggles.settings}
+            />
+            <ModuleAccessRow
+              moduleKey="seriesConfiguration"
+              moduleName="Series Configuration"
+              permissions={permissions.seriesConfiguration}
+              onPermissionChange={handlePermissionChange}
+              disabled={!moduleToggles.settings}
+            />
+            <ModuleAccessRow
+              moduleKey="departments"
+              moduleName="Departments"
+              permissions={permissions.departments}
+              onPermissionChange={handlePermissionChange}
+              disabled={!moduleToggles.settings}
+            />
+            <ModuleAccessRow
+              moduleKey="roles"
+              moduleName="Roles"
+              permissions={permissions.roles}
+              onPermissionChange={handlePermissionChange}
+              disabled={!moduleToggles.settings}
             />
           </TableContainer>
         </Section>
 
         {/* Action Buttons */}
         <ButtonRow>
-          <DeleteButton onClick={handleDelete}>
+          <DeleteButton onClick={handleDelete} disabled={loading}>
             <MdDelete size={20} />
             Delete
           </DeleteButton>
@@ -331,9 +555,10 @@ const RolesConfig = () => {
               fontWeight="600"
               fontFamily="Inter-SemiBold"
               onClick={handleCancel}
+              disabled={loading}
             />
             <Button
-              text="Save Changes"
+              text={loading ? "Saving..." : "Save Changes"}
               bg={theme.colors.primary}
               color={theme.colors.white}
               width="150px"
@@ -342,6 +567,7 @@ const RolesConfig = () => {
               fontWeight="600"
               fontFamily="Inter-SemiBold"
               onClick={handleSave}
+              disabled={loading}
             />
           </RightButtons>
         </ButtonRow>
@@ -503,9 +729,15 @@ const DeleteButton = styled.button`
   font-weight: 600;
   font-family: "Inter-SemiBold", sans-serif;
   cursor: pointer;
+  transition: all 0.2s ease;
 
-  &:hover {
+  &:hover:not(:disabled) {
     background: #FEE2E2;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
   }
 `;
 

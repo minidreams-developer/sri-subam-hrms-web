@@ -1,27 +1,92 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import styled from "styled-components";
 import SampleProfile from "../../../assets/images/employee/sampleProfile.jpg";
 import EditIcon from "../../../assets/images/employee/edit-05_svgrepo.com.svg";
 import theme from "../../../theme/theme";
+import { get } from "../../../helpers/api_helper";
+import { GET_ORGANIZATIONS } from "../../../helpers/url_helper";
+import { toast } from "react-toastify";
 
 const GeneralSettings = () => {
-  const [profileData] = useState({
-    companyName: "Manoj Kumar",
-    email: "designedbymanoj@gmail.com",
-    mobileNumber: "+91 9500827645",
-    gst: "Male",
-    pan: "20-09-1999",
-    tan: "31 Years",
-    address1: "123/3 1st Floor",
-    address2: "Agasthiyar street, Tango Colony,",
-    city: "Tirupur",
-    state: "Tamil Nadu",
-    zipCode: "641666",
-  });
+  const [profileData, setProfileData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  const fetchOrganizationData = async () => {
+    try {
+      setLoading(true);
+      const response = await get(GET_ORGANIZATIONS);
+      // Handle API response with results array
+      if (response && response.results && Array.isArray(response.results) && response.results.length > 0) {
+        const org = response.results[0];
+        setProfileData({
+          companyName: org.companyName || "",
+          email: org.email || "",
+          mobileNumber: org.phone || "",
+          gst: org.gst || "",
+          pan: org.pan || "",
+          tan: org.tan || "",
+          address1: org.address?.addressLine1 || "",
+          address2: org.address?.addressLine2 || "",
+          city: org.address?.city || "",
+          state: org.address?.state || "",
+          zipCode: org.address?.pincode || "",
+        });
+      } else if (Array.isArray(response) && response.length > 0) {
+        const org = response[0];
+        setProfileData({
+          companyName: org.companyName || "",
+          email: org.email || "",
+          mobileNumber: org.phone || "",
+          gst: org.gst || "",
+          pan: org.pan || "",
+          tan: org.tan || "",
+          address1: org.address?.addressLine1 || "",
+          address2: org.address?.addressLine2 || "",
+          city: org.address?.city || "",
+          state: org.address?.state || "",
+          zipCode: org.address?.pincode || "",
+        });
+      } else if (response && typeof response === "object") {
+        const org = response;
+        setProfileData({
+          companyName: org.companyName || "",
+          email: org.email || "",
+          mobileNumber: org.phone || "",
+          gst: org.gst || "",
+          pan: org.pan || "",
+          tan: org.tan || "",
+          address1: org.address?.addressLine1 || "",
+          address2: org.address?.addressLine2 || "",
+          city: org.address?.city || "",
+          state: org.address?.state || "",
+          zipCode: org.address?.pincode || "",
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching organization data:", error);
+      toast.error("Failed to load organization details");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchOrganizationData();
+  }, []);
 
   const handleEditPicture = () => {
     console.log("Edit picture clicked");
   };
+
+  if (loading) {
+    return (
+      <Container>
+        <Section>
+          <LoadingText>Loading...</LoadingText>
+        </Section>
+      </Container>
+    );
+  }
 
   return (
     <Container>
@@ -41,27 +106,27 @@ const GeneralSettings = () => {
               <InfoGrid>
                 <InfoItem>
                   <Label>Company Name</Label>
-                  <Value>{profileData.companyName}</Value>
+                  <Value>{profileData?.companyName || "N/A"}</Value>
                 </InfoItem>
                 <InfoItem>
                   <Label>Email</Label>
-                  <Value>{profileData.email}</Value>
+                  <Value>{profileData?.email || "N/A"}</Value>
                 </InfoItem>
                 <InfoItem>
                   <Label>Mobile Number</Label>
-                  <Value>{profileData.mobileNumber}</Value>
+                  <Value>{profileData?.mobileNumber || "N/A"}</Value>
                 </InfoItem>
                 <InfoItem>
                   <Label>GST</Label>
-                  <Value>{profileData.gst}</Value>
+                  <Value>{profileData?.gst || "N/A"}</Value>
                 </InfoItem>
                 <InfoItem>
                   <Label>PAN</Label>
-                  <Value>{profileData.pan}</Value>
+                  <Value>{profileData?.pan || "N/A"}</Value>
                 </InfoItem>
                 <InfoItem>
                   <Label>TAN</Label>
-                  <Value>{profileData.tan}</Value>
+                  <Value>{profileData?.tan || "N/A"}</Value>
                 </InfoItem>
               </InfoGrid>
             </RightSection>
@@ -75,23 +140,23 @@ const GeneralSettings = () => {
             <AddressGrid>
               <AddressItem>
                 <Label>Address 1</Label>
-                <Value>{profileData.address1}</Value>
+                <Value>{profileData?.address1 || "N/A"}</Value>
               </AddressItem>
               <AddressItem>
                 <Label>Address 2</Label>
-                <Value>{profileData.address2}</Value>
+                <Value>{profileData?.address2 || "N/A"}</Value>
               </AddressItem>
               <AddressItem>
                 <Label>City</Label>
-                <Value>{profileData.city}</Value>
+                <Value>{profileData?.city || "N/A"}</Value>
               </AddressItem>
               <AddressItem>
                 <Label>State</Label>
-                <Value>{profileData.state}</Value>
+                <Value>{profileData?.state || "N/A"}</Value>
               </AddressItem>
               <AddressItem>
                 <Label>ZIP Code</Label>
-                <Value>{profileData.zipCode}</Value>
+                <Value>{profileData?.zipCode || "N/A"}</Value>
               </AddressItem>
             </AddressGrid>
           </AddressCard>
@@ -241,4 +306,12 @@ const AddressItem = styled.div`
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+`;
+
+const LoadingText = styled.div`
+  font-size: 1rem;
+  font-family: "Inter-Medium", sans-serif;
+  color: ${theme.colors.textColor};
+  text-align: center;
+  padding: 2rem;
 `;

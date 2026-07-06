@@ -1,16 +1,16 @@
 import styled from "styled-components";
 import theme from "../theme/theme";
 
-const ModuleAccessRow = ({ module, permissions, onPermissionChange, disabled = false }) => {
+const ModuleAccessRow = ({ moduleKey, moduleName, permissions, onPermissionChange, disabled = false }) => {
   const handleCheckboxChange = (permission) => {
     if (!disabled) {
-      onPermissionChange(module, permission);
+      onPermissionChange(moduleKey, permission);
     }
   };
 
   return (
     <Row>
-      <ModuleName>{module}</ModuleName>
+      <ModuleName>{moduleName}</ModuleName>
       <CheckboxCell>
         <Checkbox
           type="checkbox"
