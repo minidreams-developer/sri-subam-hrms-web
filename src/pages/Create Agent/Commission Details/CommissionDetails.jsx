@@ -7,7 +7,7 @@ import { customSelectStyles } from "../../../theme/reactSelectStyles";
 
 const CommissionDetails = forwardRef((_, ref) => {
   const [formData, setFormData] = useState({
-    commissionPerPerson: "",
+    commissionPercentage: "",
     allowance: "",
     salaryDisbursementType: null,
     accHolderName: "",
@@ -23,9 +23,9 @@ const CommissionDetails = forwardRef((_, ref) => {
   }));
 
   const salaryDisbursementTypeOptions = [
-    { value: "bank_transfer", label: "Bank Transfer" },
-    { value: "cash", label: "Cash" },
-    { value: "upi", label: "UPI" },
+    { value: "monthly", label: "Monthly" },
+    { value: "weekly", label: "Weekly" },
+    { value: "fortnightly", label: "Fortnightly" },
   ];
 
   const handleChange = (field, value) => {
@@ -39,17 +39,17 @@ const CommissionDetails = forwardRef((_, ref) => {
         <Row>
           <Col>
             <InputComponent
-              label="Commission Per Person"
-              placeholder="₹ 1500"
-              value={formData.commissionPerPerson}
-              onChange={(e) => handleChange("commissionPerPerson", e.target.value)}
+              label="Commission (%)"
+              placeholder="Enter Commission Percentage (e.g., 10)"
+              value={formData.commissionPercentage}
+              onChange={(e) => handleChange("commissionPercentage", e.target.value)}
               labelMargin="0 0 0.625rem 0"
             />
           </Col>
           <Col>
             <InputComponent
-              label="Allowance (Ota)"
-              placeholder="₹ 1500"
+              label="Allowance"
+              placeholder="₹ 5000"
               value={formData.allowance}
               onChange={(e) => handleChange("allowance", e.target.value)}
               labelMargin="0 0 0.625rem 0"
@@ -78,8 +78,8 @@ const CommissionDetails = forwardRef((_, ref) => {
         <Row>
           <Col>
             <InputComponent
-              label="Acc Holder Name"
-              placeholder="Enter Acc Holder Name"
+              label="Account Holder Name"
+              placeholder="Enter Account Holder Name"
               value={formData.accHolderName}
               onChange={(e) => handleChange("accHolderName", e.target.value)}
               labelMargin="0 0 0.625rem 0"
@@ -87,8 +87,8 @@ const CommissionDetails = forwardRef((_, ref) => {
           </Col>
           <Col>
             <InputComponent
-              label="Bank"
-              placeholder="Enter Bank"
+              label="Bank Name"
+              placeholder="Enter Bank Name"
               value={formData.bank}
               onChange={(e) => handleChange("bank", e.target.value)}
               labelMargin="0 0 0.625rem 0"
@@ -98,8 +98,8 @@ const CommissionDetails = forwardRef((_, ref) => {
         <Row>
           <Col>
             <InputComponent
-              label="Acc Number"
-              placeholder="Enter Acc Number"
+              label="Account Number"
+              placeholder="Enter Account Number"
               value={formData.accNumber}
               onChange={(e) => handleChange("accNumber", e.target.value)}
               labelMargin="0 0 0.625rem 0"
@@ -107,8 +107,8 @@ const CommissionDetails = forwardRef((_, ref) => {
           </Col>
           <Col>
             <InputComponent
-              label="IFS Code"
-              placeholder="Enter IFS Code"
+              label="IFSC Code"
+              placeholder="Enter IFSC Code"
               value={formData.ifscCode}
               onChange={(e) => handleChange("ifscCode", e.target.value)}
               labelMargin="0 0 0.625rem 0"
@@ -119,7 +119,7 @@ const CommissionDetails = forwardRef((_, ref) => {
           <Col>
             <InputComponent
               label="Branch"
-              placeholder="Enter Branch"
+              placeholder="Enter Branch Name"
               value={formData.branch}
               onChange={(e) => handleChange("branch", e.target.value)}
               labelMargin="0 0 0.625rem 0"
@@ -134,7 +134,7 @@ const CommissionDetails = forwardRef((_, ref) => {
           <FullCol>
             <RemarksLabel>Remarks</RemarksLabel>
             <RemarksTextarea
-              placeholder="Enter Remarks"
+              placeholder="Enter Reference Details (e.g., Referred by branch manager)"
               value={formData.remarks}
               onChange={(e) => handleChange("remarks", e.target.value)}
             />

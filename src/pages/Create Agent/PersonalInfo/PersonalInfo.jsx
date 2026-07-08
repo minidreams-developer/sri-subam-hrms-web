@@ -1,4 +1,4 @@
-import { useState, forwardRef, useImperativeHandle } from "react";
+import { useState, forwardRef, useImperativeHandle, useEffect } from "react";
 import styled from "styled-components";
 import theme from "../../../theme/theme";
 import InputComponent from "../../../components/InputComponent";
@@ -6,6 +6,8 @@ import CalenderInput from "../../../components/CalenderInput";
 import Select from "react-select";
 import { customSelectStyles } from "../../../theme/reactSelectStyles";
 import UploadIcon from "../../../assets/images/employee/upload2.svg";
+import { get } from "../../../helpers/api_helper";
+import { GENERATE_AGENT_ID } from "../../../helpers/url_helper";
 
 const PersonalInfo = forwardRef((_, ref) => {
   const [formData, setFormData] = useState({
@@ -38,6 +40,30 @@ const PersonalInfo = forwardRef((_, ref) => {
   const [emergencyContacts, setEmergencyContacts] = useState([
     { emergencyContact: "", emergencyContactName: "", relationship: null },
   ]);
+
+  const [isGeneratingId, setIsGeneratingId] = useState(false);
+
+  // Generate Agent ID on component mount
+  useEffect(() => {
+    const generateAgentId = async () => {
+      setIsGeneratingId(true);
+      try {
+        const response = await get(GENERATE_AGENT_ID);
+        if (response?.data?.agentId) {
+          setFormData((prev) => ({
+            ...prev,
+            agentId: response.data.agentId,
+          }));
+        }
+      } catch (error) {
+        console.error("Failed to generate agent ID:", error);
+      } finally {
+        setIsGeneratingId(false);
+      }
+    };
+
+    generateAgentId();
+  }, []);
 
   // Expose form data via ref
   useImperativeHandle(ref, () => ({

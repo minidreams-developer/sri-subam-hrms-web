@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import theme from "../../theme/theme";
@@ -8,6 +8,8 @@ import Documents from "./Documents/Documents";
 import CommissionDetails from "./Commission Details/CommissionDetails";
 import Button from "../../components/Button";
 import { toast } from "react-toastify";
+import { get, post } from "../../helpers/api_helper";
+import { GENERATE_AGENT_ID, CREATE_AGENT } from "../../helpers/url_helper";
 
 const CreateAgent = () => {
   const navigate = useNavigate();
@@ -23,6 +25,24 @@ const CreateAgent = () => {
   const commissionDetailsRef = useRef();
 
   const steps = ["Personal Information", "Document Upload", "Commission Details"];
+
+  // Generate Agent ID on component mount
+  useEffect(() => {
+    const generateAgentId = async () => {
+      try {
+        const response = await get(GENERATE_AGENT_ID);
+        if (response?.data?.agentId && personalInfoRef.current?.formData) {
+          // Update the agentId in PersonalInfo
+          // Since PersonalInfo is not mounted yet on initial load, we'll set it when PersonalInfo mounts
+        }
+      } catch (error) {
+        console.error("Failed to generate agent ID:", error);
+        toast.error("Failed to generate agent ID");
+      }
+    };
+
+    generateAgentId();
+  }, []);
 
   const handleBack = () => {
     if (currentStep > 1) {
@@ -47,12 +67,15 @@ const CreateAgent = () => {
         savedPersonalData.current = personalInfoRef.current.formData;
         console.log("Saved personal data:", savedPersonalData.current);
       }
+      if (currentStep === 2 && documentsRef.current?.formData) {
+        savedDocumentsData.current = documentsRef.current.formData;
+        console.log("Saved documents data:", savedDocumentsData.current);
+      }
       setCurrentStep((s) => s + 1);
     } else {
       // Step 3 is still mounted — read directly from its ref
       if (commissionDetailsRef.current?.formData) {
-        savedDocumentsData.current = documentsRef.current?.formData || {};
-        console.log("Saved documents data:", savedDocumentsData.current);
+        console.log("Saved commission data:", commissionDetailsRef.current.formData);
       }
       console.log("Calling handleSubmitAgent...");
       await handleSubmitAgent();
@@ -72,7 +95,86 @@ const CreateAgent = () => {
       console.log("Documents Data:", documentsData);
       console.log("Commission Data:", commissionData);
 
-      // TODO: Add API call here
+      // --- Build payload: POST /v1/users/agent ---
+      const payload = {
+        agentId: personalData.agentId,
+        name: personalData.agentName,
+        email: personalData.email,
+        password: personalData.password,
+        phone: String(personalData.contact).replace(/\D/g, ""), // Remove non-digit chars
+        gender: personalData.gender?.value,
+        dateOfBirth: personalData.dob,
+        age: Number(personalData.age),
+        martialStatus: personalData.maritalStatus?.value, // API typo preserved
+        motherTongue: personalData.motherTongue?.value,
+        identificationMark: personalData.identificationMark,
+        religion: personalData.religion?.value,
+        profilePic: personalData.profilePic || "",
+
+        documentNo: {
+          aadharNo: Number(personalData.aadharNo.replace(/\D/g, "")) || null,
+          panNo: personalData.panNo,
+        },
+
+        address: [
+          {
+            addressLine1: personalData.address,
+            addressLine2: personalData.addressLine2 || "",
+            city: personalData.city,
+            district: personalData.district?.value,
+            state: personalData.state?.value,
+            pincode: Number(personalData.pinCode),
+            country: "India",
+          },
+        ],
+
+        emergencyContacts: (personalData.emergencyContacts || [])
+          .filter((contact) => contact.emergencyContact && contact.emergencyContactName) // Filter out empty contacts
+          .map((contact) => ({
+            contactName: contact.emergencyContactName,
+            phone: Number(contact.emergencyContact.replace(/\D/g, "")),
+            relationship: contact.relationship?.value,
+            address: {
+              addressLine1: personalData.address,
+              city: personalData.city,
+              state: personalData.state?.value,
+              pincode: Number(personalData.pinCode),
+              country: "India",
+            },
+          })),
+
+        documentImage: (documentsData.governmentDocuments || [])
+          .concat(documentsData.personalDocuments || [])
+          .filter((doc) => doc.file) // Only include uploaded documents
+          .map((doc) => ({
+            documentName: doc.label,
+            documentType: documentsData.governmentDocuments?.includes(doc) ? "government" : "personal",
+            fileUrl: doc.file?.name || "", // In real scenario, this would be the uploaded URL from server
+          })),
+
+        commission: {
+          commission: Number(commissionData.commissionPercentage) || 0,
+          allowance: Number(commissionData.allowance) || 0,
+          salaryDisbursementType: commissionData.salaryDisbursementType?.value || "monthly",
+        },
+
+        bankDetails: [
+          {
+            accountHolderName: commissionData.accHolderName,
+            bankName: commissionData.bank,
+            accountNumber: Number(commissionData.accNumber.replace(/\D/g, "")) || null,
+            ifscCode: commissionData.ifscCode,
+            branch: commissionData.branch,
+          },
+        ],
+
+        referenceDetails: commissionData.remarks || "",
+      };
+
+      console.log("Payload:", payload);
+
+      const response = await post(CREATE_AGENT, payload);
+      console.log("Response:", response);
 
       toast.success("Agent created successfully!");
       navigate("/admin/people/agents");

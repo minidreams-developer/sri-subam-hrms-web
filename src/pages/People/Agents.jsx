@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import GreenArrow from "../../assets/images/dashboardImages/green.svg";
@@ -10,14 +10,9 @@ import PlusIcon from "../../assets/images/DashboardImages/plus-large_svgrepo.com
 import Filter from "../../components/filter";
 import ReusableTable from "../../components/ReusableTable";
 import DotIcon from "../../assets/images/Overtime/actionDot.svg";
-
-// Agents quick stats
-const agentsStats = [
-  { title: "Total Agents", value: "300", percent: "12 %", type: "down" },
-  { title: "Active Agents", value: "256", percent: "20.5 %", type: "up" },
-  { title: "In-Active Agents", value: "39", percent: "12 %", type: "down" },
-  { title: "New Agents", value: "03", percent: "20.5 %", type: "up" },
-];
+import { get } from "../../helpers/api_helper";
+import { GET_AGENTS } from "../../helpers/url_helper";
+import { toast } from "react-toastify";
 
 // Agents table columns
 const agentsTableColumns = [
@@ -29,65 +24,19 @@ const agentsTableColumns = [
   { header: "Action", accessor: "action", render: () => <img src={DotIcon} alt="action" width="20" height="20" /> },
 ];
 
-// Agents table data
-const agentsTableData = [
-  {
-    agentId: "AGT001",
-    name: "Manoj Kumar",
-    laboursCount: "100",
-    joinedDate: "12-12-2025",
-    status: "Active",
-    action: "",
-  },
-  {
-    agentId: "AGT002",
-    name: "Adison Stanton",
-    laboursCount: "30",
-    joinedDate: "12-12-2025",
-    status: "In-Active",
-    action: "",
-  },
-  {
-    agentId: "AGT003",
-    name: "Cheyenne Workman",
-    laboursCount: "64",
-    joinedDate: "12-12-2025",
-    status: "Relieved",
-    action: "",
-  },
-  {
-    agentId: "AGT004",
-    name: "Jocelyn Bergson",
-    laboursCount: "234",
-    joinedDate: "12-12-2025",
-    status: "Active",
-    action: "",
-  },
-  {
-    agentId: "AGT005",
-    name: "Nolan Dokidis",
-    laboursCount: "59",
-    joinedDate: "12-12-2025",
-    status: "In-Active",
-    action: "",
-  },
-  {
-    agentId: "AGT006",
-    name: "Marilyn Press",
-    laboursCount: "49",
-    joinedDate: "12-12-2025",
-    status: "In-Active",
-    action: "",
-  },
-  {
-    agentId: "AGT007",
-    name: "Cheyenne Workman",
-    laboursCount: "599",
-    joinedDate: "12-12-2025",
-    status: "Active",
-    action: "",
-  },
-];
+// Helper function to format date
+const formatDate = (dateString) => {
+  if (!dateString) return "N/A";
+  try {
+    const date = new Date(dateString);
+    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const year = date.getFullYear();
+    return `${day}-${month}-${year}`;
+  } catch (error) {
+    return "N/A";
+  }
+};
 
 const Agents = () => {
   const navigate = useNavigate();
@@ -95,6 +44,117 @@ const Agents = () => {
   const [selectedRange, setSelectedRange] = useState("Last 7 days");
   const [agentSearch, setAgentSearch] = useState("");
   const [showFilter, setShowFilter] = useState(false);
+  const [agentsData, setAgentsData] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [agentsStats, setAgentsStats] = useState([
+    { title: "Total Agents", value: "0", percent: "12 %", type: "down" },
+    { title: "Active Agents", value: "0", percent: "20.5 %", type: "up" },
+    { title: "In-Active Agents", value: "0", percent: "12 %", type: "down" },
+    { title: "New Agents", value: "0", percent: "20.5 %", type: "up" },
+  ]);
+
+  // Fetch agents from API on component mount
+  useEffect(() => {
+    fetchAgents();
+  }, []);
+
+  const fetchAgents = async () => {
+    setIsLoading(true);
+    try {
+      console.log("=== Starting fetchAgents ===");
+      console.log("GET_AGENTS endpoint:", GET_AGENTS);
+      
+      const response = await get(GET_AGENTS);
+      console.log("=== Full Response ===", response);
+      console.log("Response type:", typeof response);
+      console.log("Response keys:", response ? Object.keys(response) : "null");
+      
+      // Try multiple ways to extract results
+      let agentsList = [];
+      
+      // Method 1: Check response.data.results
+      if (response?.data?.results) {
+        console.log("✓ Using response.data.results");
+        agentsList = response.data.results;
+      }
+      // Method 2: Check response.results
+      else if (response?.results) {
+        console.log("✓ Using response.results");
+        agentsList = response.results;
+      }
+      // Method 3: Check if response is array
+      else if (Array.isArray(response)) {
+        console.log("✓ Using response as array");
+        agentsList = response;
+      }
+      // Method 4: Check response.data
+      else if (Array.isArray(response?.data)) {
+        console.log("✓ Using response.data as array");
+        agentsList = response.data;
+      }
+      
+      console.log("Final agentsList:", agentsList);
+      console.log("agentsList length:", agentsList?.length);
+      console.log("agentsList is array:", Array.isArray(agentsList));
+
+      if (!agentsList || agentsList.length === 0) {
+        console.warn("⚠ No agents found in response");
+        setAgentsData([]);
+        setAgentsStats([
+          { title: "Total Agents", value: "0", percent: "12 %", type: "down" },
+          { title: "Active Agents", value: "0", percent: "20.5 %", type: "up" },
+          { title: "In-Active Agents", value: "0", percent: "12 %", type: "down" },
+          { title: "New Agents", value: "0", percent: "20.5 %", type: "up" },
+        ]);
+        setIsLoading(false);
+        return;
+      }
+
+      // Transform API data to table format
+      const transformed = agentsList.map((agent, idx) => {
+        console.log(`Agent ${idx}:`, agent);
+        return {
+          agentId: agent?.agentId || "N/A",
+          name: agent?.name || "N/A",
+          laboursCount: "-",
+          joinedDate: formatDate(agent?.workInformation?.joinedDate),
+          status: agent?.isActive ? "Active" : "In-Active",
+          action: "",
+        };
+      });
+
+      console.log("✓ Transformed data:", transformed);
+      setAgentsData(transformed);
+
+      // Calculate statistics
+      const total = agentsList.length;
+      const active = agentsList.filter((a) => a.isActive === true).length;
+      const inactive = agentsList.filter((a) => a.isActive === false).length;
+
+      const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+      const newCount = agentsList.filter((a) => {
+        const createdDate = new Date(a.workInformation?.joinedDate || 0).getTime();
+        return createdDate > sevenDaysAgo;
+      }).length;
+
+      console.log(`✓ Stats: Total=${total}, Active=${active}, Inactive=${inactive}, New=${newCount}`);
+
+      setAgentsStats([
+        { title: "Total Agents", value: total.toString(), percent: "12 %", type: "down" },
+        { title: "Active Agents", value: active.toString(), percent: "20.5 %", type: "up" },
+        { title: "In-Active Agents", value: inactive.toString(), percent: "12 %", type: "down" },
+        { title: "New Agents", value: newCount.toString(), percent: "20.5 %", type: "up" },
+      ]);
+    } catch (error) {
+      console.error("❌ Failed to fetch agents:", error);
+      console.error("Error details:", error.message);
+      console.error("Error response:", error.response);
+      toast.error("Failed to fetch agents: " + error.message);
+      setAgentsData([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleRowClick = (row) => {
     navigate("/admin/people/agents/agentProfile");
@@ -113,11 +173,17 @@ const Agents = () => {
     setShowFilter(false);
   };
 
-  const filteredAgentsData = agentsTableData.filter((row) => {
-    return (
+  // Filter agents based on search and status filter
+  const filteredAgentsData = agentsData.filter((row) => {
+    const matchesSearch =
       !agentSearch ||
-      row.name.toLowerCase().includes(agentSearch.toLowerCase())
-    );
+      row.name.toLowerCase().includes(agentSearch.toLowerCase());
+
+    const matchesFilter =
+      selectedFilter === "All" ||
+      row.status === selectedFilter;
+
+    return matchesSearch && matchesFilter;
   });
 
   return (

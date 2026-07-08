@@ -122,3 +122,11 @@ export const CREATE_ROLE = "/v1/roles";
 export const GET_ROLES = "/v1/roles";
 export const UPDATE_ROLE = "/v1/roles/:roleId";
 export const DELETE_ROLE = "/v1/roles/:roleId";
+
+// Agents
+export const GENERATE_AGENT_ID = "/v1/users/agent";
+export const CREATE_AGENT = "/v1/users/agent";
+export const GET_AGENTS = "/v1/users?role=agent";
+export const GET_AGENT_BY_ID = "/v1/users/:agentId";
+export const UPDATE_AGENT = "/v1/users/:agentId";
+export const DELETE_AGENT = "/v1/users/:agentId";
