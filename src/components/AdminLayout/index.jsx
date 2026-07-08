@@ -7,10 +7,113 @@ import SidebarItems from "../SidebarItem";
 import { getStoredAuthUser } from "../../helpers/auth_helper";
 import MainLogo from "../../assets/images/DashboardImages/main_logo.svg";
 
+// Helper function to check if user has permission for a module
+const hasModulePermission = (permissions, moduleKey) => {
+  if (!permissions || permissions.length === 0) return true;
+
+  for (const group of permissions) {
+    const module = group.modules?.find((m) => m.module === moduleKey);
+    if (module && module.enabled && module.permissions?.view) {
+      return true;
+    }
+  }
+  return false;
+};
+
+// Helper function to get module key from menu item name
+// This matches sidebar menu names to permission module names
+const getModuleKeyFromMenuItem = (menuName, isSubmenu = false, submenuName = null) => {
+  const nameToModuleMap = {
+    // Top-level menus
+    Dashboard: "dashboard",
+    Announcement: "announcement",
+    Contractors: "contractorOverview", // Parent key
+    "People Hub": "onboarding", // Parent key
+    "Time Hub": "attendance", // Parent key
+    "Pay Hub": "payroll", // Parent key
+    Help: "help",
+    Settings: "generalSettings", // Parent key
+  };
+
+  const submenuNameToModuleMap = {
+    // Contractor submenus
+    Overview: "contractorOverview",
+    Contractors: "contractorContractors",
+    Payments: "contractorPayments",
+    // People Hub submenus
+    Onboarding: "onboarding",
+    Employees: "employees",
+    Agents: "agents",
+    Teams: "teams",
+    Branch: "branch",
+    Hierarchy: "hierarchy",
+    "Off-Boarding": "offBoarding",
+    // Time Hub submenus
+    Attendance: "attendance",
+    "Leave Attendance": "leaveAttendance",
+    "Shift Management": "shiftManagement",
+    "Overtime Management": "overtimeManagement",
+    Leaderboard: "leaderboard",
+    "Day Off & Holidays": "dayOffHolidays",
+    // Pay Hub submenus
+    Payroll: "payroll",
+    Paysheet: "paysheet",
+    "Stop Payroll": "stopPayroll",
+    "Addition & Deductions": "additionDeductions",
+    // Settings submenus
+    "General Settings": "generalSettings",
+    "Organization Details": "organizationDetails",
+    "Day Settings": "daySettings",
+    "Series Configuration": "seriesConfiguration",
+    Departments: "departments",
+    Roles: "roles",
+  };
+
+  if (isSubmenu && submenuName) {
+    return submenuNameToModuleMap[submenuName];
+  }
+
+  return nameToModuleMap[menuName];
+};
+
+// Filter sidebar items based on permissions
+const filterSidebarItems = (items, userPermissions) => {
+  return items
+    .map((item) => {
+      // Get module key for parent item
+      const parentModuleKey = getModuleKeyFromMenuItem(item.name, false);
+
+      if (item.submenu && item.submenu.length > 0) {
+        // For parent items with submenus, filter submenu items
+        const filteredSubmenu = item.submenu.filter((subItem) => {
+          const subModuleKey = getModuleKeyFromMenuItem(item.name, true, subItem.name);
+          return hasModulePermission(userPermissions, subModuleKey);
+        });
+
+        // Return parent only if at least one submenu item has permission
+        if (filteredSubmenu.length > 0) {
+          return {
+            ...item,
+            submenu: filteredSubmenu,
+          };
+        }
+        return null;
+      } else {
+        // For parent items without submenus, check permission directly
+        if (hasModulePermission(userPermissions, parentModuleKey)) {
+          return item;
+        }
+        return null;
+      }
+    })
+    .filter(Boolean);
+};
+
 const AdminLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [user, setUser] = useState(null);
   const [expandedMenu, setExpandedMenu] = useState({});
+  const [visibleSidebarItems, setVisibleSidebarItems] = useState(SidebarItems);
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -18,6 +121,30 @@ const AdminLayout = () => {
     const authUser = getStoredAuthUser();
     if (authUser?.user) {
       setUser(authUser.user);
+
+      // Admin users see all sidebar items without filtering
+      if (authUser.user.role === 'admin') {
+        console.log('✅ Admin user detected - showing all sidebar items');
+        setVisibleSidebarItems(SidebarItems);
+        return;
+      }
+
+      // Get permissions from localStorage (stored during login)
+      try {
+        const storedPermissions = localStorage.getItem('userPermissions');
+        if (storedPermissions) {
+          const permissions = JSON.parse(storedPermissions);
+          console.log('Permissions loaded from localStorage:', permissions);
+          
+          const filteredItems = filterSidebarItems(SidebarItems, permissions);
+          setVisibleSidebarItems(filteredItems);
+          console.log('Sidebar filtered with user permissions');
+        } else {
+          console.log('No permissions in localStorage, showing all sidebar items');
+        }
+      } catch (error) {
+        console.error('Error parsing permissions from localStorage:', error);
+      }
     }
   }, []);
 
@@ -49,10 +176,9 @@ const AdminLayout = () => {
           onClick={() => navigate("/admin/dashboard")}
         >
           <Logo src={MainLogo} alt="Logo" open={sidebarOpen} />
-          {/* {sidebarOpen && <CompanyName>A Project</CompanyName>} */}
         </LogoSection>
         <SidebarNav>
-          {SidebarItems.map((item, index) => {
+          {visibleSidebarItems.map((item, index) => {
             const hasSubmenu = item.submenu && item.submenu.length > 0;
             const isParentActive =
               hasSubmenu &&
@@ -104,11 +230,9 @@ const AdminLayout = () => {
                     {item.submenu.map((subItem, subIndex) => {
                       const current = location.pathname.replace(/\/+$/, "");
                       const target = (subItem.path || "").replace(/\/+$/, "");
-                      
-                      // Dynamic active state based on navigation source
+
                       let isSubActive = current === target;
-                      
-                      // Special handling for Employees and Onboarding
+
                       if (subItem.name === "Employees") {
                         isSubActive =
                           current === target ||
@@ -120,13 +244,12 @@ const AdminLayout = () => {
                           (current === "/admin/peopleHub/employees/create" &&
                             location.state?.from === "onboarding");
                       }
-                      
+
                       return (
                         <SubMenuItem
                           key={subIndex}
                           $isactive={isSubActive}
                           onClick={() => {
-                            // Pass state when navigating from sidebar
                             if (subItem.state) {
                               navigate(subItem.path, { state: subItem.state });
                             } else {
@@ -148,7 +271,10 @@ const AdminLayout = () => {
       <MainContent open={sidebarOpen}>
         <Header>
           <CoverLeft>
-            <Hamburger onClick={() => setSidebarOpen(!sidebarOpen)} title="Sidebar is fixed width">
+            <Hamburger
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              title="Sidebar is fixed width"
+            >
               <MdMenu />
             </Hamburger>
             <TextWrap>
@@ -189,6 +315,16 @@ const Sidebar = styled.div`
   box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
   overflow-y: auto;
   position: relative;
+  transition: transform 0.3s ease, margin-left 0.3s ease;
+  transform: ${(props) => (props.open ? "translateX(0)" : "translateX(-100%)")};
+  
+  @media (max-width: 768px) {
+    position: fixed;
+    left: 0;
+    top: 0;
+    height: 100vh;
+    z-index: 1000;
+  }
 `;
 
 const LogoSection = styled.div`
@@ -213,14 +349,12 @@ const SidebarNav = styled.ul`
   flex-grow: 1;
   overflow-y: auto;
 
-  /* Hide scrollbar for Chrome, Safari and Opera */
   &::-webkit-scrollbar {
     display: none;
   }
 
-  /* Hide scrollbar for IE, Edge and Firefox */
-  -ms-overflow-style: none; /* IE and Edge */
-  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 `;
 
 const SidebarItem = styled.li`
@@ -330,6 +464,8 @@ const MainContent = styled.div`
   flex-direction: column;
   height: 100vh;
   overflow: hidden;
+  transition: margin-left 0.3s ease;
+  margin-left: ${(props) => (props.open ? "0" : "-16.25rem")};
 `;
 
 const Header = styled.header`
@@ -370,7 +506,6 @@ const Content = styled.main`
   padding: 1.25rem;
   background-color: ${theme.colors.bgColor};
   overflow-y: auto;
-  // height: 602.27px;
 `;
 
 const TextWrap = styled.div`

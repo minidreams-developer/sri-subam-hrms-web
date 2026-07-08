@@ -10,7 +10,7 @@ import { Formik, Form } from "formik";
 import * as Yup from "yup";
 import { post } from "../../helpers/api_helper";
 import { LOGIN } from "../../helpers/url_helper";
-import { setStoredAuthUser } from "../../helpers/auth_helper";
+import { setStoredAuthUser, fetchAndStoreUserPermissions } from "../../helpers/auth_helper";
 
 const validationSchema = Yup.object().shape({
   username: Yup.string().required("Username is required"),
@@ -35,6 +35,22 @@ export const Login = () => {
       if (response?.tokens) {
         // Store auth user data with tokens
         setStoredAuthUser(response);
+        
+        console.log(`✓ Login successful for user: ${response.user.name} (Role: ${response.user.role})`);
+        
+        // Fetch and store user permissions based on role
+        if (response.user?.role) {
+          console.log(`\n🔄 Fetching permissions for role: "${response.user.role}"`);
+          const permissions = await fetchAndStoreUserPermissions(response.user.role);
+          
+          if (permissions) {
+            console.log("✅ Permissions fetched and stored successfully");
+          } else {
+            console.warn("⚠️ Could not fetch permissions - sidebar will show all items");
+          }
+        } else {
+          console.warn("⚠️ No role found in login response");
+        }
         
         // Navigate to dashboard on success
         navigate("/admin/dashboard");

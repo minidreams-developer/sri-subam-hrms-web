@@ -120,3 +120,5 @@ export const GET_ORGANIZATIONS = "/v1/organizations";
 // Roles
 export const CREATE_ROLE = "/v1/roles";
 export const GET_ROLES = "/v1/roles";
+export const UPDATE_ROLE = "/v1/roles/:roleId";
+export const DELETE_ROLE = "/v1/roles/:roleId";
