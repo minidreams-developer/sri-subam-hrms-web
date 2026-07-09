@@ -31,7 +31,6 @@ const getModuleKeyFromMenuItem = (menuName, isSubmenu = false, submenuName = nul
     "People Hub": "onboarding", // Parent key
     "Time Hub": "attendance", // Parent key
     "Pay Hub": "payroll", // Parent key
-    Help: "help",
     Settings: "generalSettings", // Parent key
   };
 

@@ -11,7 +11,8 @@ const AddSeriesPage = () => {
   };
 
   const handleSave = (formData) => {
-    toast.success("Series added successfully!");
+    // API call is already made in AddNewSeries component
+    // Just navigate back to the list
     navigate("/admin/settings/seriesConfiguration");
   };
 

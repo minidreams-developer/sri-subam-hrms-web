@@ -6,7 +6,7 @@ import Button from "./Button";
 import EditIcon from "../assets/images/employee/editIcon.svg";
 import SelectDateModal from "./SelectDateModal";
 
-const DaySettings = ({ onSave, onCancel, initialData = {} }) => {
+const DaySettings = ({ onSave, onCancel, initialData = {}, isLoading = false }) => {
   const [dayStart, setDayStart] = useState(initialData.dayStart || null);
   const [dayEnd, setDayEnd] = useState(initialData.dayEnd || null);
   const [isEditing, setIsEditing] = useState(false);
@@ -14,7 +14,7 @@ const DaySettings = ({ onSave, onCancel, initialData = {} }) => {
   const [selectedDateForOneDay, setSelectedDateForOneDay] = useState(null);
 
   const handleSave = () => {
-    if (onSave) {
+    if (onSave && !isLoading) {
       onSave({
         dayStart,
         dayEnd,
@@ -44,9 +44,13 @@ const DaySettings = ({ onSave, onCancel, initialData = {} }) => {
   };
 
   const handleDateModalConfirm = (date) => {
-    setSelectedDateForOneDay(date);
+    // Format date to YYYY-MM-DD format for API
+    const formattedDate = date instanceof Date 
+      ? date.toISOString().split('T')[0]
+      : date;
+    setSelectedDateForOneDay(formattedDate);
     setShowDateModal(false);
-    console.log("Selected date for one day:", date);
+    console.log("Selected date for one day:", formattedDate);
   };
 
   return (
@@ -105,9 +109,10 @@ const DaySettings = ({ onSave, onCancel, initialData = {} }) => {
           fontWeight="600"
           fontFamily="Inter-SemiBold"
           onClick={handleCancel}
+          disabled={isLoading}
         />
         <Button
-          text="Save"
+          text={isLoading ? "Saving..." : "Save"}
           bg={theme.colors.primary}
           color={theme.colors.white}
           width="150px"
@@ -116,6 +121,7 @@ const DaySettings = ({ onSave, onCancel, initialData = {} }) => {
           fontWeight="600"
           fontFamily="Inter-SemiBold"
           onClick={handleSave}
+          disabled={isLoading}
         />
       </Footer>
     </Container>

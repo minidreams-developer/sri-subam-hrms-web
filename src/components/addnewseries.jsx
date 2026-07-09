@@ -1,6 +1,9 @@
 import { useState } from "react";
 import styled from "styled-components";
 import theme from "../theme/theme";
+import { post } from "../helpers/api_helper";
+import { CREATE_SERIES_CONFIGURATION } from "../helpers/url_helper";
+import { toast } from "react-toastify";
 
 const AddNewSeries = ({ onClose, onSave }) => {
   const [formData, setFormData] = useState({
@@ -13,6 +16,7 @@ const AddNewSeries = ({ onClose, onSave }) => {
   });
 
   const [errors, setErrors] = useState({});
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -42,22 +46,52 @@ const AddNewSeries = ({ onClose, onSave }) => {
     return newErrors;
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const newErrors = validateForm();
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
     }
-    onSave(formData);
-    setFormData({
-      seriesName: "",
-      voucherType: "",
-      prefix: "",
-      suffix: "",
-      startingNo: "",
-      lengthOfZero: "",
-    });
-    setErrors({});
+
+    try {
+      setIsLoading(true);
+      
+      // Prepare payload - convert startingNo and lengthOfZero to numbers
+      const payload = {
+        seriesName: formData.seriesName,
+        voucherType: formData.voucherType || undefined,
+        prefix: formData.prefix,
+        suffix: formData.suffix || undefined,
+        startingNo: parseInt(formData.startingNo) || 1,
+        lengthOfZero: formData.lengthOfZero ? parseInt(formData.lengthOfZero) : undefined,
+      };
+
+      // Remove undefined values
+      Object.keys(payload).forEach(key => payload[key] === undefined && delete payload[key]);
+
+      const response = await post(CREATE_SERIES_CONFIGURATION, payload);
+      
+      toast.success("Series added successfully!");
+      onSave(response);
+      
+      // Reset form
+      setFormData({
+        seriesName: "",
+        voucherType: "",
+        prefix: "",
+        suffix: "",
+        startingNo: "",
+        lengthOfZero: "",
+      });
+      setErrors({});
+    } catch (error) {
+      console.error("Error saving series:", error);
+      toast.error(
+        error.response?.data?.message || "Failed to save series"
+      );
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleCancel = () => {
@@ -166,8 +200,10 @@ const AddNewSeries = ({ onClose, onSave }) => {
       </ContentArea>
 
       <ButtonGroup>
-        <CancelButton onClick={handleCancel}>Cancel</CancelButton>
-        <SaveButton onClick={handleSave}>Save</SaveButton>
+        <CancelButton onClick={handleCancel} disabled={isLoading}>Cancel</CancelButton>
+        <SaveButton onClick={handleSave} disabled={isLoading}>
+          {isLoading ? "Saving..." : "Save"}
+        </SaveButton>
       </ButtonGroup>
     </Container>
   );
@@ -283,12 +319,17 @@ const CancelButton = styled.button`
   transition: all 0.2s ease;
   min-width: 8rem;
 
-  &:hover {
+  &:hover:not(:disabled) {
     background: #f9f9f9;
   }
 
-  &:active {
+  &:active:not(:disabled) {
     opacity: 0.8;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
   }
 `;
 
@@ -305,11 +346,16 @@ const SaveButton = styled.button`
   transition: all 0.2s ease;
   min-width: 8rem;
 
-  &:hover {
+  &:hover:not(:disabled) {
     opacity: 0.9;
   }
 
-  &:active {
+  &:active:not(:disabled) {
     opacity: 0.8;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
   }
 `;

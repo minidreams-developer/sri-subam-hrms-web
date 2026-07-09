@@ -13,6 +13,7 @@ import PlusIcon from "../../assets/images/DashboardImages/plus-large_svgrepo.com
 import DetailsSidebar from "../../components/DetailsSidebar";
 import CardDetails from "../../components/CardDetails";
 import EditIcon from "../../assets/images/employee/editIcon.svg";
+import Filter from "../../components/filter";
 import {
   employeeStopPayroll,
   offboardingEmployeeData,
@@ -32,6 +33,14 @@ const StopPayroll = () => {
   const [staffShift, setStaffShift] = useState("All Shifts");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedRow, setSelectedRow] = useState(null);
+  const [showFilter, setShowFilter] = useState(false);
+  const [appliedFilters, setAppliedFilters] = useState(null);
+
+  const handleFilterApply = (filters) => {
+    setAppliedFilters(filters);
+    setShowFilter(false);
+    console.log("Applied filters:", filters);
+  };
 
   const quickStats = [
     { label: "Stopped Payrolls", value: "45", percentage: "12 %", isPositive: false },
@@ -171,6 +180,7 @@ const StopPayroll = () => {
                           actionText="New Stop Payroll"
                           actionIcon={<img src={PlusIcon} alt="add" width="16" height="16" />}
                           onActionClick={handleNewEmployee}
+                          onFilterClick={() => setShowFilter(true)}
                         />
                         <ReusableTable
                           columns={employeeColumnsWithRenderer}
@@ -202,6 +212,7 @@ const StopPayroll = () => {
                           filterText="Filter"
                           actionText="New Stop Payroll"
                           actionIcon={<img src={PlusIcon} alt="add" width="16" height="16" />}
+                          onFilterClick={() => setShowFilter(true)}
                         />
                         <ReusableTable
                           columns={staffColumnsWithRenderer}
@@ -300,6 +311,13 @@ const StopPayroll = () => {
           </EditDetailsButton>
         </ButtonRow>
       </DetailsSidebar>
+
+      {showFilter && (
+        <Filter
+          onClose={() => setShowFilter(false)}
+          onApply={handleFilterApply}
+        />
+      )}
     </Container>
   );
 };

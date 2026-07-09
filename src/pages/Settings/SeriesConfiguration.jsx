@@ -7,6 +7,8 @@ import SearchInputComponent from "../../components/SearchInputComponent";
 import Button from "../../components/Button";
 import PlusIcon from "../../assets/images/DashboardImages/plus-large_svgrepo.com.svg";
 import { toast } from "react-toastify";
+import { get } from "../../helpers/api_helper";
+import { SERIES_CONFIGURATION } from "../../helpers/url_helper";
 
 const SeriesConfiguration = () => {
   const navigate = useNavigate();
@@ -21,27 +23,20 @@ const SeriesConfiguration = () => {
   const fetchSeriesData = async () => {
     setIsLoading(true);
     try {
-      // TODO: Replace with actual API call
-      // const response = await get("/api/series");
-      // setSeriesList(response.data);
+      const response = await get(SERIES_CONFIGURATION);
       
-      // Mock data for demonstration
-      setSeriesList([
-        {
-          id: 1,
-          sNo: "01",
-          seriesName: "Employee",
-          prefix: "EMP",
-          suffix: "0001",
-        },
-        {
-          id: 2,
-          sNo: "02",
-          seriesName: "Staffs",
-          prefix: "STF",
-          suffix: "001",
-        },
-      ]);
+      // Extract results array from paginated response
+      let data = [];
+      if (response?.results) {
+        data = response.results;
+      } else if (Array.isArray(response)) {
+        data = response;
+      } else if (response && typeof response === 'object') {
+        data = [response];
+      }
+      
+      setSeriesList(data);
+      console.log("Series Data:", data);
     } catch (error) {
       console.error("Error fetching series:", error);
       toast.error("Failed to fetch series");
@@ -64,10 +59,12 @@ const SeriesConfiguration = () => {
   );
 
   const columns = [
-    { label: "S.No", key: "sNo" },
     { label: "Series Name", key: "seriesName" },
+    { label: "Voucher Type", key: "voucherType" },
     { label: "Prefix", key: "prefix" },
-    { label: "Suffix", key: "suffix", render: (row) => <SuffixText>{row.suffix}</SuffixText> },
+    { label: "Suffix", key: "suffix" },
+    { label: "Starting No", key: "startingNo" },
+    { label: "Length of Zero", key: "lengthOfZero" },
     {
       label: "Actions",
       key: "actions",

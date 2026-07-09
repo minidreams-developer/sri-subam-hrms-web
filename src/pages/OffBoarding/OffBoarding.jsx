@@ -13,6 +13,7 @@ import ProfileImage from "../../assets/images/employee/sampleProfile.jpg";
 import { get } from "../../helpers/api_helper";
 import { GET_OFFBOARDS } from "../../helpers/url_helper";
 import { toast } from "react-toastify";
+import Filter from "../../components/filter";
 import {
   dashboardStats,
   offboardingEmployeeColumns,
@@ -32,6 +33,8 @@ const OffBoarding = () => {
   const [staffSearch, setStaffSearch] = useState("");
   const [staffRole, setStaffRole] = useState("All Roles");
   const [staffShift, setStaffShift] = useState("All Shifts");
+  const [showFilter, setShowFilter] = useState(false);
+  const [appliedFilters, setAppliedFilters] = useState(null);
   
   // API state
   const [offboardingData, setOffboardingData] = useState([]);
@@ -40,6 +43,12 @@ const OffBoarding = () => {
   const [pageSize, setPageSize] = useState(10);
   const [totalResults, setTotalResults] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
+
+  const handleFilterApply = (filters) => {
+    setAppliedFilters(filters);
+    setShowFilter(false);
+    console.log("Applied filters:", filters);
+  };
 
   // Fetch offboarding records on component mount
   useEffect(() => {
@@ -248,6 +257,7 @@ const OffBoarding = () => {
             actionText="New OffBoarding"
             actionIcon={<img src={PlusIcon} alt="add" width="16" height="16" />}
             onActionClick={handleNewOffBoarding}
+            onFilterClick={() => setShowFilter(true)}
           />
           <ReusableTable
             columns={employeeColumnsWithRenderer}
@@ -283,6 +293,7 @@ const OffBoarding = () => {
             filterText="Filter"
             actionText="New Staff"
             actionIcon={<img src={PlusIcon} alt="add" width="16" height="16" />}
+            onFilterClick={() => setShowFilter(true)}
           />
           <ReusableTable
             columns={staffColumnsWithRenderer}
@@ -297,6 +308,13 @@ const OffBoarding = () => {
             loading={loading}
           />
         </>
+      )}
+
+      {showFilter && (
+        <Filter
+          onClose={() => setShowFilter(false)}
+          onApply={handleFilterApply}
+        />
       )}
     </Container>
   );

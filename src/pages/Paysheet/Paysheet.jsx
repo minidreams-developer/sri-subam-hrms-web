@@ -9,12 +9,21 @@ import DotMenuIcon from "../../assets/images/DayOff/dot-menu.svg";
 import PlusIcon from "../../assets/images/DashboardImages/plus-large_svgrepo.com.svg";
 import GreenArrow from "../../assets/images/DashboardImages/green.svg";
 import RedArrow from "../../assets/images/DashboardImages/red.svg";
+import Filter from "../../components/filter";
 
 const Paysheet = () => {
   const [selectedMonth, setSelectedMonth] = useState("This Month");
   const [selectedYear, setSelectedYear] = useState("This Year");
   const [selectedPayrollMonth, setSelectedPayrollMonth] = useState("This Month");
   const [searchQuery, setSearchQuery] = useState("");
+  const [showFilter, setShowFilter] = useState(false);
+  const [appliedFilters, setAppliedFilters] = useState(null);
+
+  const handleFilterApply = (filters) => {
+    setAppliedFilters(filters);
+    setShowFilter(false);
+    console.log("Applied filters:", filters);
+  };
 
   const quickStats = [
     { label: "Total Salary", value: "₹20,20,000", percentage: "20.5 %", isPositive: true },
@@ -337,7 +346,7 @@ const Paysheet = () => {
               <option>This Month</option>
               <option>Last Month</option>
             </DropdownSelect>
-            <FilterButton>
+            <FilterButton onClick={() => setShowFilter(true)}>
               <img src={FilterIcon} alt="filter" width="16" height="16" />
               Filter
             </FilterButton>
@@ -365,6 +374,13 @@ const Paysheet = () => {
           />
         </TableWrapper>
       </TableSection>
+
+      {showFilter && (
+        <Filter
+          onClose={() => setShowFilter(false)}
+          onApply={handleFilterApply}
+        />
+      )}
     </Container>
   );
 };

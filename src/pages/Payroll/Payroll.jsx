@@ -7,6 +7,7 @@ import TableToolbar from "../../components/TableToolbar";
 import DotIcon from "../../assets/images/Overtime/actionDot.svg";
 import TabSwitcher from "../../components/TabSwitcher";
 import Button from "../../components/Button";
+import Filter from "../../components/filter";
 
 const Payroll = () => {
   const navigate = useNavigate();
@@ -19,9 +20,17 @@ const Payroll = () => {
   const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("All, Staff, Employee");
   const [selectedEmployee, setSelectedEmployee] = useState("");
+  const [showFilter, setShowFilter] = useState(false);
+  const [appliedFilters, setAppliedFilters] = useState(null);
 
   const departmentOptions = ["All Departments", "IT", "HR", "Sales", "Marketing", "Finance"];
   const shiftOptions = ["All Shifts", "Morning Shift", "Evening Shift", "Night Shift"];
+
+  const handleFilterApply = (filters) => {
+    setAppliedFilters(filters);
+    setShowFilter(false);
+    console.log("Applied filters:", filters);
+  };
 
   const columns = [
     { header: "Employee ID", accessor: "employeeId" },
@@ -225,6 +234,7 @@ const Payroll = () => {
             showDotIcon={true}
             dotIcon={DotIcon}
             searchPosition="left"
+            onFilterClick={() => setShowFilter(true)}
           />
           <TableContainer>
             <ReusableTable columns={columns} data={data} />
@@ -428,6 +438,13 @@ const Payroll = () => {
             </ModalFooter>
           </ModalContent>
         </ModalOverlay>
+      )}
+
+      {showFilter && (
+        <Filter
+          onClose={() => setShowFilter(false)}
+          onApply={handleFilterApply}
+        />
       )}
     </Container>
   );

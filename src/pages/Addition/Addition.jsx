@@ -10,6 +10,7 @@ import TableToolbar from "../../components/TableToolbar";
 import PlusIcon from "../../assets/images/DashboardImages/plus-large_svgrepo.com.svg";
 import Adjustments from "./Adjustments";
 import Pendings from "./Pendings";
+import Filter from "../../components/filter";
 
 const Addition = () => {
   const navigate = useNavigate();
@@ -17,6 +18,14 @@ const Addition = () => {
   const [activeTab, setActiveTab] = useState("adjustment");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedMonthFilter, setSelectedMonthFilter] = useState("This Month");
+  const [showFilter, setShowFilter] = useState(false);
+  const [appliedFilters, setAppliedFilters] = useState(null);
+
+  const handleFilterApply = (filters) => {
+    setAppliedFilters(filters);
+    setShowFilter(false);
+    console.log("Applied filters:", filters);
+  };
 
   const quickStats = [
     { label: "Total Additions Amount", value: "₹12,50,000", percentage: "18.5 %", isPositive: true },
@@ -88,6 +97,7 @@ const Addition = () => {
           actionText="Adjustment"
           actionIcon={<img src={PlusIcon} alt="add" width="16" height="16" />}
           onActionClick={handleAddAdjustment}
+          onFilterClick={() => setShowFilter(true)}
           showDotIcon={false}
         />
 
@@ -96,6 +106,13 @@ const Addition = () => {
         ) : (
           <Pendings searchQuery={searchQuery} selectedMonth={selectedMonthFilter} />
         )}
+
+      {showFilter && (
+        <Filter
+          onClose={() => setShowFilter(false)}
+          onApply={handleFilterApply}
+        />
+      )}
       </QuickStatsSection>
     </Container>
   );

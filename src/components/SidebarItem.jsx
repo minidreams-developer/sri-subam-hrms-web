@@ -130,12 +130,12 @@ const SidebarItems = [
       },
     ],
   },
-  {
-    name: "Help",
-    path: "/admin/help",
-    icon: MessageIcon,
-    iconDark: MessageIcon,
-  },
+  // {
+  //   name: "Help",
+  //   path: "/admin/help",
+  //   icon: MessageIcon,
+  //   iconDark: MessageIcon,
+  // },
   {
     name: "Settings",
     icon: SettingsIcon,

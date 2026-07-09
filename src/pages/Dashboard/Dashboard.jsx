@@ -4,10 +4,43 @@ import { useNavigate } from "react-router-dom";
 import theme from "../../theme/theme";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { FiTrendingUp, FiTrendingDown } from "react-icons/fi";
+import SearchInputComponent from "../../components/SearchInputComponent";
+import FilterIcon from "../../assets/images/DashboardImages/filtericon.svg";
+import Filter from "../../components/filter";
 
 const Dashboard = () => {
   const [dateRange, setDateRange] = useState("Today");
+  const [activeTab, setActiveTab] = useState("employees");
+  const [searchValue, setSearchValue] = useState("");
+  const [departmentFilter, setDepartmentFilter] = useState("All Department");
+  const [shiftFilter, setShiftFilter] = useState("All Shifts");
+  const [showFilter, setShowFilter] = useState(false);
+  const [appliedFilters, setAppliedFilters] = useState(null);
   const navigate = useNavigate();
+
+  // Handle search with state reset
+  const handleSearch = (value) => {
+    setSearchValue(value);
+  };
+
+  // Handle filter changes
+  const handleDepartmentChange = (value) => {
+    setDepartmentFilter(value);
+  };
+
+  const handleShiftChange = (value) => {
+    setShiftFilter(value);
+  };
+
+  // Handle filter modal apply
+  const handleFilterApply = (filters) => {
+    setAppliedFilters(filters);
+    setShowFilter(false);
+    
+    // Apply filter logic here if needed
+    // You can process filters.department, filters.shift, filters.status, etc.
+    console.log("Applied filters:", filters);
+  };
 
   const quickStats = [
     { label: "Total Employees", value: "256", change: "26.5%", positive: true },
@@ -36,10 +69,38 @@ const Dashboard = () => {
   ];
 
   const employees = [
-    { id: 1, name: "Marlyn Pines", position: "UI/UX Designer", shift: "Morning", checkIn: "08:50 AM", checkOut: "06:45 PM", working: "8.36 hrs", status: "-" },
-    { id: 2, name: "Arjun Stanton", position: "Developer", shift: "Afternoon", checkIn: "09:00 AM", checkOut: "06:45 PM", working: "8.36 hrs", status: "-" },
-    { id: 3, name: "Marlyn Pines", position: "UI/UX Designer", shift: "Night", checkIn: "08:50 AM", checkOut: "06:45 PM", working: "8.36 hrs", status: "-" }
+    { id: 1, name: "Marlyn Pines", position: "UI/UX Designer", shift: "Morning", checkIn: "08:50 AM", checkOut: "06:45 PM", working: "8.36 hrs", status: "-", department: "Design", type: "employee" },
+    { id: 2, name: "Arjun Stanton", position: "Developer", shift: "Afternoon", checkIn: "09:00 AM", checkOut: "06:45 PM", working: "8.36 hrs", status: "-", department: "Engineering", type: "employee" },
+    { id: 3, name: "Marlyn Pines", position: "UI/UX Designer", shift: "Night", checkIn: "08:50 AM", checkOut: "06:45 PM", working: "8.36 hrs", status: "-", department: "Design", type: "employee" }
   ];
+
+  const staffData = [
+    { id: 4, name: "John Smith", position: "Manager", shift: "Morning", checkIn: "08:00 AM", checkOut: "05:00 PM", working: "9 hrs", status: "-", department: "Management", type: "staff" },
+    { id: 5, name: "Sarah Johnson", position: "Supervisor", shift: "Afternoon", checkIn: "09:30 AM", checkOut: "06:30 PM", working: "9 hrs", status: "-", department: "Operations", type: "staff" }
+  ];
+
+  // Filter employees based on search and filter criteria
+  const filteredEmployees = employees.filter(emp => {
+    const matchesSearch = emp.name.toLowerCase().includes(searchValue.toLowerCase()) ||
+                         emp.position.toLowerCase().includes(searchValue.toLowerCase());
+    const matchesDepartment = departmentFilter === "All Department" || emp.department === departmentFilter;
+    const matchesShift = shiftFilter === "All Shifts" || emp.shift === shiftFilter;
+    
+    return matchesSearch && matchesDepartment && matchesShift;
+  });
+
+  // Filter staff based on search and filter criteria
+  const filteredStaff = staffData.filter(staff => {
+    const matchesSearch = staff.name.toLowerCase().includes(searchValue.toLowerCase()) ||
+                         staff.position.toLowerCase().includes(searchValue.toLowerCase());
+    const matchesDepartment = departmentFilter === "All Department" || staff.department === departmentFilter;
+    const matchesShift = shiftFilter === "All Shifts" || staff.shift === shiftFilter;
+    
+    return matchesSearch && matchesDepartment && matchesShift;
+  });
+
+  // Use appropriate data based on active tab
+  const tableData = activeTab === "employees" ? filteredEmployees : filteredStaff;
 
   return (
     <Container>
@@ -157,31 +218,63 @@ const Dashboard = () => {
 
       {/* Employees Section */}
       <EmployeesSection>
-        <SectionHeader>
-          <SectionTitleWithTabs>
-            <TabButton $active>Employees</TabButton>
-            <TabButton>Staffs</TabButton>
-          </SectionTitleWithTabs>
-          <SectionRight>
+        <TabsAndButtonSection>
+          <TabsSection>
+            <Tab $active={activeTab === "employees"} onClick={() => setActiveTab("employees")}>
+              Employees
+            </Tab>
+            <Tab $active={activeTab === "staffs"} onClick={() => setActiveTab("staffs")}>
+              Staffs
+            </Tab>
+          </TabsSection>
+          <RightControls>
             <DateText>Today (18 Aug 2025)</DateText>
             <AddEmployeeButton onClick={() => navigate("/admin/time-hub/attendance/add")}>
               + Add Manually
             </AddEmployeeButton>
-          </SectionRight>
-        </SectionHeader>
-        <br />
-        <FiltersRow>
-          <FilterButton $active>
-            <span>🔍</span> Search Employee
+          </RightControls>
+        </TabsAndButtonSection>
+
+        <ControlsSection>
+          <SearchWrap>
+            <SearchInputComponent
+              placeholder="Search Employee"
+              value={searchValue}
+              onSearchChange={handleSearch}
+              width="100%"
+              height="40px"
+            />
+          </SearchWrap>
+
+          <SelectWrap>
+            <select
+              value={departmentFilter}
+              onChange={(e) => handleDepartmentChange(e.target.value)}
+            >
+              <option>All Department</option>
+              <option>Design</option>
+              <option>Engineering</option>
+              <option>HR</option>
+            </select>
+          </SelectWrap>
+
+          <SelectWrap>
+            <select
+              value={shiftFilter}
+              onChange={(e) => handleShiftChange(e.target.value)}
+            >
+              <option>All Shifts</option>
+              <option>Morning</option>
+              <option>Afternoon</option>
+              <option>Night</option>
+            </select>
+          </SelectWrap>
+
+          <FilterButton onClick={() => setShowFilter(true)}>
+            <img src={FilterIcon} alt="filter" width="16" height="16" />
+            Filter
           </FilterButton>
-          <FilterSelect>
-            <option>All Department</option>
-          </FilterSelect>
-          <FilterSelect>
-            <option>All Shifts</option>
-          </FilterSelect>
-          <FilterIconButton>⚙️ Filter</FilterIconButton>
-        </FiltersRow>
+        </ControlsSection>
 
         <EmployeesTable>
           <TableHead>
@@ -198,28 +291,44 @@ const Dashboard = () => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {employees.map((emp) => (
-              <TableRow key={emp.id}>
-                <Td>{emp.id}</Td>
-                <Td>
-                  <EmployeeName>{emp.name}</EmployeeName>
-                </Td>
-                <Td>{emp.position}</Td>
-                <Td>{emp.shift}</Td>
-                <Td>{emp.checkIn}</Td>
-                <Td>{emp.checkOut}</Td>
-                <Td>{emp.working}</Td>
-                <Td>
-                  <StatusBadge>{emp.status}</StatusBadge>
-                </Td>
-                <Td>
-                  <ActionButton>⋯</ActionButton>
+            {tableData.length > 0 ? (
+              tableData.map((emp) => (
+                <TableRow key={emp.id}>
+                  <Td>{emp.id}</Td>
+                  <Td>
+                    <EmployeeName>{emp.name}</EmployeeName>
+                  </Td>
+                  <Td>{emp.position}</Td>
+                  <Td>{emp.shift}</Td>
+                  <Td>{emp.checkIn}</Td>
+                  <Td>{emp.checkOut}</Td>
+                  <Td>{emp.working}</Td>
+                  <Td>
+                    <StatusBadge>{emp.status}</StatusBadge>
+                  </Td>
+                  <Td>
+                    <ActionButton>⋯</ActionButton>
+                  </Td>
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <Td colSpan="9" style={{ textAlign: "center", padding: "2rem" }}>
+                  No {activeTab === "employees" ? "employees" : "staff"} found
                 </Td>
               </TableRow>
-            ))}
+            )}
           </TableBody>
         </EmployeesTable>
       </EmployeesSection>
+
+      {/* Filter Modal */}
+      {showFilter && (
+        <Filter
+          onClose={() => setShowFilter(false)}
+          onApply={handleFilterApply}
+        />
+      )}
     </Container>
   );
 };
@@ -525,29 +634,49 @@ const EmployeesSection = styled.div`
   border: 1px solid ${theme.colors.border};
 `;
 
-const SectionTitleWithTabs = styled.div`
+const TabsSection = styled.div`
   display: flex;
-  gap: 0;
+  gap: 2rem;
+  border-bottom: 1px solid ${theme.colors.border};
+  padding-bottom: 0;
 `;
 
-const TabButton = styled.button`
-  padding: 0.75rem 1.5rem;
-  border: none;
-  border-bottom: ${(props) => (props.$active ? "3px solid #0B7A75" : "none")};
+const TabsAndButtonSection = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+`;
+
+const Tab = styled.button`
   background: none;
-  color: ${(props) => (props.$active ? "#0B7A75" : theme.colors.secondaryTextColor)};
-  font-family: "Inter", sans-serif;
-  font-size: 0.9rem;
-  font-weight: ${(props) => (props.$active ? "700" : "500")};
+  border: none;
+  padding: 0.75rem 0;
+  font-size: 0.875rem;
+  font-weight: 500;
+  font-family: "Inter-Medium", sans-serif;
+  color: ${(props) => (props.$active ? theme.colors.primary : "#999")};
   cursor: pointer;
-  transition: all 0.2s;
+  position: relative;
+  transition: all 0.2s ease;
+
+  &::after {
+    content: "";
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: ${(props) => (props.$active ? theme.colors.primary : "transparent")};
+    transition: all 0.2s ease;
+  }
 
   &:hover {
-    color: #0B7A75;
+    color: ${theme.colors.primary};
   }
 `;
 
-const SectionRight = styled.div`
+const RightControls = styled.div`
   display: flex;
   align-items: center;
   gap: 1.5rem;
@@ -561,37 +690,82 @@ const DateText = styled.span`
   font-weight: 500;
 `;
 
-const FiltersRow = styled.div`
+const ControlsSection = styled.div`
   display: flex;
-  gap: 0.75rem;
   align-items: center;
-  margin-bottom: 1rem;
+  gap: 1rem;
+  padding: 1rem 0;
+  margin-bottom: 1.5rem;
   flex-wrap: wrap;
+
+  @media (max-width: 1024px) {
+    flex-wrap: wrap;
+  }
+`;
+
+const SearchWrap = styled.div`
+  width: 18rem;
+  flex-shrink: 0;
+
+  @media (max-width: 768px) {
+    width: 100%;
+  }
+`;
+
+const SelectWrap = styled.div`
+  min-width: 160px;
+  flex-shrink: 0;
+
+  select {
+    width: 100%;
+    min-width: 160px;
+    padding: 0.5rem 1rem;
+    border: 1px solid ${theme.colors.border};
+    border-radius: 6px;
+    font-family: "Inter", sans-serif;
+    font-size: 0.875rem;
+    background: white;
+    cursor: pointer;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+
+    &:hover {
+      border-color: ${theme.colors.primary};
+    }
+
+    &:focus {
+      border-color: ${theme.colors.primary};
+      box-shadow: 0 0 0 3px rgba(0, 128, 128, 0.1);
+    }
+
+    &:disabled {
+      background-color: #f5f5f5;
+      cursor: not-allowed;
+    }
+  }
 `;
 
 const FilterButton = styled.button`
-  padding: 0.5rem 1rem;
-  border: 1px solid ${(props) => (props.$active ? theme.colors.primary : theme.colors.border)};
-  color: ${(props) => (props.$active ? "grey" : theme.colors.textColor)};
-  border-radius: 6px;
-  font-family: "Inter", sans-serif;
-  font-size: 0.875rem;
-  font-weight: 500;
-  cursor: pointer;
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  background: white;
-`;
-
-const FilterSelect = styled.select`
   padding: 0.5rem 1rem;
   border: 1px solid ${theme.colors.border};
-  border-radius: 6px;
-  font-family: "Inter", sans-serif;
-  font-size: 0.875rem;
   background: white;
+  border-radius: 6px;
+  font-size: 0.875rem;
   cursor: pointer;
+  font-family: "Inter", sans-serif;
+  font-weight: 500;
+  transition: all 0.2s ease;
+
+  &:hover {
+    border-color: ${theme.colors.primary};
+    color: ${theme.colors.primary};
+  }
 `;
 
 const AddEmployeeButton = styled.button`
@@ -605,24 +779,11 @@ const AddEmployeeButton = styled.button`
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
+  white-space: nowrap;
 
   &:hover {
     background: #065855;
   }
-`;
-
-const FilterIconButton = styled.button`
-  padding: 0.5rem 1rem;
-  border: 1px solid ${theme.colors.border};
-  background: white;
-  border-radius: 6px;
-  font-size: 0.875rem;
-  cursor: pointer;
-  font-family: "Inter", sans-serif;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-weight: 500;
 `;
 
 const EmployeesTable = styled.table`

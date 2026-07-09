@@ -130,3 +130,11 @@ export const GET_AGENTS = "/v1/users?role=agent";
 export const GET_AGENT_BY_ID = "/v1/users/:agentId";
 export const UPDATE_AGENT = "/v1/users/:agentId";
 export const DELETE_AGENT = "/v1/users/:agentId";
+
+// Day Settings
+export const DAY_SETTINGS = "/v1/day-settings";
+export const UPDATE_DAY_SETTINGS = "/v1/day-settings/:id";
+
+// Series Configuration
+export const SERIES_CONFIGURATION = "/v1/seriesConfiguration";
+export const CREATE_SERIES_CONFIGURATION = "/v1/seriesConfiguration";

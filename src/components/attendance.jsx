@@ -8,6 +8,7 @@ import RedArrow from "../assets/images/DashboardImages/red.svg";
 import ReusableTable from "./ReusableTable";
 import SearchInputComponent from "./SearchInputComponent";
 import FilterIcon from "../assets/images/DashboardImages/filtericon.svg";
+import Filter from "./filter";
 import { get } from "../helpers/api_helper";
 import { ATTENDANCE_RECORDS } from "../helpers/url_helper";
 import { toast } from "react-toastify";
@@ -23,7 +24,15 @@ const Attendance = () => {
   const [loading, setLoading] = useState(true);
   const [totalPages, setTotalPages] = useState(1);
   const [totalResults, setTotalResults] = useState(0);
+  const [showFilter, setShowFilter] = useState(false);
+  const [appliedFilters, setAppliedFilters] = useState(null);
   const rowsPerPage = 10;
+
+  const handleFilterApply = (filters) => {
+    setAppliedFilters(filters);
+    setShowFilter(false);
+    console.log("Applied filters:", filters);
+  };
 
   // Fetch attendance data from API
   useEffect(() => {
@@ -264,7 +273,7 @@ const Attendance = () => {
           </select>
         </SelectWrap>
 
-        <FilterButton>
+        <FilterButton onClick={() => setShowFilter(true)}>
           <img src={FilterIcon} alt="filter" width="16" height="16" />
           Filter
         </FilterButton>
@@ -305,6 +314,13 @@ const Attendance = () => {
           </PaginationButton>
         </PaginationControls>
       </PaginationSection>
+
+      {showFilter && (
+        <Filter
+          onClose={() => setShowFilter(false)}
+          onApply={handleFilterApply}
+        />
+      )}
     </Container>
   );
 };

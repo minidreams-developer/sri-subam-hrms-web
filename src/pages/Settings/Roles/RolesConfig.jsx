@@ -51,7 +51,6 @@ const RolesConfig = () => {
     paysheet: { view: false, add: false, edit: false, delete: false, all: false },
     stopPayroll: { view: false, add: false, edit: false, delete: false, all: false },
     additionDeductions: { view: false, add: false, edit: false, delete: false, all: false },
-    help: { view: false, add: false, edit: false, delete: false, all: false },
     generalSettings: { view: false, add: false, edit: false, delete: false, all: false },
     organizationDetails: { view: false, add: false, edit: false, delete: false, all: false },
     daySettings: { view: false, add: false, edit: false, delete: false, all: false },
@@ -160,7 +159,6 @@ const RolesConfig = () => {
       peopleHub: ["onboarding", "employees", "agents", "teams", "branch", "hierarchy", "offBoarding"],
       timeHub: ["attendance", "leaveAttendance", "shiftManagement", "overtimeManagement", "leaderboard", "dayOffHolidays"],
       payHub: ["payroll", "paysheet", "stopPayroll", "additionDeductions"],
-      help: ["help"],
       settings: ["generalSettings", "organizationDetails", "daySettings", "seriesConfiguration", "departments", "roles"],
     };
 
@@ -375,8 +373,6 @@ const RolesConfig = () => {
                 <ModuleAccessRow moduleKey="paysheet" moduleName="Paysheet" permissions={permissions.paysheet} onPermissionChange={handlePermissionChange} disabled={!moduleToggles.payHub} />
                 <ModuleAccessRow moduleKey="stopPayroll" moduleName="Stop Payroll" permissions={permissions.stopPayroll} onPermissionChange={handlePermissionChange} disabled={!moduleToggles.payHub} />
                 <ModuleAccessRow moduleKey="additionDeductions" moduleName="Addition & Deductions" permissions={permissions.additionDeductions} onPermissionChange={handlePermissionChange} disabled={!moduleToggles.payHub} />
-
-                <ModuleAccessRow moduleKey="help" moduleName="Help" permissions={permissions.help} onPermissionChange={handlePermissionChange} disabled={false} />
 
                 <ModuleSection>
                   <ModuleSectionHeader>
