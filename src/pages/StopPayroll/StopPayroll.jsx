@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import theme from "../../theme/theme";
@@ -14,6 +14,9 @@ import DetailsSidebar from "../../components/DetailsSidebar";
 import CardDetails from "../../components/CardDetails";
 import EditIcon from "../../assets/images/employee/editIcon.svg";
 import Filter from "../../components/filter";
+import { get } from "../../helpers/api_helper";
+import { GET_STOPPED_PAYROLL } from "../../helpers/url_helper";
+import { toast } from "react-toastify";
 import {
   employeeStopPayroll,
   offboardingEmployeeData,
@@ -35,6 +38,66 @@ const StopPayroll = () => {
   const [selectedRow, setSelectedRow] = useState(null);
   const [showFilter, setShowFilter] = useState(false);
   const [appliedFilters, setAppliedFilters] = useState(null);
+  const [stoppedPayrollData, setStoppedPayrollData] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  // Fetch stopped payroll data on component mount
+  useEffect(() => {
+    fetchStoppedPayrollData();
+  }, []);
+
+  const fetchStoppedPayrollData = async () => {
+    setLoading(true);
+    try {
+      const response = await get(GET_STOPPED_PAYROLL);
+      console.log("Stopped Payroll data:", response);
+      
+      let data = [];
+      if (Array.isArray(response)) {
+        data = response;
+      } else if (response?.results && Array.isArray(response.results)) {
+        data = response.results;
+      }
+      
+      // Transform API response to match table format
+      const transformedData = data.map((item) => {
+        // Handle both nested employeeId object and flat structure
+        const empData = typeof item.employeeId === 'object' ? item.employeeId : {};
+        
+        return {
+          _id: item._id,
+          employee: {
+            name: empData?.name || "N/A",
+            id: empData?._id || "",
+            role: empData?.workInformation?.designation || "Employee",
+            profileImage: empData?.profilePic || null,
+          },
+          employeeId: empData?.employeeId || "N/A",
+          designation: empData?.workInformation?.designation || "N/A",
+          department: empData?.department || "N/A",
+          month: item.month,
+          year: item.year,
+          status: item.status,
+          stopType: item.stopDetails?.stopType || "N/A",
+          reason: item.stopDetails?.reason || "N/A",
+          effectiveFrom: item.stopDetails?.effectiveFrom,
+          resumeOn: item.stopDetails?.resumeOn,
+          impactMonth: item.stopDetails?.impactMonth || "N/A",
+          remarks: item.stopDetails?.stopRemarks || "N/A",
+          stoppedAt: item.stopDetails?.stoppedAt,
+          resumedAt: item.stopDetails?.resumedAt,
+        };
+      });
+      
+      setStoppedPayrollData(transformedData);
+    } catch (error) {
+      console.error("Error fetching stopped payroll data:", error);
+      toast.error("Failed to fetch stopped payroll data");
+      setStoppedPayrollData([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleFilterApply = (filters) => {
     setAppliedFilters(filters);
@@ -43,7 +106,7 @@ const StopPayroll = () => {
   };
 
   const quickStats = [
-    { label: "Stopped Payrolls", value: "45", percentage: "12 %", isPositive: false },
+    { label: "Stopped Payrolls", value: stoppedPayrollData.length.toString(), percentage: "12 %", isPositive: false },
     { label: "Released Payrolls", value: "411", percentage: "20.5 %", isPositive: true },
     { label: "Pending Amount", value: "₹15,50,000", percentage: "8.5 %", isPositive: false },
     { label: "Released Amount", value: "₹1,85,50,000", percentage: "15.3 %", isPositive: true },
@@ -58,7 +121,7 @@ const StopPayroll = () => {
     navigate("new");
   };
 
-   const filteredEmployeeData = offboardingEmployeeData.filter((row) => {
+   const filteredEmployeeData = stoppedPayrollData.filter((row) => {
       const m1 =
         employeeDept === "All Department" || row.department === employeeDept;
       const m2 = employeeShift === "All Shifts" || row.shift === employeeShift;
@@ -239,29 +302,27 @@ const StopPayroll = () => {
             items={[
               { 
                 label: "Employee", 
-                value: activeTab === "Employee" 
-                  ? selectedRow?.employee?.name || "Manoj Kumar"
-                  : selectedRow?.staff?.name || "Manoj Kumar"
+                value: selectedRow?.employee?.name || "N/A"
               },
               { 
                 label: "Employee ID", 
-                value: selectedRow?.employeeId || selectedRow?.staffId || "Head Office"
+                value: selectedRow?.employeeId || "N/A"
               },
               { 
                 label: "Designation", 
-                value: selectedRow?.designation || "Senior UI UX Designer" 
+                value: selectedRow?.designation || "N/A" 
               },
               { 
                 label: "Department", 
-                value: selectedRow?.department || "IT Department" 
+                value: selectedRow?.department || "N/A" 
               },
               { 
-                label: "Current Salary", 
-                value: "Senior UI UX Designer" 
+                label: "Month", 
+                value: `${selectedRow?.month}/${selectedRow?.year}` || "N/A"
               },
               { 
-                label: "Pay Cycle", 
-                value: "IT Department" 
+                label: "Status", 
+                value: selectedRow?.status || "N/A"
               },
             ]}
           />
@@ -272,17 +333,27 @@ const StopPayroll = () => {
             title="Stop Details"
             columns={2}
             items={[
-              { label: "Stop Type", value: "10:30 AM" },
-              { label: "Reason", value: "Notice Period" },
-              { label: "Effective From", value: "1.36 Hrs" },
-              { label: "Resume On", value: "12.00 Hrs" },
-              { label: "Impact Month", value: "4.00 Hrs" },
-              { label: "Remarks", value: "Policy Issues" },
+              { label: "Stop Type", value: selectedRow?.stopType || "N/A" },
+              { label: "Reason", value: selectedRow?.reason || "N/A" },
+              { 
+                label: "Effective From", 
+                value: selectedRow?.effectiveFrom 
+                  ? new Date(selectedRow.effectiveFrom).toLocaleDateString()
+                  : "N/A"
+              },
+              { 
+                label: "Resume On", 
+                value: selectedRow?.resumeOn 
+                  ? new Date(selectedRow.resumeOn).toLocaleDateString()
+                  : "N/A"
+              },
+              { label: "Impact Month", value: selectedRow?.impactMonth || "N/A" },
+              { label: "Remarks", value: selectedRow?.remarks || "N/A" },
               { 
                 label: "Status", 
                 value: (
-                  <StatusText $status="Stopped">
-                    Stopped
+                  <StatusText $status={selectedRow?.status}>
+                    {selectedRow?.status || "N/A"}
                   </StatusText>
                 )
               },

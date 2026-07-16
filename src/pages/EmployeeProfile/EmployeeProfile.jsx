@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import styled from "styled-components";
 import theme from "../../theme/theme";
 import TabSwitcher from "../../components/TabSwitcher";
@@ -7,9 +7,52 @@ import { WorkDetails } from "./Work Details/WorkDetails";
 import { Attendance } from "./Attendance/Attendance";
 import PayrollComponent from "../../components/payroll";
 import Assets from "../../components/assets";
+import { get } from "../../helpers/api_helper";
+import { GET_EMPLOYEES_BY_ROLE } from "../../helpers/url_helper";
+import { toast } from "react-toastify";
 
 const EmployeeProfile = () => {
   const [active, setActive] = useState("Personal Details");
+  const [employees, setEmployees] = useState([]);
+  const [selectedEmployee, setSelectedEmployee] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  // Fetch employees on component mount
+  useEffect(() => {
+    fetchEmployees();
+  }, []);
+
+  const fetchEmployees = async () => {
+    setLoading(true);
+    try {
+      const response = await get(`${GET_EMPLOYEES_BY_ROLE}?role=employee&limit=100`);
+      console.log("Employees API Response:", response);
+      
+      let employeeList = [];
+      if (response && Array.isArray(response)) {
+        employeeList = response;
+      } else if (response?.results && Array.isArray(response.results)) {
+        employeeList = response.results;
+      } else if (response?.data && Array.isArray(response.data)) {
+        employeeList = response.data;
+      } else if (response?.users && Array.isArray(response.users)) {
+        employeeList = response.users;
+      }
+      
+      setEmployees(employeeList);
+      
+      // Set first employee as default
+      if (employeeList.length > 0) {
+        setSelectedEmployee(employeeList[0]);
+      }
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || error.message || "Failed to fetch employees";
+      toast.error(errorMessage);
+      console.error("Fetch employees error:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <Container>
@@ -26,12 +69,20 @@ const EmployeeProfile = () => {
         onChange={setActive}
       />
 
-      {active === "Personal Details" && <PersonalDetails />}
-      {active === "Work Details" && <WorkDetails />}
-      {active === "Attendance" && <Attendance />}
-      {active === "Payroll" && <PayrollComponent />}
-      {active === "Assets" && <Assets />}
-      {active === "Report" && <Section>Report content</Section>}
+      {loading ? (
+        <Section>Loading employee data...</Section>
+      ) : selectedEmployee ? (
+        <>
+          {active === "Personal Details" && <PersonalDetails employee={selectedEmployee} />}
+          {active === "Work Details" && <WorkDetails employee={selectedEmployee} />}
+          {active === "Attendance" && <Attendance employee={selectedEmployee} />}
+          {active === "Payroll" && <PayrollComponent employee={selectedEmployee} />}
+          {active === "Assets" && <Assets employee={selectedEmployee} />}
+          {active === "Report" && <Section>Report content</Section>}
+        </>
+      ) : (
+        <Section>No employee data available</Section>
+      )}
     </Container>
   );
 };

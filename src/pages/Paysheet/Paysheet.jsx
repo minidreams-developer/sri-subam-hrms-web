@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import styled from "styled-components";
 import theme from "../../theme/theme";
 import SearchInputComponent from "../../components/SearchInputComponent";
@@ -10,6 +10,14 @@ import PlusIcon from "../../assets/images/DashboardImages/plus-large_svgrepo.com
 import GreenArrow from "../../assets/images/DashboardImages/green.svg";
 import RedArrow from "../../assets/images/DashboardImages/red.svg";
 import Filter from "../../components/filter";
+import { get } from "../../helpers/api_helper";
+import {
+  GET_PAYSHEET_QUICK_STATS,
+  GET_PAYSHEET_PAYROLL_OVERVIEW,
+  GET_PAYSHEET_PAYROLL_BREAKDOWN,
+  GET_PAYSHEET_LIST,
+} from "../../helpers/url_helper";
+import { toast } from "react-toastify";
 
 const Paysheet = () => {
   const [selectedMonth, setSelectedMonth] = useState("This Month");
@@ -18,6 +26,59 @@ const Paysheet = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [showFilter, setShowFilter] = useState(false);
   const [appliedFilters, setAppliedFilters] = useState(null);
+  const [quickStatsData, setQuickStatsData] = useState(null);
+  const [payrollOverviewData, setPayrollOverviewData] = useState(null);
+  const [payrollBreakdownData, setPayrollBreakdownData] = useState(null);
+  const [payrollListData, setPayrollListData] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+
+  // Get current month and year for API
+  const getCurrentMonth = () => new Date().getMonth() + 1;
+  const getCurrentYear = () => new Date().getFullYear();
+
+  useEffect(() => {
+    fetchPaysheetData();
+  }, [currentPage]);
+
+  const fetchPaysheetData = async () => {
+    setLoading(true);
+    try {
+      const month = getCurrentMonth();
+      const year = getCurrentYear();
+
+      // Fetch quick stats
+      const quickStats = await get(`${GET_PAYSHEET_QUICK_STATS}?month=${month}&year=${year}`);
+      if (quickStats) {
+        setQuickStatsData(quickStats.quickStats);
+      }
+
+      // Fetch payroll overview
+      const payrollOverview = await get(`${GET_PAYSHEET_PAYROLL_OVERVIEW}?year=${year}`);
+      if (payrollOverview) {
+        setPayrollOverviewData(payrollOverview);
+      }
+
+      // Fetch payroll breakdown
+      const payrollBreakdown = await get(`${GET_PAYSHEET_PAYROLL_BREAKDOWN}?month=${month}&year=${year}`);
+      if (payrollBreakdown) {
+        setPayrollBreakdownData(payrollBreakdown.payrollBreakdown);
+      }
+
+      // Fetch payroll list
+      const payrollList = await get(`${GET_PAYSHEET_LIST}?month=${month}&year=${year}&page=${currentPage}&limit=10`);
+      if (payrollList) {
+        setPayrollListData(payrollList.results || []);
+        setTotalPages(payrollList.totalPages || 1);
+      }
+    } catch (error) {
+      console.error("Error fetching paysheet data:", error);
+      toast.error("Failed to fetch paysheet data");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleFilterApply = (filters) => {
     setAppliedFilters(filters);
@@ -25,115 +86,109 @@ const Paysheet = () => {
     console.log("Applied filters:", filters);
   };
 
-  const quickStats = [
-    { label: "Total Salary", value: "₹20,20,000", percentage: "20.5 %", isPositive: true },
-    { label: "Total Incentive", value: "₹90,000", percentage: "20.5 %", isPositive: true },
-    { label: "Total Deductions", value: "20", percentage: "20.5 %", isPositive: true },
-    { label: "Payable Employees", value: "456", percentage: "12 %", isPositive: false },
-    { label: "On Hold Employees", value: "25", percentage: "20.5 %", isPositive: true },
+  const quickStats = quickStatsData ? [
+    { 
+      label: "Total Salary", 
+      value: `₹${(quickStatsData.totalSalary?.amount || 0).toLocaleString('en-IN')}`, 
+      percentage: `${quickStatsData.totalSalary?.percentageChange || 0}%`, 
+      isPositive: (quickStatsData.totalSalary?.percentageChange || 0) >= 0 
+    },
+    { 
+      label: "Total Incentive", 
+      value: `₹${(quickStatsData.totalIncentive?.amount || 0).toLocaleString('en-IN')}`, 
+      percentage: `${quickStatsData.totalIncentive?.percentageChange || 0}%`, 
+      isPositive: (quickStatsData.totalIncentive?.percentageChange || 0) >= 0 
+    },
+    { 
+      label: "Total Deductions", 
+      value: `₹${(quickStatsData.totalDeductions?.amount || 0).toLocaleString('en-IN')}`, 
+      percentage: `${quickStatsData.totalDeductions?.percentageChange || 0}%`, 
+      isPositive: (quickStatsData.totalDeductions?.percentageChange || 0) >= 0 
+    },
+    { 
+      label: "Payable Employees", 
+      value: (quickStatsData.payableEmployees?.count || 0).toString(), 
+      percentage: `${quickStatsData.payableEmployees?.percentageChange || 0}%`, 
+      isPositive: (quickStatsData.payableEmployees?.percentageChange || 0) >= 0 
+    },
+    { 
+      label: "On Hold Employees", 
+      value: (quickStatsData.onHoldEmployees?.count || 0).toString(), 
+      percentage: `${quickStatsData.onHoldEmployees?.percentageChange || 0}%`, 
+      isPositive: (quickStatsData.onHoldEmployees?.percentageChange || 0) >= 0 
+    },
+  ] : [
+    { label: "Total Salary", value: "₹0", percentage: "0%", isPositive: true },
+    { label: "Total Incentive", value: "₹0", percentage: "0%", isPositive: true },
+    { label: "Total Deductions", value: "₹0", percentage: "0%", isPositive: true },
+    { label: "Payable Employees", value: "0", percentage: "0%", isPositive: false },
+    { label: "On Hold Employees", value: "0", percentage: "0%", isPositive: true },
   ];
 
-  const payrollBreakdown = [
-    { label: "Salary", value: "₹ 20,20,000", percentage: "89.3%", color: "#0B7A75" },
-    { label: "Allowances", value: "₹ 20,20,000", percentage: "88.3%", color: "#FDB750" },
-    { label: "Deduction", value: "₹ 20,30,000", percentage: "89.3%", color: "#E0E3E6" },
-    { label: "Incentives", value: "₹ 20,20,000", percentage: "89.3%", color: "#0B7A75" },
-    { label: "Overtime", value: "₹ 20,20,000", percentage: "88.3%", color: "#2C2C2C" },
+  const payrollBreakdown = payrollBreakdownData ? [
+    { 
+      label: "Salary", 
+      value: `₹ ${(payrollBreakdownData.categories?.salary?.amount || 0).toLocaleString('en-IN')}`, 
+      percentage: `${payrollBreakdownData.categories?.salary?.percentage || 0}%`, 
+      color: "#0B7A75" 
+    },
+    { 
+      label: "Allowances", 
+      value: `₹ ${(payrollBreakdownData.categories?.allowances?.amount || 0).toLocaleString('en-IN')}`, 
+      percentage: `${payrollBreakdownData.categories?.allowances?.percentage || 0}%`, 
+      color: "#FDB750" 
+    },
+    { 
+      label: "Deduction", 
+      value: `₹ ${(payrollBreakdownData.categories?.deductions?.amount || 0).toLocaleString('en-IN')}`, 
+      percentage: `${payrollBreakdownData.categories?.deductions?.percentage || 0}%`, 
+      color: "#E0E3E6" 
+    },
+    { 
+      label: "Incentives", 
+      value: `₹ ${(payrollBreakdownData.categories?.incentives?.amount || 0).toLocaleString('en-IN')}`, 
+      percentage: `${payrollBreakdownData.categories?.incentives?.percentage || 0}%`, 
+      color: "#0B7A75" 
+    },
+    { 
+      label: "Overtime", 
+      value: `₹ ${(payrollBreakdownData.categories?.overtime?.amount || 0).toLocaleString('en-IN')}`, 
+      percentage: `${payrollBreakdownData.categories?.overtime?.percentage || 0}%`, 
+      color: "#2C2C2C" 
+    },
+  ] : [
+    { label: "Salary", value: "₹ 0", percentage: "0%", color: "#0B7A75" },
+    { label: "Allowances", value: "₹ 0", percentage: "0%", color: "#FDB750" },
+    { label: "Deduction", value: "₹ 0", percentage: "0%", color: "#E0E3E6" },
+    { label: "Incentives", value: "₹ 0", percentage: "0%", color: "#0B7A75" },
+    { label: "Overtime", value: "₹ 0", percentage: "0%", color: "#2C2C2C" },
   ];
 
-  const payrollData = [
-    {
-      id: 1,
-      name: "Manoj Kumar",
-      employeeId: "#ST5683",
-      department: "UI UX Designer",
-      subDepartment: "Design",
-      issueDate: "14-01-2026",
-      ot: "₹42,853",
-      total: "₹5683",
-      amount: "₹48,486",
-      status: "Paid",
-      avatar: null,
-    },
-    {
-      id: 2,
-      name: "Cristofer Dias",
-      employeeId: "#ST5683",
-      department: "Web Developer",
-      subDepartment: "Design",
-      issueDate: "14-01-2026",
-      ot: "₹42,853",
-      total: "₹5683",
-      amount: "₹48,486",
-      status: "Pending",
-      avatar: null,
-    },
-    {
-      id: 3,
-      name: "Hanna Lipshutz",
-      employeeId: "#ST5683",
-      department: "Marketing Ex",
-      subDepartment: "Design",
-      issueDate: "14-01-2026",
-      ot: "₹42,853",
-      total: "₹5683",
-      amount: "₹48,486",
-      status: "Canceled",
-      avatar: null,
-    },
-    {
-      id: 4,
-      name: "Lydia Donin",
-      employeeId: "#ST5683",
-      department: "Business Development",
-      subDepartment: "Design",
-      issueDate: "14-01-2026",
-      ot: "₹42,853",
-      total: "₹5683",
-      amount: "₹48,486",
-      status: "Paid",
-      avatar: null,
-    },
-    {
-      id: 5,
-      name: "Jaxson Carder",
-      employeeId: "#ST5683",
-      department: "UI UX Designer",
-      subDepartment: "Design",
-      issueDate: "14-01-2026",
-      ot: "₹42,853",
-      total: "₹5683",
-      amount: "₹48,486",
-      status: "Paid",
-      avatar: null,
-    },
-    {
-      id: 6,
-      name: "Jaxson Carder",
-      employeeId: "#ST5683",
-      department: "UI UX Designer",
-      subDepartment: "Design",
-      issueDate: "14-01-2026",
-      ot: "₹42,853",
-      total: "₹5683",
-      amount: "₹48,486",
-      status: "Paid",
-      avatar: null,
-    },
-    {
-      id: 7,
-      name: "Jaxson Carder",
-      employeeId: "#ST5683",
-      department: "UI UX Designer",
-      subDepartment: "Design",
-      issueDate: "14-01-2026",
-      ot: "₹42,853",
-      total: "₹5683",
-      amount: "₹48,486",
-      status: "Paid",
-      avatar: null,
-    },
+  const payrollData = payrollListData.map((item) => ({
+    id: item._id,
+    name: item.name || "N/A",
+    employeeId: `#${item.empCode || "N/A"}`,
+    department: item.designation || "N/A",
+    subDepartment: item.department || "N/A",
+    issueDate: item.issueDate ? new Date(item.issueDate).toLocaleDateString('en-IN') : "N/A",
+    ot: `₹${(item.overtime || 0).toLocaleString('en-IN')}`,
+    total: `₹${(item.salary || 0).toLocaleString('en-IN')}`,
+    amount: `₹${(item.total || 0).toLocaleString('en-IN')}`,
+    status: item.status?.charAt(0).toUpperCase() + item.status?.slice(1) || "N/A",
+    avatar: item.profilePic,
+  }));
+
+  const chartMonths = payrollOverviewData?.monthlyData || [
+    { month: "Jan", salary: 0, overtime: 0, incentives: 0 },
+    { month: "Feb", salary: 0, overtime: 0, incentives: 0 },
+    { month: "Mar", salary: 0, overtime: 0, incentives: 0 },
+    { month: "Apr", salary: 0, overtime: 0, incentives: 0 },
+    { month: "May", salary: 0, overtime: 0, incentives: 0 },
+    { month: "Jun", salary: 0, overtime: 0, incentives: 0 },
+    { month: "Jul", salary: 0, overtime: 0, incentives: 0 },
   ];
+
+  const totalPayThisMonth = payrollBreakdownData?.totalPayThisMonth || 0;
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -276,14 +331,23 @@ const Paysheet = () => {
               <YAxisLabel>₹ 0</YAxisLabel>
             </YAxisLabels>
             <BarChartContainer>
-              {["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul"].map((month, idx) => (
-                <BarGroup key={month}>
+              {chartMonths.slice(0, 7).map((item, idx) => (
+                <BarGroup key={item.month}>
                   <BarStack>
-                    <Bar $height={Math.random() * 60 + 20} $color="#E0E3E6" />
-                    <Bar $height={Math.random() * 80 + 40} $color="#0B7A75" />
-                    <Bar $height={Math.random() * 50 + 30} $color="#FDB750" />
+                    <Bar 
+                      $height={Math.min((item.incentives / 100000) * 100, 100)} 
+                      $color="#E0E3E6" 
+                    />
+                    <Bar 
+                      $height={Math.min((item.salary / 2000000) * 100, 100)} 
+                      $color="#0B7A75" 
+                    />
+                    <Bar 
+                      $height={Math.min((item.overtime / 100000) * 100, 100)} 
+                      $color="#FDB750" 
+                    />
                   </BarStack>
-                  <BarLabel>{month}</BarLabel>
+                  <BarLabel>{item.month}</BarLabel>
                 </BarGroup>
               ))}
             </BarChartContainer>
@@ -301,7 +365,7 @@ const Paysheet = () => {
           </ChartHeader>
           <BreakdownContent>
             <TotalAmountRow>
-              <TotalAmount>₹20,20,000</TotalAmount>
+              <TotalAmount>₹{totalPayThisMonth.toLocaleString('en-IN')}</TotalAmount>
               <TotalLabel>Total Pay This Month</TotalLabel>
             </TotalAmountRow>
             <BreakdownBars>
@@ -368,9 +432,14 @@ const Paysheet = () => {
           <ReusableTable
             columns={columns}
             data={payrollData}
-            rowsPerPage={5}
+            rowsPerPage={10}
             alwaysShowPagination={true}
             paginationBorder={true}
+            server={true}
+            totalPages={totalPages}
+            currentPage={currentPage}
+            onPageChange={setCurrentPage}
+            isLoading={loading}
           />
         </TableWrapper>
       </TableSection>

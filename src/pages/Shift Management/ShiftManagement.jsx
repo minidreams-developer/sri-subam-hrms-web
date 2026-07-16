@@ -7,11 +7,13 @@ import ReusableTable from "../../components/ReusableTable";
 import DetailsSidebar from "../../components/DetailsSidebar";
 import CardDetails from "../../components/CardDetails";
 import EditIcon from "../../assets/images/employee/editIcon.svg";
+import DeleteIcon from "../../assets/images/employee/Cross.svg";
 import styled from "styled-components";
 import theme from "../../theme/theme";
 import { useNavigate } from "react-router-dom";
-import { get } from "../../helpers/api_helper";
-import { GET_SHIFTS, GET_SHIFT_DETAILS } from "../../helpers/url_helper";
+import { get, patch, del } from "../../helpers/api_helper";
+import { GET_SHIFTS, GET_SHIFT_DETAILS, UPDATE_SHIFT, DELETE_SHIFT } from "../../helpers/url_helper";
+import { toast } from "react-toastify";
 
 const ShiftManagement = () => {
   const navigate = useNavigate();
@@ -89,6 +91,7 @@ const ShiftManagement = () => {
         shifttype: shift.shiftType || "-",
         status: shift.isShiftActive ? "Active" : "Inactive",
         type: shift.shiftType,
+        action: <ActionCell row={{id: shift.id || shift._id}} />,
         // Store full object for sidebar
         ...shift
       }));
@@ -125,6 +128,48 @@ const ShiftManagement = () => {
     setIsSidebarOpen(true);
     fetchShiftDetails(row.id);
   };
+
+  const handleEditShift = (e, shiftId) => {
+    e.stopPropagation();
+    // Navigate to edit shift page with ID using absolute path
+    navigate(`/admin/time-hub/shiftManagement/addNewShift?id=${shiftId}`);
+  };
+
+  const handleDeleteShift = async (e, shiftId) => {
+    e.stopPropagation();
+    // Confirmation dialog before delete
+    if (window.confirm("Are you sure you want to delete this shift?")) {
+      try {
+        const url = DELETE_SHIFT.replace(":shiftId", shiftId);
+        await del(url);
+        toast.success("Shift deleted successfully!");
+        // Refresh the shifts list
+        fetchShifts(currentPage, pageSize, sortBy);
+      } catch (error) {
+        const errorMessage = error.response?.data?.message || error.message || "Failed to delete shift";
+        toast.error(errorMessage);
+        console.error("Delete shift error:", error);
+      }
+    }
+  };
+
+  const ActionCell = ({ row }) => (
+    <ActionIcons>
+      <IconButton 
+        onClick={(e) => handleEditShift(e, row.id)}
+        title="Edit"
+      >
+        <img src={EditIcon} alt="edit" width="18" height="18" />
+      </IconButton>
+      <IconButton 
+        onClick={(e) => handleDeleteShift(e, row.id)}
+        title="Delete"
+        $delete
+      >
+        <img src={DeleteIcon} alt="delete" width="18" height="18" />
+      </IconButton>
+    </ActionIcons>
+  );
 
   const handlePageChange = (newPage) => {
     setCurrentPage(newPage);
@@ -504,6 +549,39 @@ const ErrorMessage = styled.div`
   background: #fee2e2;
   border-radius: 8px;
   border: 1px solid #fecaca;
+`;
+
+const ActionIcons = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 0.5rem;
+`;
+
+const IconButton = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background: ${({ $delete }) => $delete ? "#fee2e2" : "#edf6f9"};
+  border: 1px solid ${({ $delete }) => $delete ? "#fecaca" : "#d1e7ed"};
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background: ${({ $delete }) => $delete ? "#fecaca" : "#d1e7ed"};
+    transform: scale(1.05);
+  }
+
+  img {
+    width: 18px;
+    height: 18px;
+    object-fit: contain;
+  }
 `;
 
 export default ShiftManagement;

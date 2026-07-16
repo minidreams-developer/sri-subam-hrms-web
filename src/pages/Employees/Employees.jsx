@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import styled from "styled-components";
 import ReusableTable from "../../components/ReusableTable";
 import GreenArrow from "../../assets/images/dashboardImages/green.svg";
@@ -11,18 +11,17 @@ import PlusIcon from "../../assets/images/DashboardImages/plus-large_svgrepo.com
 import TabSwitcher from "../../components/TabSwitcher";
 import Filter from "../../components/filter";
 import { get } from "../../helpers/api_helper";
-import { GET_ALL_EMPLOYEES } from "../../helpers/url_helper";
+import { GET_EMPLOYEES_BY_ROLE, GET_STAFF_BY_ROLE } from "../../helpers/url_helper";
 import { toast } from "react-toastify";
 import {
   dashboardStats,
   employeeTableColumns,
-  employeeTableData,
   staffTableColumns,
-  staffTableData,
 } from "../../utils/data";
 
 const Employees = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const stats = dashboardStats;
 
   const [selectedDepartment, setSelectedDepartment] = useState("All");
@@ -36,6 +35,7 @@ const Employees = () => {
   const [staffShift, setStaffShift] = useState("All Shifts");
   const [showFilter, setShowFilter] = useState(false);
   const [employees, setEmployees] = useState([]);
+  const [staff, setStaff] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -43,105 +43,123 @@ const Employees = () => {
   const [totalPages, setTotalPages] = useState(0);
   const [sortBy, setSortBy] = useState("createdAt:desc");
 
-  // Fetch employees on component mount and when pagination changes
+  // Handle navigation state from Create Employee/Staff pages
   useEffect(() => {
-    fetchEmployees(currentPage, pageSize, sortBy);
-  }, [currentPage, pageSize, sortBy]);
+    if (location.state?.activeTab) {
+      setActiveTab(location.state.activeTab);
+      // Clear the state so it doesn't persist on page reload
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
 
-  const fetchEmployees = async (page = 1, limit = 10, sort = "createdAt:desc") => {
+  // Fetch data based on active tab
+  useEffect(() => {
+    setCurrentPage(1); // Reset to first page when switching tabs
+    if (activeTab === "Employee") {
+      fetchEmployeeData(1, pageSize, sortBy);
+    } else {
+      fetchStaffData(1, pageSize, sortBy);
+    }
+  }, [activeTab, pageSize, sortBy]);
+
+  const fetchEmployeeData = async (page = 1, limit = 10, sort = "createdAt:desc") => {
     setIsLoading(true);
     try {
-      const response = await get(`${GET_ALL_EMPLOYEES}?page=${page}&limit=${limit}&sortBy=${sort}`);
-      console.log("API Response:", response);
-      
-      // Handle different response structures
-      let employeeList = [];
-      let total = 0;
-      let pages = 0;
-      
-      if (response && Array.isArray(response)) {
-        // If response is directly an array
-        employeeList = response;
-        total = response.length;
-        pages = 1;
-      } else if (response && response.results && Array.isArray(response.results)) {
-        // If response has a results property (pagination format)
-        employeeList = response.results;
-        total = response.totalResults || response.results.length;
-        pages = response.totalPages || 1;
-      } else if (response && response.data && Array.isArray(response.data)) {
-        // If response has a data property
-        employeeList = response.data;
-        total = response.totalResults || response.data.length;
-        pages = response.totalPages || 1;
-      } else if (response && response.users && Array.isArray(response.users)) {
-        // If response has a users property
-        employeeList = response.users;
-        total = response.totalResults || response.users.length;
-        pages = response.totalPages || 1;
-      }
-      
-      console.log("Employee List:", employeeList);
-      
-      if (employeeList.length > 0) {
-        // Transform API response to match table format
-        const transformedEmployees = employeeList.map((emp) => {
-          // Extract joined date
-          const joinedDate = emp.workInformation?.joinedDate || emp.dateOfJoining;
-          const formattedDate = joinedDate 
-            ? new Date(joinedDate).toLocaleDateString("en-GB", {
-                day: "2-digit",
-                month: "2-digit",
-                year: "numeric",
-              })
-            : "N/A";
-
-          // Extract department name from object or use as string
-          const departmentValue = emp.workInformation?.department || emp.department || "N/A";
-          const departmentName = typeof departmentValue === "object" 
-            ? departmentValue?.departmentName || departmentValue?.name || "N/A"
-            : departmentValue;
-
-          // Extract shift name from object or use as string
-          const shiftValue = emp.workInformation?.shiftId || emp.shift || "N/A";
-          const shiftName = typeof shiftValue === "object"
-            ? shiftValue?.shiftName || shiftValue?.name || "N/A"
-            : shiftValue;
-
-          return {
-            id: emp.id || emp._id,
-            employeeId: emp.employeeId || "N/A",
-            name: emp.name || emp.employeeName || "N/A",
-            email: emp.email || "N/A",
-            phone: emp.phone || "N/A",
-            department: departmentName,
-            designation: emp.workInformation?.designation || emp.designation || "N/A",
-            shift: shiftName,
-            status: emp.isActive ? "Active" : "Inactive",
-            joinedDate: formattedDate,
-            gender: emp.gender || "N/A",
-            role: emp.role || "employee",
-          };
-        });
-        console.log("Transformed Employees:", transformedEmployees);
-        setEmployees(transformedEmployees);
-        setTotalResults(total);
-        setTotalPages(pages);
-      } else {
-        console.warn("No employees found in response");
-        setEmployees([]);
-        setTotalResults(0);
-        setTotalPages(0);
-      }
+      const response = await get(`${GET_EMPLOYEES_BY_ROLE}?role=employee&page=${page}&limit=${limit}&sortBy=${sort}`);
+      console.log("Employee API Response:", response);
+      transformAndSetData(response, setEmployees, setTotalResults, setTotalPages);
     } catch (error) {
-      const errorMessage =
-        error.response?.data?.message ||
-        error.message ||
-        "Failed to fetch employees";
+      const errorMessage = error.response?.data?.message || error.message || "Failed to fetch employees";
       toast.error(errorMessage);
       console.error("Fetch employees error:", error);
+      setEmployees([]);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchStaffData = async (page = 1, limit = 10, sort = "createdAt:desc") => {
+    setIsLoading(true);
+    try {
+      const response = await get(`/v1/users?role=staff&page=${page}&limit=${limit}&sortBy=${sort}`);
+      console.log("Staff API Response:", response);
+      transformAndSetData(response, setStaff, setTotalResults, setTotalPages);
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || error.message || "Failed to fetch staff";
+      toast.error(errorMessage);
+      console.error("Fetch staff error:", error);
+      setStaff([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const transformAndSetData = (response, setter, setTotal, setPages) => {
+    let dataList = [];
+    let total = 0;
+    let pages = 0;
+    
+    if (response && Array.isArray(response)) {
+      dataList = response;
+      total = response.length;
+      pages = 1;
+    } else if (response?.results && Array.isArray(response.results)) {
+      dataList = response.results;
+      total = response.totalResults || response.results.length;
+      pages = response.totalPages || 1;
+    } else if (response?.data && Array.isArray(response.data)) {
+      dataList = response.data;
+      total = response.totalResults || response.data.length;
+      pages = response.totalPages || 1;
+    } else if (response?.users && Array.isArray(response.users)) {
+      dataList = response.users;
+      total = response.totalResults || response.users.length;
+      pages = response.totalPages || 1;
+    }
+    
+    if (dataList.length > 0) {
+      const transformedData = dataList.map((item) => {
+        const joinedDate = item.workInformation?.joinedDate || item.dateOfJoining;
+        const formattedDate = joinedDate 
+          ? new Date(joinedDate).toLocaleDateString("en-GB", {
+              day: "2-digit",
+              month: "2-digit",
+              year: "numeric",
+            })
+          : "N/A";
+
+        const departmentValue = item.workInformation?.department || item.department || "N/A";
+        const departmentName = typeof departmentValue === "object" 
+          ? departmentValue?.departmentName || departmentValue?.name || "N/A"
+          : departmentValue;
+
+        const shiftValue = item.workInformation?.shiftId || item.shift || "N/A";
+        const shiftName = typeof shiftValue === "object"
+          ? shiftValue?.shiftName || shiftValue?.name || "N/A"
+          : shiftValue;
+
+        return {
+          id: item.id || item._id,
+          employeeId: item.employeeId || "N/A",
+          name: item.name || item.employeeName || "N/A",
+          email: item.email || "N/A",
+          phone: item.phone || "N/A",
+          department: departmentName,
+          designation: item.workInformation?.designation || item.designation || "N/A",
+          shift: shiftName,
+          status: item.isActive ? "Active" : "Inactive",
+          joinedDate: formattedDate,
+          gender: item.gender || "N/A",
+          role: item.role || "employee",
+        };
+      });
+      setter(transformedData);
+      setTotal(total);
+      setPages(pages);
+    } else {
+      setter([]);
+      setTotal(0);
+      setPages(0);
     }
   };
 
@@ -156,6 +174,12 @@ const Employees = () => {
   const handleNewEmployee = () => {
     navigate("/admin/peopleHub/employees/create", {
       state: { from: "employees" },
+    });
+  };
+
+  const handleNewStaff = () => {
+    navigate("/admin/peopleHub/staff/create", {
+      state: { from: "staff" },
     });
   };
 
@@ -189,7 +213,7 @@ const Employees = () => {
     return m1 && m2 && m3;
   });
 
-  const filteredStaffData = staffTableData.filter((row) => {
+  const filteredStaffData = staff.filter((row) => {
     const m1 = staffRole === "All Roles" || row.role === staffRole;
     const m2 = staffShift === "All Shifts" || row.shift === staffShift;
     const m3 =
@@ -288,7 +312,7 @@ const Employees = () => {
           />
           <ReusableTable
             columns={employeeTableColumns}
-            data={employees}
+            data={filteredEmployeeData}
             rowsPerPage={pageSize}
             totalResults={totalResults}
             totalPages={totalPages}
@@ -321,12 +345,18 @@ const Employees = () => {
             onFilterClick={handleFilterOpen}
             actionText="New Staff"
             actionIcon={<img src={PlusIcon} alt="add" width="16" height="16" />}
+            onActionClick={handleNewStaff}
           />
           <ReusableTable
             columns={staffTableColumns}
             data={filteredStaffData}
-            rowsPerPage={5}
-            totalResults={filteredStaffData.length}
+            rowsPerPage={pageSize}
+            totalResults={totalResults}
+            totalPages={totalPages}
+            currentPage={currentPage}
+            server={true}
+            onPageChange={handlePageChange}
+            alwaysShowPagination
             onRowClick={handleRowClick}
           />
         </>

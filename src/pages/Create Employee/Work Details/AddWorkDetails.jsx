@@ -71,7 +71,7 @@ const AddWorkDetails = forwardRef(({ onNext, onBack }, ref) => {
   const fetchDepartments = async () => {
     setDepartmentsLoading(true);
     try {
-      const response = await get(`${DEPARTMENTS}?page=1&limit=1000`);
+      const response = await get(`${DEPARTMENTS}?page=1&limit=100`);
       let departments = [];
       if (Array.isArray(response)) {
         departments = response;
@@ -97,7 +97,7 @@ const AddWorkDetails = forwardRef(({ onNext, onBack }, ref) => {
   const fetchShifts = async () => {
     setShiftsLoading(true);
     try {
-      const response = await get(`${GET_SHIFTS}?page=1&limit=1000`);
+      const response = await get(`${GET_SHIFTS}?page=1&limit=100`);
       let shifts = [];
       if (Array.isArray(response)) {
         shifts = response;
@@ -123,7 +123,7 @@ const AddWorkDetails = forwardRef(({ onNext, onBack }, ref) => {
   const fetchUsers = async () => {
     setUsersLoading(true);
     try {
-      const response = await get(`${GET_ALL_EMPLOYEES}?page=1&limit=1000`);
+      const response = await get(`${GET_ALL_EMPLOYEES}?page=1&limit=100`);
       let users = [];
       if (Array.isArray(response)) {
         users = response;
@@ -153,7 +153,7 @@ const AddWorkDetails = forwardRef(({ onNext, onBack }, ref) => {
   const fetchTeams = async () => {
     setTeamsLoading(true);
     try {
-      const response = await get(`${TEAMS}?page=1&limit=1000`);
+      const response = await get(`${TEAMS}?page=1&limit=100`);
       let teams = [];
       if (Array.isArray(response)) {
         teams = response;
@@ -179,7 +179,7 @@ const AddWorkDetails = forwardRef(({ onNext, onBack }, ref) => {
   const fetchBranches = async () => {
     setBranchesLoading(true);
     try {
-      const response = await get(`${BRANCHES}?page=1&limit=1000`);
+      const response = await get(`${BRANCHES}?page=1&limit=100`);
       let branches = [];
       if (Array.isArray(response)) {
         branches = response;

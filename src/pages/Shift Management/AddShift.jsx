@@ -12,13 +12,18 @@ import { FaTimes } from "react-icons/fa";
 import deleteIcon from "../../assets/images/shift/delete.svg";
 import Switch from "react-switch";
 import CalenderInput from "../../components/CalenderInput";
-import { post, get } from "../../helpers/api_helper";
-import { CREATE_SHIFT, GENERATE_SHIFT_ID } from "../../helpers/url_helper";
+import { post, get, patch } from "../../helpers/api_helper";
+import { CREATE_SHIFT, GENERATE_SHIFT_ID, UPDATE_SHIFT, GET_SHIFT_DETAILS } from "../../helpers/url_helper";
 import { toast } from "react-toastify";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 const AddShift = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const shiftIdFromUrl = searchParams.get("id");
+  const [shiftId, setShiftId] = useState(null);
+  const isEditMode = !!shiftId;
+
   const [effectiveStartDate, setEffectiveStartDate] = useState(null);
   const [breaks, setBreaks] = useState([{ id: 1 }]);
   const [breakManagementEnabled, setBreakManagementEnabled] = useState(false);
@@ -36,10 +41,21 @@ const AddShift = () => {
   const [shiftCode, setShiftCode] = useState("");
   const [shiftName, setShiftName] = useState("");
 
-  // Generate shift code on component mount
+  // Generate shift code on component mount or fetch shift details if editing
   useEffect(() => {
-    generateShiftId();
-  }, []);
+    if (shiftIdFromUrl) {
+      setShiftId(shiftIdFromUrl);
+    }
+  }, [shiftIdFromUrl]);
+
+  // Generate shift code on component mount or fetch shift details if editing
+  useEffect(() => {
+    if (isEditMode) {
+      fetchShiftDetails();
+    } else {
+      generateShiftId();
+    }
+  }, [isEditMode, shiftId]);
 
   // GET /v1/shifts/generate-id - Fetch unique shift code
   const generateShiftId = async () => {
@@ -58,6 +74,123 @@ const AddShift = () => {
     } catch (error) {
       console.error("Error generating shift ID:", error);
       toast.error("Failed to generate shift ID");
+    } finally {
+      setIsGeneratingId(false);
+    }
+  };
+
+  // Fetch shift details when editing
+  const fetchShiftDetails = async () => {
+    setIsGeneratingId(true);
+    try {
+      const url = GET_SHIFT_DETAILS.replace(":shiftId", shiftId);
+      const response = await get(url);
+      console.log("Shift details fetched:", response);
+
+      // Populate form with shift data
+      if (response) {
+        // Basic Details
+        setShiftCode(response.shiftCode || "");
+        setShiftName(response.shiftName || "");
+
+        // Shift Type
+        if (response.shiftType) {
+          setShiftType({ value: response.shiftType, label: response.shiftType.charAt(0).toUpperCase() + response.shiftType.slice(1) });
+        }
+
+        // Same timing for all days
+        if (response.sameTimingForAllDays !== undefined) {
+          setSameTiming({ value: response.sameTimingForAllDays ? "yes" : "no", label: response.sameTimingForAllDays ? "Yes" : "No" });
+        }
+
+        // Shift Timing
+        if (response.timings && response.timings.length > 0) {
+          const firstTiming = response.timings[0];
+          setStartTime(firstTiming.startTime || "");
+          setEndTime(firstTiming.endTime || "");
+        }
+
+        setTotalShiftDuration(response.totalShiftDuration || "");
+        setMinimumWorkingHours(response.minWorkingHours || "");
+
+        // Grace Periods
+        if (response.gracePeriod) {
+          setGracePeriodEarlyCheckin(response.gracePeriod.earlyCheckIn?.toString() || "");
+          setGracePeriodLateCheckin(response.gracePeriod.lateCheckIn?.toString() || "");
+          setGracePeriodEarlyCheckout(response.gracePeriod.earlyCheckOut?.toString() || "");
+          setGracePeriodLateCheckout(response.gracePeriod.lateCheckOut?.toString() || "");
+        }
+
+        // Break Management
+        if (response.breakManagement) {
+          setBreakManagementEnabled(response.breakManagement.enabled || false);
+          setMultipleBreaks(
+            response.breakManagement.multipleBreaksSupport
+              ? { value: "yes", label: "Yes" }
+              : { value: "no", label: "No" }
+          );
+
+          // Populate break details
+          if (response.breakManagement.breaks && response.breakManagement.breaks.length > 0) {
+            const breaksArray = response.breakManagement.breaks.map((b, index) => ({
+              id: index + 1,
+            }));
+            setBreaks(breaksArray);
+
+            const breakDetailsMap = {};
+            response.breakManagement.breaks.forEach((b, index) => {
+              breakDetailsMap[index + 1] = {
+                name: b.name || "",
+                duration: b.duration || "",
+                startTime: b.startTime || "",
+                endTime: b.endTime || "",
+              };
+            });
+            setBreakDetails(breakDetailsMap);
+          }
+        }
+
+        // Attendance Rules
+        if (response.attendanceRules) {
+          setLateMarkAfter(response.attendanceRules.lateMarkAfter?.toString() || "");
+          setAutoHalfDayAfter(response.attendanceRules.autoHalfDayAfterLate?.toString() || "");
+          setAutoAbsentIfWorkingHours(response.attendanceRules.autoAbsentIfWorkingHours?.toString() || "");
+          setOvertimeEligibility(
+            response.attendanceRules.overtimeEligibility
+              ? { value: "yes", label: "Yes" }
+              : { value: "no", label: "No" }
+          );
+        }
+
+        // Weekly Pattern
+        if (response.timings && response.timings.length > 0) {
+          const offDays = response.timings
+            .filter(t => t.off)
+            .map(t => ({ value: t.day, label: t.day }));
+          setFixedDays(offDays.length > 0 ? offDays : null);
+        }
+
+        if (response.compOff && response.compOff.length > 0) {
+          setCompOff({ value: response.compOff[0], label: response.compOff[0] === "yes" ? "Yes" : "No" });
+        }
+
+        // Set effective start date if available
+        if (response.effectiveStartDate) {
+          setEffectiveStartDate(new Date(response.effectiveStartDate));
+        }
+
+        // Handle selected shifts for rotational shifts
+        if (response.shiftType === "rotational" && response.selectedShifts) {
+          const shiftsArray = response.selectedShifts.map(shift => ({
+            value: shift.toLowerCase(),
+            label: shift.charAt(0).toUpperCase() + shift.slice(1),
+          }));
+          setSelectedShifts(shiftsArray);
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching shift details:", error);
+      toast.error("Failed to load shift details");
     } finally {
       setIsGeneratingId(false);
     }
@@ -201,14 +334,24 @@ const AddShift = () => {
 
       console.log("Payload being sent:", JSON.stringify(payload, null, 2));
 
-      // Make POST request to /v1/shifts
-      const response = await post(CREATE_SHIFT, payload);
-
-      console.log("Shift creation response:", response);
+      let response;
+      if (isEditMode && shiftId) {
+        // Use PATCH for update
+        const url = UPDATE_SHIFT.replace(":shiftId", shiftId);
+        console.log("Updating shift with URL:", url);
+        console.log("Shift ID:", shiftId);
+        response = await patch(url, payload);
+        console.log("Shift update response:", response);
+        toast.success("Shift updated successfully!");
+      } else {
+        // Use POST for create
+        console.log("Creating new shift...");
+        response = await post(CREATE_SHIFT, payload);
+        console.log("Shift creation response:", response);
+        toast.success("Shift created successfully!");
+      }
 
       if (response) {
-        toast.success("Shift created successfully!");
-        
         // Navigate immediately to ShiftManagement page
         navigate("/admin/time-hub/shiftManagement");
       }
@@ -217,7 +360,7 @@ const AddShift = () => {
       const errorMessage =
         error?.response?.data?.message ||
         error?.message ||
-        "Failed to create shift";
+        "Failed to save shift";
       toast.error(errorMessage);
     } finally {
       setIsLoading(false);

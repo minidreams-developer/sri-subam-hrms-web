@@ -1,87 +1,136 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import styled from "styled-components";
 import theme from "../theme/theme";
 import { IoClose, IoSearch } from "react-icons/io5";
+import { get } from "../helpers/api_helper";
+import { GET_USERS, GET_DEPARTMENTS } from "../helpers/url_helper";
+import { toast } from "react-toastify";
 
 const Filter = ({ onClose, onApply }) => {
   const [filters, setFilters] = useState({
-    department: [],
-    designations: [],
-    dateRange: { start: "", end: "" },
+    departmentId: [],
+    designation: [],
+    joinedFrom: "",
+    joinedTo: "",
     status: [],
-    shift: [],
+    shiftId: [],
     sortBy: "",
   });
 
   const [searchDept, setSearchDept] = useState("");
   const [expandedSection, setExpandedSection] = useState("department");
+  const [departmentsData, setDepartmentsData] = useState([]);
+  const [designationsData, setDesignationsData] = useState([]);
+  const [shiftsData, setShiftsData] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-  const departments = [
-    "Design Department",
-    "Accounts Department",
-    "Project Development Department",
-    "Packaging Department",
+  const statuses = [
+    { label: "Active", value: "active" },
+    { label: "In-Active", value: "inactive" },
+    { label: "Relieved", value: "relieved" },
+  ];
+  const sortOptions = [
+    { label: "Name (A-Z)", value: "name:asc" },
+    { label: "Name (Z-A)", value: "name:desc" },
+    { label: "Date (Oldest)", value: "date:asc" },
+    { label: "Date (Newest)", value: "date:desc" },
   ];
 
-  const designations = [
-    "Senior Developer",
-    "Junior Developer",
-    "UI/UX Designer",
-    "Product Manager",
-    "QA Engineer",
-  ];
+  // Fetch filter data on component mount
+  useEffect(() => {
+    fetchFilterData();
+  }, []);
 
-  const statuses = ["Active", "Inactive", "On Leave", "Terminated"];
-  const shifts = ["Morning", "Afternoon", "Evening", "Night"];
-  const sortOptions = ["Name (A-Z)", "Name (Z-A)", "Date Added", "Salary"];
+  const fetchFilterData = async () => {
+    setLoading(true);
+    try {
+      // Fetch departments
+      const deptResponse = await get(GET_DEPARTMENTS);
+      if (deptResponse && Array.isArray(deptResponse)) {
+        setDepartmentsData(deptResponse);
+      } else if (deptResponse?.results && Array.isArray(deptResponse.results)) {
+        setDepartmentsData(deptResponse.results);
+      } else if (deptResponse?.data && Array.isArray(deptResponse.data)) {
+        setDepartmentsData(deptResponse.data);
+      }
 
-  const filteredDepartments = departments.filter((dept) =>
-    dept.toLowerCase().includes(searchDept.toLowerCase())
-  );
+      // Fetch shifts
+      const shiftResponse = await get("/v1/shifts");
+      if (shiftResponse && Array.isArray(shiftResponse)) {
+        setShiftsData(shiftResponse);
+      } else if (shiftResponse?.results && Array.isArray(shiftResponse.results)) {
+        setShiftsData(shiftResponse.results);
+      } else if (shiftResponse?.data && Array.isArray(shiftResponse.data)) {
+        setShiftsData(shiftResponse.data);
+      }
 
-  const handleDepartmentChange = (dept) => {
+      // Fetch unique designations (max limit is 100)
+      const usersResponse = await get(`${GET_USERS}?limit=100`);
+      if (usersResponse && usersResponse.results && Array.isArray(usersResponse.results)) {
+        const uniqueDesignations = [...new Set(
+          usersResponse.results
+            .map(user => user.workInformation?.designation)
+            .filter(Boolean)
+        )];
+        setDesignationsData(uniqueDesignations);
+      }
+    } catch (error) {
+      console.error("Error fetching filter data:", error);
+      toast.error("Failed to load filter options");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filteredDepartments = departmentsData.filter((dept) => {
+    const deptName = dept.departmentName || dept.name || "";
+    return deptName.toLowerCase().includes(searchDept.toLowerCase());
+  });
+
+  const handleDepartmentChange = (deptId) => {
     setFilters((prev) => ({
       ...prev,
-      department: prev.department.includes(dept)
-        ? prev.department.filter((d) => d !== dept)
-        : [...prev.department, dept],
+      departmentId: prev.departmentId.includes(deptId)
+        ? prev.departmentId.filter((d) => d !== deptId)
+        : [...prev.departmentId, deptId],
     }));
   };
 
   const handleDesignationChange = (designation) => {
     setFilters((prev) => ({
       ...prev,
-      designations: prev.designations.includes(designation)
-        ? prev.designations.filter((d) => d !== designation)
-        : [...prev.designations, designation],
+      designation: prev.designation.includes(designation)
+        ? prev.designation.filter((d) => d !== designation)
+        : [...prev.designation, designation],
     }));
   };
 
-  const handleStatusChange = (status) => {
+  const handleStatusChange = (statusValue) => {
     setFilters((prev) => ({
       ...prev,
-      status: prev.status.includes(status)
-        ? prev.status.filter((s) => s !== status)
-        : [...prev.status, status],
+      status: prev.status.includes(statusValue)
+        ? prev.status.filter((s) => s !== statusValue)
+        : [...prev.status, statusValue],
     }));
   };
 
-  const handleShiftChange = (shift) => {
+  const handleShiftChange = (shiftId) => {
     setFilters((prev) => ({
       ...prev,
-      shift: prev.shift.includes(shift)
-        ? prev.shift.filter((s) => s !== shift)
-        : [...prev.shift, shift],
+      shiftId: prev.shiftId.includes(shiftId)
+        ? prev.shiftId.filter((s) => s !== shiftId)
+        : [...prev.shiftId, shiftId],
     }));
   };
 
   const handleClearAll = () => {
     setFilters({
-      department: [],
-      designations: [],
-      dateRange: { start: "", end: "" },
+      departmentId: [],
+      designation: [],
+      joinedFrom: "",
+      joinedTo: "",
       status: [],
-      shift: [],
+      shiftId: [],
       sortBy: "",
     });
     setSearchDept("");
@@ -158,13 +207,13 @@ const Filter = ({ onClose, onApply }) => {
                 </SearchBox>
                 <OptionsList>
                   {filteredDepartments.map((dept) => (
-                    <OptionItem key={dept}>
+                    <OptionItem key={dept.id || dept._id}>
                       <Checkbox
                         type="checkbox"
-                        checked={filters.department.includes(dept)}
-                        onChange={() => handleDepartmentChange(dept)}
+                        checked={filters.departmentId.includes(dept.id || dept._id)}
+                        onChange={() => handleDepartmentChange(dept.id || dept._id)}
                       />
-                      <OptionLabel>{dept}</OptionLabel>
+                      <OptionLabel>{dept.departmentName || dept.name}</OptionLabel>
                     </OptionItem>
                   ))}
                 </OptionsList>
@@ -175,11 +224,11 @@ const Filter = ({ onClose, onApply }) => {
               <FilterSection>
                 <SectionTitle>Select Designation</SectionTitle>
                 <OptionsList>
-                  {designations.map((designation) => (
+                  {designationsData.map((designation) => (
                     <OptionItem key={designation}>
                       <Checkbox
                         type="checkbox"
-                        checked={filters.designations.includes(designation)}
+                        checked={filters.designation.includes(designation)}
                         onChange={() => handleDesignationChange(designation)}
                       />
                       <OptionLabel>{designation}</OptionLabel>
@@ -195,22 +244,22 @@ const Filter = ({ onClose, onApply }) => {
                 <DateInputGroup>
                   <DateInput
                     type="date"
-                    value={filters.dateRange.start}
+                    value={filters.joinedFrom}
                     onChange={(e) =>
                       setFilters((prev) => ({
                         ...prev,
-                        dateRange: { ...prev.dateRange, start: e.target.value },
+                        joinedFrom: e.target.value,
                       }))
                     }
                     placeholder="Start Date"
                   />
                   <DateInput
                     type="date"
-                    value={filters.dateRange.end}
+                    value={filters.joinedTo}
                     onChange={(e) =>
                       setFilters((prev) => ({
                         ...prev,
-                        dateRange: { ...prev.dateRange, end: e.target.value },
+                        joinedTo: e.target.value,
                       }))
                     }
                     placeholder="End Date"
@@ -223,14 +272,14 @@ const Filter = ({ onClose, onApply }) => {
               <FilterSection>
                 <SectionTitle>Select Status</SectionTitle>
                 <OptionsList>
-                  {statuses.map((status) => (
-                    <OptionItem key={status}>
+                  {statuses.map((statusItem) => (
+                    <OptionItem key={statusItem.value}>
                       <Checkbox
                         type="checkbox"
-                        checked={filters.status.includes(status)}
-                        onChange={() => handleStatusChange(status)}
+                        checked={filters.status.includes(statusItem.value)}
+                        onChange={() => handleStatusChange(statusItem.value)}
                       />
-                      <OptionLabel>{status}</OptionLabel>
+                      <OptionLabel>{statusItem.label}</OptionLabel>
                     </OptionItem>
                   ))}
                 </OptionsList>
@@ -241,14 +290,14 @@ const Filter = ({ onClose, onApply }) => {
               <FilterSection>
                 <SectionTitle>Select Shift</SectionTitle>
                 <OptionsList>
-                  {shifts.map((shift) => (
-                    <OptionItem key={shift}>
+                  {shiftsData.map((shift) => (
+                    <OptionItem key={shift.id || shift._id}>
                       <Checkbox
                         type="checkbox"
-                        checked={filters.shift.includes(shift)}
-                        onChange={() => handleShiftChange(shift)}
+                        checked={filters.shiftId.includes(shift.id || shift._id)}
+                        onChange={() => handleShiftChange(shift.id || shift._id)}
                       />
-                      <OptionLabel>{shift}</OptionLabel>
+                      <OptionLabel>{shift.shiftName || shift.name}</OptionLabel>
                     </OptionItem>
                   ))}
                 </OptionsList>
@@ -260,12 +309,12 @@ const Filter = ({ onClose, onApply }) => {
                 <SectionTitle>Sort By</SectionTitle>
                 <OptionsList>
                   {sortOptions.map((option) => (
-                    <OptionItem key={option}>
+                    <OptionItem key={option.value}>
                       <RadioButton
                         type="radio"
                         name="sortBy"
-                        value={option}
-                        checked={filters.sortBy === option}
+                        value={option.value}
+                        checked={filters.sortBy === option.value}
                         onChange={(e) =>
                           setFilters((prev) => ({
                             ...prev,
@@ -273,7 +322,7 @@ const Filter = ({ onClose, onApply }) => {
                           }))
                         }
                       />
-                      <OptionLabel>{option}</OptionLabel>
+                      <OptionLabel>{option.label}</OptionLabel>
                     </OptionItem>
                   ))}
                 </OptionsList>

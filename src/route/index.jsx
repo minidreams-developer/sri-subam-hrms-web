@@ -9,6 +9,7 @@ import Employees from "../pages/Employees/Employees";
 import EmployeeProfile from "../pages/EmployeeProfile/EmployeeProfile";
 import EditAttendanceDetails from "../pages/EmployeeProfile/Attendance/EditAttendanceDetails";
 import CreateEmployee from "../pages/Create Employee/CreateEmployee";
+import CreateStaff from "../pages/Create Staff/CreateStaff";
 import Teams from "../pages/Teams/Teams";
 import TeamDetails from "../pages/Teams/TeamDetails";
 import Hierarchy from "../pages/Hierarchy/Hierarchy";
@@ -88,6 +89,10 @@ const privateRoutes = [
       {
         path: "peopleHub/employees/create",
         element: <CreateEmployee />,
+      },
+      {
+        path: "peopleHub/staff/create",
+        element: <CreateStaff />,
       },
       
       {

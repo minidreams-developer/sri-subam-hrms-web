@@ -7,7 +7,9 @@ import Select from "react-select";
 import { customSelectStyles } from "../../../theme/reactSelectStyles";
 import UploadIcon from "../../../assets/images/employee/upload2.svg";
 import { get } from "../../../helpers/api_helper";
-import { GENERATE_AGENT_ID } from "../../../helpers/url_helper";
+import { GENERATE_AGENT_ID, BRANCHES } from "../../../helpers/url_helper";
+import { stateDistrictMap, stateOptions } from "../../../utils/statesAndDistricts";
+import { toast } from "react-toastify";
 
 const PersonalInfo = forwardRef((_, ref) => {
   const [formData, setFormData] = useState({
@@ -35,6 +37,7 @@ const PersonalInfo = forwardRef((_, ref) => {
     district: null,
     state: null,
     pinCode: "",
+    branch: null,
   });
 
   const [emergencyContacts, setEmergencyContacts] = useState([
@@ -42,6 +45,8 @@ const PersonalInfo = forwardRef((_, ref) => {
   ]);
 
   const [isGeneratingId, setIsGeneratingId] = useState(false);
+  const [branches, setBranches] = useState([]);
+  const [branchesLoading, setBranchesLoading] = useState(false);
 
   // Generate Agent ID on component mount
   useEffect(() => {
@@ -62,7 +67,36 @@ const PersonalInfo = forwardRef((_, ref) => {
       }
     };
 
+    const fetchBranches = async () => {
+      setBranchesLoading(true);
+      try {
+        const response = await get(`${BRANCHES}?page=1&limit=100`);
+        
+        // Handle different response structures
+        let branchList = [];
+        if (Array.isArray(response)) {
+          branchList = response;
+        } else if (response?.results && Array.isArray(response.results)) {
+          branchList = response.results;
+        } else if (response?.data && Array.isArray(response.data)) {
+          branchList = response.data;
+        }
+
+        const formattedBranches = branchList.map((branch) => ({
+          value: branch._id || branch.id,
+          label: branch.name || branch.branchName || "",
+        }));
+        setBranches(formattedBranches);
+      } catch (error) {
+        console.error("Error fetching branches:", error);
+        toast.error("Failed to fetch branches");
+      } finally {
+        setBranchesLoading(false);
+      }
+    };
+
     generateAgentId();
+    fetchBranches();
   }, []);
 
   // Expose form data via ref
@@ -113,14 +147,11 @@ const PersonalInfo = forwardRef((_, ref) => {
     { value: "malayalam", label: "Malayalam" },
   ];
 
-  const stateOptions = [
-    { value: "tamil_nadu", label: "Tamil Nadu" },
-    { value: "kerala", label: "Kerala" },
-    { value: "karnataka", label: "Karnataka" },
-    { value: "andhra_pradesh", label: "Andhra Pradesh" },
-    { value: "telangana", label: "Telangana" },
-    { value: "maharashtra", label: "Maharashtra" },
-  ];
+  // Get district options based on selected state
+  const getDistrictOptions = () => {
+    if (!formData.state) return [];
+    return stateDistrictMap[formData.state.value] || [];
+  };
 
   const relationshipOptions = [
     { value: "father", label: "Father" },
@@ -421,12 +452,13 @@ const PersonalInfo = forwardRef((_, ref) => {
             <SelectWrapper>
               <Label>District</Label>
               <Select
-                options={stateOptions}
+                options={getDistrictOptions()}
                 value={formData.district}
                 onChange={(v) => handleChange("district", v)}
-                placeholder="Select District"
+                placeholder={!formData.state ? "Select State first" : "Select District"}
                 styles={customSelectStyles}
                 isSearchable
+                isDisabled={!formData.state}
               />
             </SelectWrapper>
           </Col>
@@ -438,13 +470,33 @@ const PersonalInfo = forwardRef((_, ref) => {
               <Select
                 options={stateOptions}
                 value={formData.state}
-                onChange={(v) => handleChange("state", v)}
+                onChange={(v) => {
+                  handleChange("state", v);
+                  // Clear district when state changes
+                  handleChange("district", null);
+                }}
                 placeholder="Select State"
                 styles={customSelectStyles}
                 isSearchable
               />
             </SelectWrapper>
           </Col>
+          <Col>
+            <SelectWrapper>
+              <Label>Branch</Label>
+              <Select
+                options={branches}
+                value={formData.branch}
+                onChange={(v) => handleChange("branch", v)}
+                placeholder={branchesLoading ? "Loading..." : "Select Branch"}
+                styles={customSelectStyles}
+                isSearchable
+                isLoading={branchesLoading}
+              />
+            </SelectWrapper>
+          </Col>
+        </Row>
+        <Row>
           <Col>
             <InputComponent
               label="Pin Code"

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import theme from "../../theme/theme";
@@ -8,6 +8,9 @@ import DotIcon from "../../assets/images/Overtime/actionDot.svg";
 import TabSwitcher from "../../components/TabSwitcher";
 import Button from "../../components/Button";
 import Filter from "../../components/filter";
+import { get } from "../../helpers/api_helper";
+import { GET_PAYROLL } from "../../helpers/url_helper";
+import { toast } from "react-toastify";
 
 const Payroll = () => {
   const navigate = useNavigate();
@@ -22,9 +25,74 @@ const Payroll = () => {
   const [selectedEmployee, setSelectedEmployee] = useState("");
   const [showFilter, setShowFilter] = useState(false);
   const [appliedFilters, setAppliedFilters] = useState(null);
+  const [payrollData, setPayrollData] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [totalResults, setTotalResults] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
 
   const departmentOptions = ["All Departments", "IT", "HR", "Sales", "Marketing", "Finance"];
   const shiftOptions = ["All Shifts", "Morning Shift", "Evening Shift", "Night Shift"];
+
+  // Fetch payroll data on component mount or page change
+  useEffect(() => {
+    fetchPayrollData();
+  }, [currentPage, pageSize]);
+
+  const fetchPayrollData = async () => {
+    setLoading(true);
+    try {
+      const response = await get(`${GET_PAYROLL}?page=${currentPage}&limit=${pageSize}`);
+      console.log("Payroll data fetched:", response);
+      
+      let records = [];
+      
+      // Handle different response structures
+      if (Array.isArray(response)) {
+        records = response;
+      } else if (response?.results && Array.isArray(response.results)) {
+        records = response.results;
+        setTotalResults(response.totalResults || 0);
+        setTotalPages(response.totalPages || 0);
+      } else if (response?.data && Array.isArray(response.data)) {
+        records = response.data;
+      }
+      
+      // Transform API data to match table format
+      const transformedData = records.map((item) => ({
+        employeeId: item.employeeId,
+        name: item.name,
+        designation: item.designation,
+        department: item.department,
+        fullDay: item.fullDays || 0,
+        halfDay: item.halfDays || 0,
+        offDays: item.offDays || 0,
+        paidLeaves: item.paidLeaves || 0,
+        unpaidLeaves: item.unpaidLeaves || 0,
+        dailyWages: `₹${(item.dailyRate || 0).toFixed(2)}`,
+        grossWages: `₹${(item.grossWages || 0).toLocaleString('en-IN')}`,
+        earnedWages: `₹${(item.earnedWages || 0).toLocaleString('en-IN')}`,
+        otherWages: `₹${(item.otherWages || 0).toLocaleString('en-IN')}`,
+        overTime: `₹${(item.overtimeAmount || 0).toLocaleString('en-IN')}`,
+        extras: `₹${(item.extras || 0).toLocaleString('en-IN')}`,
+        grossEarnings: `₹${(item.grossEarnings || 0).toLocaleString('en-IN')}`,
+        penalties: `₹${(item.penalties || 0).toLocaleString('en-IN')}`,
+        loanAdvance: `₹${(item.loanAndAdvance || 0).toLocaleString('en-IN')}`,
+        otherDeductions: `₹${(item.otherDeductions || 0).toLocaleString('en-IN')}`,
+        takeHome: `₹${(item.takeHome || 0).toLocaleString('en-IN')}`,
+        preview: `₹${(item.takeHome || 0).toLocaleString('en-IN')}`,
+      }));
+      
+      setPayrollData(transformedData);
+    } catch (error) {
+      console.error("Error fetching payroll data:", error);
+      toast.error("Failed to fetch payroll data");
+      setPayrollData([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleFilterApply = (filters) => {
     setAppliedFilters(filters);
@@ -237,7 +305,17 @@ const Payroll = () => {
             onFilterClick={() => setShowFilter(true)}
           />
           <TableContainer>
-            <ReusableTable columns={columns} data={data} />
+            <ReusableTable 
+              columns={columns} 
+              data={payrollData.length > 0 ? payrollData : []}
+              rowsPerPage={pageSize}
+              totalResults={totalResults}
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+              server={true}
+              loading={loading}
+            />
           </TableContainer>
         </>
       );
@@ -381,7 +459,7 @@ const Payroll = () => {
                   onChange={(e) => setSelectedEmployee(e.target.value)}
                 >
                   <option value="">Select employee name</option>
-                  {data.map((emp) => (
+                  {payrollData.map((emp) => (
                     <option key={emp.employeeId} value={emp.employeeId}>{emp.name}</option>
                   ))}
                 </FormSelect>
@@ -400,8 +478,8 @@ const Payroll = () => {
               <ModalCloseButton onClick={() => setIsDownloadModalOpen(false)}>×</ModalCloseButton>
               <ModalViewButton onClick={() => {
                 setIsDownloadModalOpen(false);
-                // Find the selected employee from the data array
-                const employee = data.find(emp => emp.employeeId === selectedEmployee);
+                // Find the selected employee from the payrollData array
+                const employee = payrollData.find(emp => emp.employeeId === selectedEmployee);
                 // Navigate to payslip page with state
                 navigate("/admin/pay-hub/payslip", {
                   state: {

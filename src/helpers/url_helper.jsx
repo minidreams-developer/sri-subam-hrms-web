@@ -22,11 +22,15 @@ export const ORDERS = "/orders/:id";
 export const CREATE_ORDERS = "/orders";
 export const GET_ALL_EMPLOYEE = "/users?role=employee";
 export const GET_ALL_EMPLOYEES = "/v1/users";
+export const GET_EMPLOYEES_BY_ROLE = "/v1/users";
+export const GET_STAFF_BY_ROLE = "/v1/users?role=staff";
 export const ADD_EMPLOYEE = "/users";
 export const CREATE_EMPLOYEE = "/v1/users";
 export const CREATE_EMPLOYEE_NEW = "/v1/employees";
 export const EMPLOYEE_REGISTRATION = "/v1/users/employee-registration";
+export const STAFF_REGISTRATION = "/v1/users?role=staff&page=1&limit=10&sortBy=createdAt:desc";
 export const GENERATE_EMPLOYEE_ID = "/v1/users/generate-employeeId";
+export const GENERATE_STAFF_ID = "/v1/users/generate-staffId";
 
 // Departments
 export const DEPARTMENTS = "/v1/departments";
@@ -53,6 +57,8 @@ export const GENERATE_SHIFT_ID = "/v1/shifts/generate-id";
 export const CREATE_SHIFT = "/v1/shifts";
 export const GET_SHIFTS = "/v1/shifts";
 export const GET_SHIFT_DETAILS = "/v1/shifts/:shiftId";
+export const UPDATE_SHIFT = "/v1/shifts/:shiftId";
+export const DELETE_SHIFT = "/v1/shifts/:shiftId";
 
 // OffBoarding API
 export const OFFBOARD = "/v1/off-board";
@@ -138,3 +144,24 @@ export const UPDATE_DAY_SETTINGS = "/v1/day-settings/:id";
 // Series Configuration
 export const SERIES_CONFIGURATION = "/v1/seriesConfiguration";
 export const CREATE_SERIES_CONFIGURATION = "/v1/seriesConfiguration";
+
+// Payroll
+export const GET_PAYROLL = "/v1/payroll";
+export const GET_STOPPED_PAYROLL = "/v1/payroll/stopped";
+export const GET_DASHBOARD = "/v1/dashboard";
+export const STOP_PAYROLL = "/v1/payroll/:employeeId/stop";
+
+// Paysheet
+export const GET_PAYSHEET_QUICK_STATS = "/v1/paysheets/quick-stats";
+export const GET_PAYSHEET_PAYROLL_OVERVIEW = "/v1/paysheets/payroll-overview";
+export const GET_PAYSHEET_PAYROLL_BREAKDOWN = "/v1/paysheets/payroll-breakdown";
+export const GET_PAYSHEET_LIST = "/v1/paysheets/list";
+export const GET_PAYSHEET_DETAIL = "/v1/paysheets/:payrollId/detail";
+export const UPDATE_PAYSHEET_STATUS = "/v1/paysheets/:payrollId/status";
+
+// Hierarchy
+export const GET_HIERARCHY_TREE = "/v1/hierarchy/tree";
+
+// Users Filter
+export const GET_USERS = "/v1/users";
+export const GET_DEPARTMENTS = "/v1/departments";

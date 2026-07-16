@@ -7,7 +7,8 @@ import Select from "react-select";
 import { customSelectStyles } from "../../../theme/reactSelectStyles";
 import UploadIcon from "../../../assets/images/employee/upload2.svg";
 import { get } from "../../../helpers/api_helper";
-import { GENERATE_EMPLOYEE_ID } from "../../../helpers/url_helper";
+import { GENERATE_EMPLOYEE_ID, BRANCHES } from "../../../helpers/url_helper";
+import { stateDistrictMap, stateOptions } from "../../../utils/statesAndDistricts";
 import { toast } from "react-toastify";
 
 const PersonalInfo = forwardRef((_, ref) => {
@@ -36,6 +37,7 @@ const PersonalInfo = forwardRef((_, ref) => {
     district: null,
     state: null,
     pinCode: "",
+    branch: null,
   });
 
   const [emergencyContacts, setEmergencyContacts] = useState([
@@ -43,11 +45,42 @@ const PersonalInfo = forwardRef((_, ref) => {
   ]);
 
   const [employeeIdLoading, setEmployeeIdLoading] = useState(false);
+  const [branches, setBranches] = useState([]);
+  const [branchesLoading, setBranchesLoading] = useState(false);
 
   // Generate Employee ID on component mount
   useEffect(() => {
     generateEmployeeId();
+    fetchBranches();
   }, []);
+
+  const fetchBranches = async () => {
+    setBranchesLoading(true);
+    try {
+      const response = await get(`${BRANCHES}?page=1&limit=100`);
+      
+      // Handle different response structures
+      let branchList = [];
+      if (Array.isArray(response)) {
+        branchList = response;
+      } else if (response?.results && Array.isArray(response.results)) {
+        branchList = response.results;
+      } else if (response?.data && Array.isArray(response.data)) {
+        branchList = response.data;
+      }
+
+      const formattedBranches = branchList.map((branch) => ({
+        value: branch._id || branch.id,
+        label: branch.name || branch.branchName || "",
+      }));
+      setBranches(formattedBranches);
+    } catch (error) {
+      console.error("Error fetching branches:", error);
+      toast.error("Failed to fetch branches");
+    } finally {
+      setBranchesLoading(false);
+    }
+  };
 
   const generateEmployeeId = async () => {
     setEmployeeIdLoading(true);
@@ -123,6 +156,71 @@ const PersonalInfo = forwardRef((_, ref) => {
     { value: "kannada", label: "Kannada" },
     { value: "malayalam", label: "Malayalam" },
   ];
+
+  // State to District mapping
+  const stateDistrictMap = {
+    tamil_nadu: [
+      { value: "chennai", label: "Chennai" },
+      { value: "coimbatore", label: "Coimbatore" },
+      { value: "madurai", label: "Madurai" },
+      { value: "trichy", label: "Trichy" },
+      { value: "salem", label: "Salem" },
+      { value: "erode", label: "Erode" },
+      { value: "kanchipuram", label: "Kanchipuram" },
+      { value: "villupuram", label: "Villupuram" },
+      { value: "tiruppur", label: "Tiruppur" },
+      { value: "karur", label: "Karur" },
+    ],
+    kerala: [
+      { value: "kochi", label: "Kochi" },
+      { value: "thiruvananthapuram", label: "Thiruvananthapuram" },
+      { value: "kozhikode", label: "Kozhikode" },
+      { value: "thrissur", label: "Thrissur" },
+      { value: "pathanamthitta", label: "Pathanamthitta" },
+      { value: "alappuzha", label: "Alappuzha" },
+      { value: "wayanad", label: "Wayanad" },
+      { value: "kannur", label: "Kannur" },
+      { value: "idukki", label: "Idukki" },
+    ],
+    karnataka: [
+      { value: "bangalore", label: "Bangalore" },
+      { value: "mysore", label: "Mysore" },
+      { value: "mangalore", label: "Mangalore" },
+      { value: "belgaum", label: "Belgaum" },
+      { value: "hubli", label: "Hubli" },
+      { value: "tumkur", label: "Tumkur" },
+      { value: "kolar", label: "Kolar" },
+      { value: "hassan", label: "Hassan" },
+      { value: "shimoga", label: "Shimoga" },
+    ],
+    andhra_pradesh: [
+      { value: "hyderabad", label: "Hyderabad" },
+      { value: "visakhapatnam", label: "Visakhapatnam" },
+      { value: "vijayawada", label: "Vijayawada" },
+      { value: "tirupati", label: "Tirupati" },
+      { value: "guntur", label: "Guntur" },
+      { value: "nellore", label: "Nellore" },
+      { value: "kadapa", label: "Kadapa" },
+    ],
+    telangana: [
+      { value: "hyderabad", label: "Hyderabad" },
+      { value: "secunderabad", label: "Secunderabad" },
+      { value: "warangal", label: "Warangal" },
+      { value: "karimnagar", label: "Karimnagar" },
+      { value: "khammam", label: "Khammam" },
+      { value: "nizamabad", label: "Nizamabad" },
+    ],
+    maharashtra: [
+      { value: "mumbai", label: "Mumbai" },
+      { value: "pune", label: "Pune" },
+      { value: "nagpur", label: "Nagpur" },
+      { value: "nashik", label: "Nashik" },
+      { value: "aurangabad", label: "Aurangabad" },
+      { value: "kolhapur", label: "Kolhapur" },
+      { value: "thane", label: "Thane" },
+      { value: "navi_mumbai", label: "Navi Mumbai" },
+    ],
+  };
 
   const stateOptions = [
     { value: "tamil_nadu", label: "Tamil Nadu" },
@@ -432,12 +530,13 @@ const PersonalInfo = forwardRef((_, ref) => {
             <SelectWrapper>
               <Label>District</Label>
               <Select
-                options={stateOptions}
+                options={formData.state ? stateDistrictMap[formData.state.value] || [] : []}
                 value={formData.district}
                 onChange={(v) => handleChange("district", v)}
-                placeholder="Select District"
+                placeholder={formData.state ? "Select District" : "Select State first"}
                 styles={customSelectStyles}
                 isSearchable
+                isDisabled={!formData.state}
               />
             </SelectWrapper>
           </Col>
@@ -464,6 +563,22 @@ const PersonalInfo = forwardRef((_, ref) => {
               onChange={(e) => handleChange("pinCode", e.target.value)}
               labelMargin="0 0 0.625rem 0"
             />
+          </Col>
+        </Row>
+        <Row>
+          <Col>
+            <SelectWrapper>
+              <Label>Branch</Label>
+              <Select
+                options={branches}
+                value={formData.branch}
+                onChange={(v) => handleChange("branch", v)}
+                placeholder={branchesLoading ? "Loading branches..." : "Select Branch"}
+                styles={customSelectStyles}
+                isSearchable
+                isLoading={branchesLoading}
+              />
+            </SelectWrapper>
           </Col>
         </Row>
       </Section>

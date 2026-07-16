@@ -11,11 +11,11 @@ import { IoArrowBack } from "react-icons/io5";
 import { post, get } from "../../helpers/api_helper";
 import { CREATE_BRANCH, GENERATE_BRANCH_ID, DEPARTMENTS, GET_SHIFTS, GET_ALL_EMPLOYEES } from "../../helpers/url_helper";
 import { toast } from "react-toastify";
+import { stateDistrictMap, stateOptions } from "../../utils/statesAndDistricts";
 
 const CreateBranch = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
-  const [branchNumberLoading, setBranchNumberLoading] = useState(false);
   const [departmentsLoading, setDepartmentsLoading] = useState(false);
   const [shiftsLoading, setShiftsLoading] = useState(false);
   const [usersLoading, setUsersLoading] = useState(false);
@@ -53,7 +53,6 @@ const CreateBranch = () => {
   }, []);
 
   const generateBranchNumber = async () => {
-    setBranchNumberLoading(true);
     try {
       const response = await get(GENERATE_BRANCH_ID);
       console.log("Branch number generated:", response);
@@ -74,8 +73,6 @@ const CreateBranch = () => {
     } catch (error) {
       console.error("Error generating branch number:", error);
       toast.error("Failed to generate branch number");
-    } finally {
-      setBranchNumberLoading(false);
     }
   };
 
@@ -145,7 +142,7 @@ const CreateBranch = () => {
     setUsersLoading(true);
     try {
       // Fetch with a large limit to get all employees (or implement pagination)
-      const response = await get(`${GET_ALL_EMPLOYEES}?page=1&limit=1000`);
+      const response = await get(`${GET_ALL_EMPLOYEES}?page=1&limit=100`);
       console.log("Users fetched:", response);
       
       // Handle different response structures
@@ -162,12 +159,13 @@ const CreateBranch = () => {
       
       console.log("Mapped users:", users);
       
-      // Map to select options
+      // Map to select options - handle various field name formats
       const options = users.map((user) => ({
         value: user.id || user._id,
-        label: user.firstName && user.lastName 
-          ? `${user.firstName} ${user.lastName}` 
-          : user.name || user.email || "Unknown",
+        label: 
+          (user.firstName && user.lastName) 
+            ? `${user.firstName} ${user.lastName}`
+            : (user.employeeName || user.name || user.email || "Unknown"),
       }));
       
       console.log("Branch head options:", options);
@@ -191,11 +189,11 @@ const CreateBranch = () => {
     { value: "inactive", label: "Inactive" },
   ];
 
-  const stateOptions = [
-    { value: "california", label: "California" },
-    { value: "texas", label: "Texas" },
-    { value: "new_york", label: "New York" },
-  ];
+  // Get district options based on selected state
+  const getDistrictOptions = () => {
+    if (!formData.state) return [];
+    return stateDistrictMap[formData.state.value] || [];
+  };
 
   const handleChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -422,12 +420,13 @@ const CreateBranch = () => {
               <SelectWrapper>
                 <Label>District</Label>
                 <Select
-                  options={stateOptions}
+                  options={getDistrictOptions()}
                   value={formData.district}
                   onChange={(value) => handleChange("district", value)}
-                  placeholder="Select State"
+                  placeholder={!formData.state ? "Select State first" : "Select District"}
                   styles={customSelectStyles}
                   isSearchable
+                  isDisabled={!formData.state}
                 />
               </SelectWrapper>
             </Col>
@@ -437,7 +436,11 @@ const CreateBranch = () => {
                 <Select
                   options={stateOptions}
                   value={formData.state}
-                  onChange={(value) => handleChange("state", value)}
+                  onChange={(value) => {
+                    handleChange("state", value);
+                    // Clear district when state changes
+                    handleChange("district", null);
+                  }}
                   placeholder="Select State"
                   styles={customSelectStyles}
                   isSearchable

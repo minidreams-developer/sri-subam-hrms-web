@@ -223,9 +223,25 @@ const ReusableTable = ({
                     );
                   }
 
+                  // Helper function to safely render values
+                  const renderValue = (val) => {
+                    if (val === null || val === undefined) {
+                      return "-/-";
+                    }
+                    if (typeof val === 'object') {
+                      // If it's an object, try to get a meaningful string representation
+                      if (val.name) return val.name;
+                      if (val.label) return val.label;
+                      if (val.title) return val.title;
+                      if (val.displayName) return val.displayName;
+                      return JSON.stringify(val);
+                    }
+                    return String(val);
+                  };
+
                   return (
                     <TableCell key={colIndex} $align={col?.align}>
-                      {value || "-/-"}
+                      {renderValue(value)}
                     </TableCell>
                   );
                 })}

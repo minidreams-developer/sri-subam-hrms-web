@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import theme from "../../theme/theme";
@@ -7,9 +7,15 @@ import CalenderInput from "../../components/CalenderInput";
 import Button from "../../components/Button";
 import Select from "react-select";
 import { customSelectStyles } from "../../theme/reactSelectStyles";
+import { get, post } from "../../helpers/api_helper";
+import { GET_ALL_EMPLOYEES, STOP_PAYROLL } from "../../helpers/url_helper";
+import { toast } from "react-toastify";
 
 const NewStopPayroll = () => {
   const navigate = useNavigate();
+  const [employeeOptions, setEmployeeOptions] = useState([]);
+  const [loadingEmployees, setLoadingEmployees] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     employeeId: "",
     employee: null,
@@ -33,11 +39,50 @@ const NewStopPayroll = () => {
     comments: "",
   });
 
-  const employeeOptions = [
-    { value: "manoj", label: "Manoj Kumar" },
-    { value: "john", label: "John Doe" },
-    { value: "jane", label: "Jane Smith" },
-  ];
+  // Fetch employees on component mount
+  useEffect(() => {
+    fetchEmployees();
+  }, []);
+
+  const fetchEmployees = async () => {
+    setLoadingEmployees(true);
+    try {
+      const response = await get(GET_ALL_EMPLOYEES);
+      console.log("Employees fetched:", response);
+      
+      let employees = [];
+      
+      // Handle different response structures
+      if (Array.isArray(response)) {
+        employees = response;
+      } else if (response?.results && Array.isArray(response.results)) {
+        employees = response.results;
+      } else if (response?.data && Array.isArray(response.data)) {
+        employees = response.data;
+      }
+      
+      // Transform employees to select options format
+      const options = employees.map((emp) => ({
+        value: emp.id || emp._id,
+        label: emp.name || `${emp.firstName || ""} ${emp.lastName || ""}`.trim(),
+        employeeId: emp.employeeId || emp.id,
+        department: emp.department || "N/A",
+        designation: emp.workInformation?.designation || emp.designation || "employee",
+        email: emp.email,
+        phone: emp.phone,
+        joinedDate: emp.workInformation?.joinedDate,
+        fullData: emp, // Store full employee data for later use
+      }));
+      
+      setEmployeeOptions(options);
+    } catch (error) {
+      console.error("Error fetching employees:", error);
+      toast.error("Failed to fetch employees");
+      setEmployeeOptions([]);
+    } finally {
+      setLoadingEmployees(false);
+    }
+  };
 
   const stopTypeOptions = [
     { value: "resignation", label: "Resignation / Offboarding" },
@@ -77,15 +122,103 @@ const NewStopPayroll = () => {
 
   const handleChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+    
+    // When employee is selected, auto-populate other fields
+    if (field === "employee" && value) {
+      // Get the full employee data
+      const selectedEmployee = value.fullData || value;
+      
+      setFormData((prev) => ({
+        ...prev,
+        employee: value,
+        employeeId: value.employeeId || selectedEmployee?.employeeId || selectedEmployee?.id || "",
+        department: value.department || selectedEmployee?.department || "N/A",
+        designation: value.designation || selectedEmployee?.designation || selectedEmployee?.workInformation?.designation || "N/A",
+        currentSalary: selectedEmployee?.workInformation?.salaryDetails?.baseSalary || selectedEmployee?.salary || "",
+        payCycle: selectedEmployee?.workInformation?.salaryDetails?.payCycle || selectedEmployee?.paymentCycle || "Monthly",
+      }));
+    }
   };
 
   const handleCancel = () => {
     navigate("/admin/pay-hub/stopPayroll");
   };
 
-  const handleNext = () => {
-    console.log("Form data:", formData);
-    // Add your submission logic here
+  const handleNext = async () => {
+    try {
+      // Validate required fields
+      if (!formData.employee) {
+        toast.error("Please select an employee");
+        return;
+      }
+
+      if (!formData.stopType) {
+        toast.error("Please select a stop type");
+        return;
+      }
+
+      if (!formData.reason) {
+        toast.error("Please select a reason");
+        return;
+      }
+
+      if (!formData.effectiveFrom) {
+        toast.error("Please select an effective from date");
+        return;
+      }
+
+      // Extract month and year from effectiveFrom date
+      const effectiveDate = new Date(formData.effectiveFrom);
+      const month = effectiveDate.getMonth() + 1; // getMonth() is 0-indexed
+      const year = effectiveDate.getFullYear();
+
+      // Format the ISO date string for API
+      const isoEffectiveFrom = effectiveDate.toISOString();
+      
+      // Format resume date if provided
+      let isoResumeOn = null;
+      if (formData.resumeOn) {
+        const resumeDate = new Date(formData.resumeOn);
+        isoResumeOn = resumeDate.toISOString();
+      }
+
+      // Build the payload object matching API structure
+      const payload = {
+        month: month,
+        year: year,
+        stopType: formData.stopType?.value || formData.stopType,
+        reason: formData.reason?.value || formData.reason,
+        effectiveFrom: isoEffectiveFrom,
+        resumeOn: isoResumeOn,
+        impactMonth: formData.impactMonth?.label || formData.impactMonth,
+        stopRemarks: formData.remarks || "",
+      };
+
+      // Replace :employeeId in endpoint with actual employee ID
+      const employeeId = formData.employee?.value || formData.employeeId;
+      const endpoint = STOP_PAYROLL.replace(":employeeId", employeeId);
+
+      setSubmitting(true);
+
+      // Call POST API
+      const response = await post(endpoint, payload);
+
+      // Handle success response
+      toast.success("Stop Payroll created successfully");
+      console.log("Stop Payroll response:", response);
+      
+      // Navigate back to stop payroll list
+      navigate("/admin/pay-hub/stopPayroll");
+    } catch (error) {
+      console.error("Error creating stop payroll:", error);
+      const errorMessage =
+        error.response?.data?.message ||
+        error.message ||
+        "Failed to create stop payroll";
+      toast.error(errorMessage);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -120,6 +253,8 @@ const NewStopPayroll = () => {
                   placeholder="Select Employee"
                   styles={customSelectStyles}
                   isSearchable
+                  isLoading={loadingEmployees}
+                  isClearable
                 />
               </SelectWrapper>
             </Col>
@@ -359,7 +494,7 @@ const NewStopPayroll = () => {
             onClick={handleCancel}
           />
           <Button
-            text="Next"
+            text={submitting ? "Submitting..." : "Next"}
             bg={theme.colors.primary}
             color={theme.colors.white}
             width="150px"
@@ -368,6 +503,7 @@ const NewStopPayroll = () => {
             fontWeight="600"
             fontFamily="Inter-SemiBold"
             onClick={handleNext}
+            disabled={submitting}
           />
         </ButtonRow>
       </FormContainer>

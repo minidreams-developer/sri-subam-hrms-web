@@ -9,8 +9,22 @@ import CardDetails from "../../../components/CardDetails";
 import CardDetailsAlt from "../../../components/CardDetailsAlt";
 import FileUploadComponent from "../../../components/FileUploadComponent";
 
-export const PersonalDetails = () => {
-  const details = {
+export const PersonalDetails = ({ employee }) => {
+  // Use employee data from props, fallback to default values
+  const details = employee ? {
+    fullName: employee.name || employee.employeeName || "N/A",
+    employeeId: employee.employeeId || "N/A",
+    employeeType: "Full Time",
+    gender: employee.gender || "N/A",
+    dob: employee.dateOfBirth ? new Date(employee.dateOfBirth).toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" }) : "N/A",
+    age: employee.age ? `${employee.age} Years` : "N/A",
+    contact: employee.phone || "N/A",
+    email: employee.email || "N/A",
+    maritalStatus: employee.martialStatus || employee.maritalStatus || "N/A",
+    motherTongue: employee.motherTongue || "N/A",
+    identificationMark: employee.identificationMark || "N/A",
+    profilePic: employee.profilePic || SampleProfile,
+  } : {
     fullName: "Manoj Kumar",
     employeeId: "#ST5683",
     employeeType: "Full Time",
@@ -22,6 +36,7 @@ export const PersonalDetails = () => {
     maritalStatus: "Married",
     motherTongue: "Tamil",
     identificationMark: "Small mole on right cheek",
+    profilePic: SampleProfile,
   };
 
   const [docFiles, setDocFiles] = React.useState([]);
@@ -45,7 +60,7 @@ export const PersonalDetails = () => {
 
       <Card>
         <ProfileCol>
-          <ProfileImage src={SampleProfile} alt="profile" />
+          <ProfileImage src={details.profilePic} alt="profile" />
           <EditPictureBtn>
             <img src={EditIconLight} alt="edit" width="16" height="16" />
             Edit Picture

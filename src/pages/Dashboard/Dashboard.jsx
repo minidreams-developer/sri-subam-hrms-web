@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import styled from "styled-components";
 import { useNavigate } from "react-router-dom";
 import theme from "../../theme/theme";
@@ -7,6 +7,9 @@ import { FiTrendingUp, FiTrendingDown } from "react-icons/fi";
 import SearchInputComponent from "../../components/SearchInputComponent";
 import FilterIcon from "../../assets/images/DashboardImages/filtericon.svg";
 import Filter from "../../components/filter";
+import { get } from "../../helpers/api_helper";
+import { GET_DASHBOARD, GET_EMPLOYEES_BY_ROLE, GET_STAFF_BY_ROLE } from "../../helpers/url_helper";
+import { toast } from "react-toastify";
 
 const Dashboard = () => {
   const [dateRange, setDateRange] = useState("Today");
@@ -16,12 +19,137 @@ const Dashboard = () => {
   const [shiftFilter, setShiftFilter] = useState("All Shifts");
   const [showFilter, setShowFilter] = useState(false);
   const [appliedFilters, setAppliedFilters] = useState(null);
+  const [dashboardData, setDashboardData] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [employeesData, setEmployeesData] = useState([]);
+  const [staffDataList, setStaffDataList] = useState([]);
   const navigate = useNavigate();
+
+  // Fetch dashboard data on component mount
+  useEffect(() => {
+    fetchDashboardData();
+    fetchEmployeesAndStaff();
+  }, []);
+
+  const fetchDashboardData = async () => {
+    setLoading(true);
+    try {
+      const response = await get(GET_DASHBOARD);
+      console.log("Dashboard data:", response);
+      setDashboardData(response);
+    } catch (error) {
+      console.error("Error fetching dashboard data:", error);
+      toast.error("Failed to fetch dashboard data");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchEmployeesAndStaff = async () => {
+    try {
+      // Fetch employees
+      const empResponse = await get(`${GET_EMPLOYEES_BY_ROLE}?role=employee&limit=10`);
+      let empList = [];
+      if (empResponse && Array.isArray(empResponse)) {
+        empList = empResponse;
+      } else if (empResponse?.results && Array.isArray(empResponse.results)) {
+        empList = empResponse.results;
+      } else if (empResponse?.data && Array.isArray(empResponse.data)) {
+        empList = empResponse.data;
+      }
+
+      // Transform employees
+      const transformedEmployees = empList.map((emp) => ({
+        id: emp.id || emp._id,
+        employeeId: emp.employeeId || "N/A",
+        name: emp.name || emp.employeeName || "N/A",
+        position: emp.workInformation?.designation || emp.designation || "N/A",
+        shift: emp.workInformation?.shift || emp.shift || "Morning",
+        checkIn: "08:50 AM",
+        checkOut: "06:45 PM",
+        working: "8.36 hrs",
+        status: "-",
+        department: emp.workInformation?.department || emp.department || "N/A",
+        type: "employee",
+      }));
+      setEmployeesData(transformedEmployees);
+
+      // Fetch staff
+      const staffResponse = await get(`/v1/users?role=staff&page=1&limit=10&sortBy=createdAt:desc`);
+      let staffList = [];
+      if (staffResponse && Array.isArray(staffResponse)) {
+        staffList = staffResponse;
+      } else if (staffResponse?.results && Array.isArray(staffResponse.results)) {
+        staffList = staffResponse.results;
+      } else if (staffResponse?.data && Array.isArray(staffResponse.data)) {
+        staffList = staffResponse.data;
+      }
+
+      // Transform staff
+      const transformedStaff = staffList.map((staff) => ({
+        id: staff.id || staff._id,
+        employeeId: staff.employeeId || "N/A",
+        name: staff.name || staff.employeeName || "N/A",
+        position: staff.workInformation?.designation || staff.designation || "Manager",
+        shift: staff.workInformation?.shift || staff.shift || "Morning",
+        checkIn: "08:00 AM",
+        checkOut: "05:00 PM",
+        working: "9 hrs",
+        status: "-",
+        department: staff.workInformation?.department || staff.department || "Operations",
+        type: "staff",
+      }));
+      setStaffDataList(transformedStaff);
+    } catch (error) {
+      console.error("Error fetching employees and staff:", error);
+      toast.error("Failed to fetch employees and staff");
+    }
+  };
 
   // Handle search with state reset
   const handleSearch = (value) => {
     setSearchValue(value);
   };
+
+  // Build quick stats from API data
+  const quickStats = dashboardData?.quickStats ? [
+    { 
+      label: "Total Employees", 
+      value: dashboardData.quickStats.totalEmployees?.count?.toString() || "0", 
+      change: `${dashboardData.quickStats.totalEmployees?.percentageChange || 0}%`, 
+      positive: dashboardData.quickStats.totalEmployees?.trend === "up" 
+    },
+    { 
+      label: "Present Today", 
+      value: dashboardData.quickStats.presentToday?.count?.toString() || "0", 
+      change: `${dashboardData.quickStats.presentToday?.percentageChange || 0}%`, 
+      positive: dashboardData.quickStats.presentToday?.trend === "up" 
+    },
+    { 
+      label: "On Leave", 
+      value: dashboardData.quickStats.onLeave?.count?.toString() || "0", 
+      change: `${dashboardData.quickStats.onLeave?.percentageChange || 0}%`, 
+      positive: dashboardData.quickStats.onLeave?.trend === "up" 
+    },
+    { 
+      label: "OT Employees", 
+      value: dashboardData.quickStats.otEmployees?.count?.toString() || "0", 
+      change: `${dashboardData.quickStats.otEmployees?.percentageChange || 0}%`, 
+      positive: dashboardData.quickStats.otEmployees?.trend === "up" 
+    },
+    { 
+      label: "Payroll", 
+      value: `₹${(dashboardData.quickStats.payroll?.amount || 0).toLocaleString('en-IN')}`, 
+      change: `${dashboardData.quickStats.payroll?.percentageChange || 0}%`, 
+      positive: dashboardData.quickStats.payroll?.trend === "up" 
+    }
+  ] : [
+    { label: "Total Employees", value: "0", change: "0%", positive: true },
+    { label: "Present Today", value: "0", change: "0%", positive: true },
+    { label: "On Leave", value: "0", change: "0%", positive: true },
+    { label: "OT Employees", value: "0", change: "0%", positive: false },
+    { label: "Payroll", value: "₹0", change: "0%", positive: true }
+  ];
 
   // Handle filter changes
   const handleDepartmentChange = (value) => {
@@ -36,21 +164,16 @@ const Dashboard = () => {
   const handleFilterApply = (filters) => {
     setAppliedFilters(filters);
     setShowFilter(false);
-    
-    // Apply filter logic here if needed
-    // You can process filters.department, filters.shift, filters.status, etc.
     console.log("Applied filters:", filters);
   };
 
-  const quickStats = [
-    { label: "Total Employees", value: "256", change: "26.5%", positive: true },
-    { label: "Present Today", value: "250", change: "28.5%", positive: true },
-    { label: "On Leave", value: "06", change: "20.5%", positive: true },
-    { label: "OT Employees", value: "26", change: "5%", positive: false },
-    { label: "Payroll", value: "₹20,20,000", change: "26.5%", positive: true }
-  ];
-
-  const attendanceData = [
+  // Build attendance data from API
+  const attendanceData = dashboardData?.attendanceOverview?.dailyData?.map(item => ({
+    date: item.label,
+    present: item.present,
+    onLeave: item.onLeave,
+    late: item.late
+  })) || [
     { date: "14-07", present: 200, onLeave: 100, late: 20 },
     { date: "15-07", present: 220, onLeave: 80, late: 25 },
     { date: "16-07", present: 210, onLeave: 95, late: 18 },
@@ -60,23 +183,55 @@ const Dashboard = () => {
     { date: "20-07", present: 250, onLeave: 50, late: 15 }
   ];
 
-  const payrollData = [
-    { name: "Salary", value: 88.3, percentage: "₹ 20,20,000", color: "#0B7A75" },
-    { name: "Allowances", value: 8.3, percentage: "₹ 20,20,000", color: "#FDB750" },
-    { name: "Deduction", value: 2.1, percentage: "₹ 20,20,000", color: "#E0E3E6" },
-    { name: "Incentives", value: 0.5, percentage: "₹ 20,20,000", color: "#0B7A75" },
-    { name: "Overtimes", value: 0.8, percentage: "₹ 20,20,000", color: "#2C2C2C" }
+  // Build payroll breakdown from API
+  const payrollData = dashboardData?.payrollBreakdown?.categories ? [
+    { 
+      name: "Salary", 
+      value: dashboardData.payrollBreakdown.categories.salary?.percentage || 0, 
+      percentage: `₹ ${dashboardData.payrollBreakdown.categories.salary?.amount?.toLocaleString('en-IN') || 0}`, 
+      color: "#0B7A75" 
+    },
+    { 
+      name: "Allowances", 
+      value: dashboardData.payrollBreakdown.categories.allowances?.percentage || 0, 
+      percentage: `₹ ${dashboardData.payrollBreakdown.categories.allowances?.amount?.toLocaleString('en-IN') || 0}`, 
+      color: "#FDB750" 
+    },
+    { 
+      name: "Deduction", 
+      value: dashboardData.payrollBreakdown.categories.deductions?.percentage || 0, 
+      percentage: `₹ ${dashboardData.payrollBreakdown.categories.deductions?.amount?.toLocaleString('en-IN') || 0}`, 
+      color: "#E0E3E6" 
+    },
+    { 
+      name: "Incentives", 
+      value: dashboardData.payrollBreakdown.categories.incentives?.percentage || 0, 
+      percentage: `₹ ${dashboardData.payrollBreakdown.categories.incentives?.amount?.toLocaleString('en-IN') || 0}`, 
+      color: "#0B7A75" 
+    },
+    { 
+      name: "Overtimes", 
+      value: dashboardData.payrollBreakdown.categories.overtime?.percentage || 0, 
+      percentage: `₹ ${dashboardData.payrollBreakdown.categories.overtime?.amount?.toLocaleString('en-IN') || 0}`, 
+      color: "#2C2C2C" 
+    }
+  ] : [
+    { name: "Salary", value: 88.3, percentage: "₹ 0", color: "#0B7A75" },
+    { name: "Allowances", value: 8.3, percentage: "₹ 0", color: "#FDB750" },
+    { name: "Deduction", value: 2.1, percentage: "₹ 0", color: "#E0E3E6" },
+    { name: "Incentives", value: 0.5, percentage: "₹ 0", color: "#0B7A75" },
+    { name: "Overtimes", value: 0.8, percentage: "₹ 0", color: "#2C2C2C" }
   ];
 
-  const employees = [
-    { id: 1, name: "Marlyn Pines", position: "UI/UX Designer", shift: "Morning", checkIn: "08:50 AM", checkOut: "06:45 PM", working: "8.36 hrs", status: "-", department: "Design", type: "employee" },
-    { id: 2, name: "Arjun Stanton", position: "Developer", shift: "Afternoon", checkIn: "09:00 AM", checkOut: "06:45 PM", working: "8.36 hrs", status: "-", department: "Engineering", type: "employee" },
-    { id: 3, name: "Marlyn Pines", position: "UI/UX Designer", shift: "Night", checkIn: "08:50 AM", checkOut: "06:45 PM", working: "8.36 hrs", status: "-", department: "Design", type: "employee" }
+  const employees = employeesData.length > 0 ? employeesData : [
+    { id: 1, employeeId: "EMP001", name: "Marlyn Pines", position: "UI/UX Designer", shift: "Morning", checkIn: "08:50 AM", checkOut: "06:45 PM", working: "8.36 hrs", status: "-", department: "Design", type: "employee" },
+    { id: 2, employeeId: "EMP002", name: "Arjun Stanton", position: "Developer", shift: "Afternoon", checkIn: "09:00 AM", checkOut: "06:45 PM", working: "8.36 hrs", status: "-", department: "Engineering", type: "employee" },
+    { id: 3, employeeId: "EMP003", name: "Marlyn Pines", position: "UI/UX Designer", shift: "Night", checkIn: "08:50 AM", checkOut: "06:45 PM", working: "8.36 hrs", status: "-", department: "Design", type: "employee" }
   ];
 
-  const staffData = [
-    { id: 4, name: "John Smith", position: "Manager", shift: "Morning", checkIn: "08:00 AM", checkOut: "05:00 PM", working: "9 hrs", status: "-", department: "Management", type: "staff" },
-    { id: 5, name: "Sarah Johnson", position: "Supervisor", shift: "Afternoon", checkIn: "09:30 AM", checkOut: "06:30 PM", working: "9 hrs", status: "-", department: "Operations", type: "staff" }
+  const staffData = staffDataList.length > 0 ? staffDataList : [
+    { id: 4, employeeId: "STF001", name: "John Smith", position: "Manager", shift: "Morning", checkIn: "08:00 AM", checkOut: "05:00 PM", working: "9 hrs", status: "-", department: "Management", type: "staff" },
+    { id: 5, employeeId: "STF002", name: "Sarah Johnson", position: "Supervisor", shift: "Afternoon", checkIn: "09:30 AM", checkOut: "06:30 PM", working: "9 hrs", status: "-", department: "Operations", type: "staff" }
   ];
 
   // Filter employees based on search and filter criteria
@@ -182,7 +337,7 @@ const Dashboard = () => {
           </ChartHeader>
           <PayrollContent>
             <PayrollMain>
-              <PayrollAmount>₹20,20,000</PayrollAmount>
+              <PayrollAmount>₹{(dashboardData?.payrollBreakdown?.totalPayThisMonth || 0).toLocaleString('en-IN')}</PayrollAmount>
               <PayrollLabel>Total Pay This Month</PayrollLabel>
             </PayrollMain>
             <BreakdownBars>
@@ -294,7 +449,7 @@ const Dashboard = () => {
             {tableData.length > 0 ? (
               tableData.map((emp) => (
                 <TableRow key={emp.id}>
-                  <Td>{emp.id}</Td>
+                  <Td>{emp.employeeId}</Td>
                   <Td>
                     <EmployeeName>{emp.name}</EmployeeName>
                   </Td>

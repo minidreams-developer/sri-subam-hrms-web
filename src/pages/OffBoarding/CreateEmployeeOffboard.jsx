@@ -76,7 +76,7 @@ const CreateEmployeeOffboard = () => {
   const fetchEmployeeIds = async () => {
     setEmployeeSearchLoading(true);
     try {
-      const response = await get(`${GET_ALL_EMPLOYEES}?page=1&limit=1000`);
+      const response = await get(`${GET_ALL_EMPLOYEES}?page=1&limit=100`);
       console.log("Employee IDs fetched:", response);
 
       let employees = [];
@@ -221,7 +221,7 @@ const CreateEmployeeOffboard = () => {
   const fetchEmployees = async () => {
     setEmployeesLoading(true);
     try {
-      const response = await get(`${GET_ALL_EMPLOYEES}?page=1&limit=1000`);
+      const response = await get(`${GET_ALL_EMPLOYEES}?page=1&limit=100`);
       console.log("Employees fetched:", response);
       
       let employees = [];
@@ -257,7 +257,7 @@ const CreateEmployeeOffboard = () => {
   const fetchDepartments = async () => {
     setDepartmentsLoading(true);
     try {
-      const response = await get(`${DEPARTMENTS}?page=1&limit=1000`);
+      const response = await get(`${DEPARTMENTS}?page=1&limit=100`);
       console.log("Departments fetched:", response);
       
       let departments = [];
@@ -289,7 +289,7 @@ const CreateEmployeeOffboard = () => {
   const fetchTeams = async () => {
     setTeamsLoading(true);
     try {
-      const response = await get(`${TEAMS}?page=1&limit=1000`);
+      const response = await get(`${TEAMS}?page=1&limit=100`);
       console.log("Teams fetched:", response);
       
       let teams = [];
@@ -321,7 +321,7 @@ const CreateEmployeeOffboard = () => {
   const fetchUsers = async () => {
     setUsersLoading(true);
     try {
-      const response = await get(`${GET_ALL_EMPLOYEES}?page=1&limit=1000`);
+      const response = await get(`${GET_ALL_EMPLOYEES}?page=1&limit=100`);
       console.log("Users fetched:", response);
       
       let users = [];

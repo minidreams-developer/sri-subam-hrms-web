@@ -56,7 +56,7 @@ const AddLeave = () => {
     const fetchEmployees = async () => {
       try {
         setFetchingEmployees(true);
-        const response = await get(`${GET_ALL_EMPLOYEES}?page=1&limit=1000`);
+        const response = await get(`${GET_ALL_EMPLOYEES}?page=1&limit=100`);
         const employeeList = response.results || response.data || response.users || [];
         const formattedEmployees = employeeList.map((emp) => ({
           value: emp._id || emp.id,
@@ -82,7 +82,7 @@ const AddLeave = () => {
     const fetchDepartments = async () => {
       try {
         setFetchingDepartments(true);
-        const response = await get(`${DEPARTMENTS}?page=1&limit=1000`);
+        const response = await get(`${DEPARTMENTS}?page=1&limit=100`);
         const departmentList = response.results || response.data || [];
         const formattedDepartments = departmentList.map((dept) => ({
           value: dept._id || dept.id,

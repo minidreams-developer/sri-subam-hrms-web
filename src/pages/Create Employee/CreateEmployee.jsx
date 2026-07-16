@@ -163,7 +163,7 @@ const CreateEmployee = () => {
       console.log("Response:", response);
 
       toast.success("Employee created successfully!");
-      navigate("/admin/peopleHub/employees");
+      navigate("/admin/peopleHub/employees", { state: { activeTab: "Employee", refresh: true } });
     } catch (error) {
       const errorMessage =
         error.response?.data?.message ||

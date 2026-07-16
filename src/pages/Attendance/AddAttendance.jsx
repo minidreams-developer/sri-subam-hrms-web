@@ -52,14 +52,29 @@ function AddAttendanceComponent() {
     const fetchEmployees = async () => {
       try {
         setFetchingEmployees(true);
-        const response = await get(`${GET_ALL_EMPLOYEES}?page=1&limit=1000`);
-        const employeeList = response.results || response.data || response.users || [];
+        // Using GET /v1/users to fetch all users (employees and staff)
+        // API maximum limit is 100
+        const response = await get(`${GET_ALL_EMPLOYEES}?page=1&limit=100`);
+        
+        // Handle different response structures
+        let employeeList = [];
+        if (Array.isArray(response)) {
+          employeeList = response;
+        } else if (response?.results && Array.isArray(response.results)) {
+          employeeList = response.results;
+        } else if (response?.data && Array.isArray(response.data)) {
+          employeeList = response.data;
+        } else if (response?.users && Array.isArray(response.users)) {
+          employeeList = response.users;
+        }
+
         const formattedEmployees = employeeList.map((emp) => ({
           value: emp._id || emp.id,
-          label: emp.name || emp.firstName,
-          employeeId: emp.employeeId,
+          label: `${emp.firstName || emp.name || ""} (${emp.employeeId || emp.staffId || "N/A"})`,
+          employeeId: emp.employeeId || emp.staffId || "",
           department: emp.department?.name || emp.department || "",
           designation: emp.designation || "",
+          email: emp.email || "",
         }));
         setEmployees(formattedEmployees);
       } catch (error) {
@@ -78,7 +93,7 @@ function AddAttendanceComponent() {
     const fetchDepartments = async () => {
       try {
         setFetchingDepartments(true);
-        const response = await get(`${DEPARTMENTS}?page=1&limit=1000`);
+        const response = await get(`${DEPARTMENTS}?page=1&limit=100`);
         const departmentList = response.results || response.data || [];
         const formattedDepartments = departmentList.map((dept) => ({
           value: dept._id || dept.id,

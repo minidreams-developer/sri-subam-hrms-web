@@ -215,7 +215,7 @@ const AdminLayout = () => {
                     <span>{item.name}</span>
                   </ItemContent>
                   {hasSubmenu && sidebarOpen && (
-                    <ArrowIcon>
+                    <ArrowIcon open={sidebarOpen}>
                       {isExpanded ? (
                         <MdKeyboardArrowUp />
                       ) : (
@@ -303,19 +303,18 @@ const LayoutContainer = styled.div`
 `;
 
 const Sidebar = styled.div`
-  width: 16.25rem;
-  min-width: 16.25rem;
-  max-width: 16.25rem;
+  width: ${(props) => (props.open ? "16.25rem" : "5.5rem")};
+  min-width: ${(props) => (props.open ? "16.25rem" : "5.5rem")};
+  max-width: ${(props) => (props.open ? "16.25rem" : "5.5rem")};
   background-color: #ffffff;
   color: ${theme.colors.white};
   display: flex;
   flex-direction: column;
-  padding: 1.5rem 1.25rem;
+  padding: ${(props) => (props.open ? "1.5rem 1.25rem" : "1.5rem 0.75rem")};
   box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
   overflow-y: auto;
   position: relative;
-  transition: transform 0.3s ease, margin-left 0.3s ease;
-  transform: ${(props) => (props.open ? "translateX(0)" : "translateX(-100%)")};
+  transition: width 0.3s ease, padding 0.3s ease;
   
   @media (max-width: 768px) {
     position: fixed;
@@ -323,14 +322,16 @@ const Sidebar = styled.div`
     top: 0;
     height: 100vh;
     z-index: 1000;
+    width: ${(props) => (props.open ? "16.25rem" : "5.5rem")};
+    min-width: ${(props) => (props.open ? "16.25rem" : "5.5rem")};
   }
 `;
 
 const LogoSection = styled.div`
   display: flex;
   align-items: center;
-  margin: 0 0 2.5rem 0;
-  justify-content: flex-start;
+  margin: 0 0 ${(props) => (props.open ? "2.5rem" : "1.5rem")} 0;
+  justify-content: ${(props) => (props.open ? "flex-start" : "center")};
   gap: 0.75rem;
 `;
 
@@ -359,8 +360,8 @@ const SidebarNav = styled.ul`
 const SidebarItem = styled.li`
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 0.75rem 0.938rem;
+  justify-content: ${(props) => (props.open ? "space-between" : "center")};
+  padding: 0.75rem ${(props) => (props.open ? "0.938rem" : "0.625rem")};
   border: none;
   border-radius: 4px;
   margin: 0 0 0.625rem 0;
@@ -372,7 +373,7 @@ const SidebarItem = styled.li`
 
   span {
     color: ${(props) => (props.$isactive ? theme.colors.white : "#1B2436")};
-    display: inline;
+    display: ${(props) => (props.open ? "inline" : "none")};
     transition: opacity 0.3s ease;
   }
 
@@ -417,7 +418,7 @@ const ItemContent = styled.div`
 `;
 
 const ArrowIcon = styled.div`
-  display: flex;
+  display: ${(props) => (props.open ? "flex" : "none")};
   align-items: center;
   color: ${theme.colors.textColor};
   font-size: 1.25rem;
@@ -464,7 +465,7 @@ const MainContent = styled.div`
   height: 100vh;
   overflow: hidden;
   transition: margin-left 0.3s ease;
-  margin-left: ${(props) => (props.open ? "0" : "-16.25rem")};
+  margin-left: 0;
 `;
 
 const Header = styled.header`

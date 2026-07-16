@@ -1,67 +1,91 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 import { Tree, TreeNode } from "react-organizational-chart";
 import theme from "../../theme/theme";
 import HierarchyCard from "../../components/HierarchyCard";
 import HierarchyIcon from "../../assets/images/Hierarchy/hierarchyIcon.svg";
 import ProfileImage from "../../assets/images/employee/sampleProfile.jpg";
+import { get } from "../../helpers/api_helper";
+import { GET_HIERARCHY_TREE } from "../../helpers/url_helper";
+import { toast } from "react-toastify";
 
 const Hierarchy = () => {
-  const ceoData = {
-    name: "Manoj Kumar",
-    employeeId: "EMP001",
-    department: "Executive Board",
-    position: "Chief Executive Officer",
-    profileImage: ProfileImage,
+  const [hierarchyData, setHierarchyData] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    fetchHierarchyData();
+  }, []);
+
+  const fetchHierarchyData = async () => {
+    setLoading(true);
+    try {
+      const response = await get(GET_HIERARCHY_TREE);
+      console.log("Hierarchy data:", response);
+      if (response && response.tree && response.tree.length > 0) {
+        // API returns { tree: [...], totalNodes: number }
+        // Use the first root node from the tree array
+        setHierarchyData(response.tree[0]);
+      }
+    } catch (error) {
+      console.error("Error fetching hierarchy data:", error);
+      toast.error("Failed to fetch hierarchy data");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const topLevelManagers = [
-    {
-      name: "Marcus Wright",
-      employeeId: "EMP001",
-      department: "Finance Department",
-      position: "Head of Finance",
-      profileImage: ProfileImage,
-    },
-    {
-      name: "Sarah Jenkins",
-      employeeId: "EMP001",
-      department: "Operations Unit",
-      position: "Operations Director",
-      profileImage: ProfileImage,
-    },
-    {
-      name: "Manoj Kumar",
-      employeeId: "EMP001",
-      department: "Executive Board",
-      position: "Chief Executive Officer",
-      profileImage: ProfileImage,
-    },
-    {
-      name: "Manoj Kumar",
-      employeeId: "EMP001",
-      department: "Executive Board",
-      position: "Chief Executive Officer",
-      profileImage: ProfileImage,
-    },
-  ];
+  // Transform API response to match component structure
+  const transformTreeNode = (node) => {
+    if (!node) return null;
+    
+    return {
+      name: node.name || "N/A",
+      employeeId: node.employeeId || "N/A",
+      department: node.department || "N/A",
+      position: node.designation || "N/A",
+      profileImage: node.profilePic || ProfileImage,
+      children: (node.children || []).map(child => transformTreeNode(child)),
+    };
+  };
 
-  const secondLevelManagers = [
-    {
-      name: "Sarah Jenkins",
-      employeeId: "EMP001",
-      department: "Operations Unit",
-      position: "Operations Director",
-      profileImage: ProfileImage,
-    },
-    {
-      name: "Marcus Wright",
-      employeeId: "EMP001",
-      department: "Finance Department",
-      position: "Head of Finance",
-      profileImage: ProfileImage,
-    },
-  ];
+  // Use API data if available, otherwise use fallback
+  const ceoData = hierarchyData 
+    ? transformTreeNode(hierarchyData)
+    : {
+        name: "Manoj Kumar",
+        employeeId: "EMP001",
+        department: "Executive Board",
+        position: "Chief Executive Officer",
+        profileImage: ProfileImage,
+      };
+
+  // Recursive function to render tree nodes
+  const renderTreeNode = (node) => {
+    if (!node) return null;
+
+    return (
+      <TreeNode key={node.employeeId} label={<CardWrapper><HierarchyCard {...node} /></CardWrapper>}>
+        {node.children && node.children.length > 0 && node.children.map((child) => renderTreeNode(child))}
+      </TreeNode>
+    );
+  };
+
+  if (loading) {
+    return (
+      <Container>
+        <Header>
+          <IconWrapper>
+            <Icon src={HierarchyIcon} alt="hierarchy" />
+          </IconWrapper>
+          <Title>Hierarchy</Title>
+        </Header>
+        <LoadingContainer>Loading hierarchy data...</LoadingContainer>
+      </Container>
+    );
+  }
+
+  const topLevelChildren = ceoData?.children || [];
 
   return (
     <Container>
@@ -79,13 +103,7 @@ const Hierarchy = () => {
           lineBorderRadius="10px"
           label={<CardWrapper><HierarchyCard {...ceoData} /></CardWrapper>}
         >
-          {topLevelManagers.map((manager, index) => (
-            <TreeNode key={index} label={<CardWrapper><HierarchyCard {...manager} /></CardWrapper>}>
-              {index < 2 && secondLevelManagers[index] && (
-                <TreeNode label={<CardWrapper><HierarchyCard {...secondLevelManagers[index]} /></CardWrapper>} />
-              )}
-            </TreeNode>
-          ))}
+          {topLevelChildren.map((manager, index) => renderTreeNode(manager))}
         </Tree>
       </HierarchyContainer>
     </Container>
@@ -144,4 +162,14 @@ const HierarchyContainer = styled.div`
 
 const CardWrapper = styled.div`
   display: inline-block;
+`;
+
+const LoadingContainer = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  font-size: 1rem;
+  color: ${theme.colors.secondaryTextColor};
+  font-family: "Inter", sans-serif;
 `;

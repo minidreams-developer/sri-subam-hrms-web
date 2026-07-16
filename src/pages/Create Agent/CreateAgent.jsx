@@ -110,6 +110,7 @@ const CreateAgent = () => {
         identificationMark: personalData.identificationMark,
         religion: personalData.religion?.value,
         profilePic: personalData.profilePic || "",
+        branch: personalData.branch?.value,
 
         documentNo: {
           aadharNo: Number(personalData.aadharNo.replace(/\D/g, "")) || null,
