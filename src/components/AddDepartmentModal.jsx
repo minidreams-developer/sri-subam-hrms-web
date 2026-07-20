@@ -5,11 +5,11 @@ import Button from "./Button";
 import InputComponent from "./InputComponent";
 import Select from "react-select";
 import { customSelectStyles } from "../theme/reactSelectStyles";
-import { post, get } from "../helpers/api_helper";
-import { GENERATE_DEPARTMENT_ID, CREATE_DEPARTMENT, GET_ALL_EMPLOYEES } from "../helpers/url_helper";
+import { post, get, patch } from "../helpers/api_helper";
+import { GENERATE_DEPARTMENT_ID, CREATE_DEPARTMENT, GET_ALL_EMPLOYEES, GET_DEPARTMENT, UPDATE_DEPARTMENT } from "../helpers/url_helper";
 import { toast } from "react-toastify";
 
-const AddDepartmentModal = ({ isOpen, onClose, onSave }) => {
+const AddDepartmentModal = ({ isOpen, onClose, onSave, isEditMode = false, editingDepartmentId = null }) => {
   const [formData, setFormData] = useState({
     departmentCode: "",
     departmentName: "",
@@ -21,13 +21,24 @@ const AddDepartmentModal = ({ isOpen, onClose, onSave }) => {
   const [isFetchingUsers, setIsFetchingUsers] = useState(false);
   const [departmentHeadOptions, setDepartmentHeadOptions] = useState([]);
 
-  // Generate department ID on modal open
+  // Generate department ID on modal open (for new departments) or fetch existing data (for edit)
   useEffect(() => {
-    if (isOpen && !formData.departmentCode) {
-      generateDepartmentId();
+    if (isOpen) {
       fetchDepartmentHeads();
+      if (isEditMode && editingDepartmentId) {
+        fetchDepartmentData(editingDepartmentId);
+      } else if (!isEditMode && !formData.departmentCode) {
+        generateDepartmentId();
+        // Reset form for new department
+        setFormData({
+          departmentCode: "",
+          departmentName: "",
+          departmentDescription: "",
+          departmentHead: null,
+        });
+      }
     }
-  }, [isOpen]);
+  }, [isOpen, isEditMode, editingDepartmentId]);
 
   // GET /v1/users - Fetch all users for Department Head dropdown
   const fetchDepartmentHeads = async () => {
@@ -62,6 +73,48 @@ const AddDepartmentModal = ({ isOpen, onClose, onSave }) => {
       ]);
     } finally {
       setIsFetchingUsers(false);
+    }
+  };
+
+  // Fetch existing department data for edit mode
+  const fetchDepartmentData = async (departmentId) => {
+    setIsLoading(true);
+    try {
+      const url = GET_DEPARTMENT.replace(":departmentId", departmentId);
+      const response = await get(url);
+      console.log("Department data fetched:", response);
+
+      // Handle different response structures
+      const deptData = response?.data || response;
+
+      // Find the matching department head from options
+      let selectedHead = null;
+      if (deptData.departmentHead) {
+        const headId = typeof deptData.departmentHead === "string" 
+          ? deptData.departmentHead 
+          : (deptData.departmentHead.id || deptData.departmentHead._id);
+        
+        const headName = typeof deptData.departmentHead === "string"
+          ? deptData.departmentHead
+          : (deptData.departmentHead.name || deptData.departmentHead.email || "");
+        
+        selectedHead = { value: headId, label: headName };
+      }
+
+      setFormData({
+        departmentCode: deptData.departmentCode || "",
+        departmentName: deptData.departmentName || "",
+        departmentDescription: deptData.departmentDescription || "",
+        departmentHead: selectedHead,
+      });
+
+      toast.success("Department data loaded successfully");
+    } catch (error) {
+      console.error("Error fetching department data:", error);
+      toast.error("Failed to fetch department details");
+      onClose();
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -111,12 +164,21 @@ const AddDepartmentModal = ({ isOpen, onClose, onSave }) => {
         departmentHead: formData.departmentHead?.value || null,
       };
 
-      console.log("Creating department with payload:", payload);
+      console.log(`${isEditMode ? "Updating" : "Creating"} department with payload:`, payload);
 
-      const response = await post(CREATE_DEPARTMENT, payload);
-      console.log("Department created:", response);
+      let response;
+      if (isEditMode && editingDepartmentId) {
+        // Update existing department
+        const url = UPDATE_DEPARTMENT.replace(":departmentId", editingDepartmentId);
+        response = await patch(url, payload);
+        toast.success("Department updated successfully!");
+      } else {
+        // Create new department
+        response = await post(CREATE_DEPARTMENT, payload);
+        toast.success("Department created successfully!");
+      }
 
-      toast.success("Department created successfully!");
+      console.log(`Department ${isEditMode ? "updated" : "created"}:`, response);
       onSave && onSave(response);
       onClose();
       
@@ -131,9 +193,9 @@ const AddDepartmentModal = ({ isOpen, onClose, onSave }) => {
       const errorMessage =
         error.response?.data?.message ||
         error.message ||
-        "Failed to create department";
+        `Failed to ${isEditMode ? "update" : "create"} department`;
       toast.error(errorMessage);
-      console.error("Create department error:", error);
+      console.error(`${isEditMode ? "Update" : "Create"} department error:`, error);
     } finally {
       setIsLoading(false);
     }
@@ -145,7 +207,7 @@ const AddDepartmentModal = ({ isOpen, onClose, onSave }) => {
     <Overlay onClick={onClose}>
       <ModalContainer onClick={(e) => e.stopPropagation()}>
         <ModalHeader>
-          <ModalTitle>Add New Department</ModalTitle>
+          <ModalTitle>{isEditMode ? "Edit Department" : "Add New Department"}</ModalTitle>
           <CloseButton onClick={onClose}>×</CloseButton>
         </ModalHeader>
 

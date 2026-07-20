@@ -11,7 +11,7 @@ import PlusIcon from "../../assets/images/DashboardImages/plus-large_svgrepo.com
 import TabSwitcher from "../../components/TabSwitcher";
 import ProfileImage from "../../assets/images/employee/sampleProfile.jpg";
 import { get } from "../../helpers/api_helper";
-import { GET_OFFBOARDS } from "../../helpers/url_helper";
+import { GET_OFFBOARDS, DEPARTMENTS, GET_SHIFTS } from "../../helpers/url_helper";
 import { toast } from "react-toastify";
 import Filter from "../../components/filter";
 import {
@@ -43,6 +43,10 @@ const OffBoarding = () => {
   const [pageSize, setPageSize] = useState(10);
   const [totalResults, setTotalResults] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
+  const [departmentOptions, setDepartmentOptions] = useState([]);
+  const [shiftOptions, setShiftOptions] = useState([]);
+  const [loadingDepts, setLoadingDepts] = useState(false);
+  const [loadingShifts, setLoadingShifts] = useState(false);
 
   const handleFilterApply = (filters) => {
     setAppliedFilters(filters);
@@ -50,9 +54,61 @@ const OffBoarding = () => {
     console.log("Applied filters:", filters);
   };
 
+  // Fetch departments and shifts for filter dropdowns
+  const fetchDepartmentsAndShifts = async () => {
+    // Fetch departments
+    setLoadingDepts(true);
+    try {
+      const deptResponse = await get(DEPARTMENTS);
+      console.log("Departments response:", deptResponse);
+      
+      // Handle different response structures
+      const deptList = deptResponse?.results || deptResponse?.data || deptResponse || [];
+      
+      // Transform to dropdown options
+      const deptOptions = deptList.map((dept) => ({
+        value: dept.departmentName || dept.name || "N/A",
+        label: dept.departmentName || dept.name || "N/A",
+      }));
+      
+      setDepartmentOptions(deptOptions);
+      console.log("Department options:", deptOptions);
+    } catch (error) {
+      console.error("Error fetching departments:", error);
+      toast.error("Failed to load departments");
+    } finally {
+      setLoadingDepts(false);
+    }
+
+    // Fetch shifts
+    setLoadingShifts(true);
+    try {
+      const shiftResponse = await get(GET_SHIFTS);
+      console.log("Shifts response:", shiftResponse);
+      
+      // Handle different response structures
+      const shiftList = shiftResponse?.results || shiftResponse?.data || shiftResponse || [];
+      
+      // Transform to dropdown options
+      const shiftOpts = shiftList.map((shift) => ({
+        value: shift.shiftName || shift.name || "N/A",
+        label: shift.shiftName || shift.name || "N/A",
+      }));
+      
+      setShiftOptions(shiftOpts);
+      console.log("Shift options:", shiftOpts);
+    } catch (error) {
+      console.error("Error fetching shifts:", error);
+      toast.error("Failed to load shifts");
+    } finally {
+      setLoadingShifts(false);
+    }
+  };
+
   // Fetch offboarding records on component mount
   useEffect(() => {
     fetchOffboardingRecords();
+    fetchDepartmentsAndShifts();
   }, [currentPage, pageSize]);
 
   const fetchOffboardingRecords = async () => {
@@ -247,10 +303,10 @@ const OffBoarding = () => {
             searchPlaceholder="Search Employee"
             searchValue={employeeSearch}
             onSearchChange={setEmployeeSearch}
-            select1Options={["All Department", "HR", "IT", "Sales"]}
+            select1Options={["All Department", ...departmentOptions.map(d => d.value)]}
             select1Value={employeeDept}
             onSelect1Change={setEmployeeDept}
-            select2Options={["All Shifts", "Day", "Night"]}
+            select2Options={["All Shifts", ...shiftOptions.map(s => s.value)]}
             select2Value={employeeShift}
             onSelect2Change={setEmployeeShift}
             filterText="Filter"
@@ -287,7 +343,7 @@ const OffBoarding = () => {
             ]}
             select1Value={staffRole}
             onSelect1Change={setStaffRole}
-            select2Options={["All Shifts", "Day", "Night"]}
+            select2Options={["All Shifts", ...shiftOptions.map(s => s.value)]}
             select2Value={staffShift}
             onSelect2Change={setStaffShift}
             filterText="Filter"

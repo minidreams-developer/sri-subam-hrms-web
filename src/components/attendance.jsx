@@ -10,7 +10,7 @@ import SearchInputComponent from "./SearchInputComponent";
 import FilterIcon from "../assets/images/DashboardImages/filtericon.svg";
 import Filter from "./filter";
 import { get } from "../helpers/api_helper";
-import { ATTENDANCE_RECORDS } from "../helpers/url_helper";
+import { ATTENDANCE_RECORDS, DEPARTMENTS, GET_SHIFTS } from "../helpers/url_helper";
 import { toast } from "react-toastify";
 
 const Attendance = () => {
@@ -26,6 +26,10 @@ const Attendance = () => {
   const [totalResults, setTotalResults] = useState(0);
   const [showFilter, setShowFilter] = useState(false);
   const [appliedFilters, setAppliedFilters] = useState(null);
+  const [departmentOptions, setDepartmentOptions] = useState([]);
+  const [shiftOptions, setShiftOptions] = useState([]);
+  const [loadingDepts, setLoadingDepts] = useState(false);
+  const [loadingShifts, setLoadingShifts] = useState(false);
   const rowsPerPage = 10;
 
   const handleFilterApply = (filters) => {
@@ -37,6 +41,7 @@ const Attendance = () => {
   // Fetch attendance data from API
   useEffect(() => {
     fetchAttendanceData();
+    fetchDepartmentsAndShifts();
   }, [currentPage]);
 
   const fetchAttendanceData = async () => {
@@ -140,6 +145,57 @@ const Attendance = () => {
   const handleShiftChange = (value) => {
     setShiftFilter(value);
     setCurrentPage(1);
+  };
+
+  // Fetch departments and shifts for filter dropdowns
+  const fetchDepartmentsAndShifts = async () => {
+    // Fetch departments
+    setLoadingDepts(true);
+    try {
+      const deptResponse = await get(DEPARTMENTS);
+      console.log("Departments response:", deptResponse);
+      
+      // Handle different response structures
+      const deptList = deptResponse?.results || deptResponse?.data || deptResponse || [];
+      
+      // Transform to dropdown options
+      const deptOptions = deptList.map((dept) => ({
+        value: dept.departmentName || dept.name || "N/A",
+        label: dept.departmentName || dept.name || "N/A",
+      }));
+      
+      setDepartmentOptions(deptOptions);
+      console.log("Department options:", deptOptions);
+    } catch (error) {
+      console.error("Error fetching departments:", error);
+      toast.error("Failed to load departments");
+    } finally {
+      setLoadingDepts(false);
+    }
+
+    // Fetch shifts
+    setLoadingShifts(true);
+    try {
+      const shiftResponse = await get(GET_SHIFTS);
+      console.log("Shifts response:", shiftResponse);
+      
+      // Handle different response structures
+      const shiftList = shiftResponse?.results || shiftResponse?.data || shiftResponse || [];
+      
+      // Transform to dropdown options
+      const shiftOpts = shiftList.map((shift) => ({
+        value: shift.shiftName || shift.name || "N/A",
+        label: shift.shiftName || shift.name || "N/A",
+      }));
+      
+      setShiftOptions(shiftOpts);
+      console.log("Shift options:", shiftOpts);
+    } catch (error) {
+      console.error("Error fetching shifts:", error);
+      toast.error("Failed to load shifts");
+    } finally {
+      setLoadingShifts(false);
+    }
   };
 
   const handleNextPage = () => {
@@ -254,11 +310,14 @@ const Attendance = () => {
           <select
             value={departmentFilter}
             onChange={(e) => handleDepartmentChange(e.target.value)}
+            disabled={loadingDepts}
           >
             <option>All Department</option>
-            <option>HR</option>
-            <option>IT</option>
-            <option>Sales</option>
+            {departmentOptions.map((dept) => (
+              <option key={dept.value} value={dept.value}>
+                {dept.label}
+              </option>
+            ))}
           </select>
         </SelectWrap>
 
@@ -266,10 +325,14 @@ const Attendance = () => {
           <select
             value={shiftFilter}
             onChange={(e) => handleShiftChange(e.target.value)}
+            disabled={loadingShifts}
           >
             <option>All Shifts</option>
-            <option>Day</option>
-            <option>Night</option>
+            {shiftOptions.map((shift) => (
+              <option key={shift.value} value={shift.value}>
+                {shift.label}
+              </option>
+            ))}
           </select>
         </SelectWrap>
 

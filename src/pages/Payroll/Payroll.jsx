@@ -9,7 +9,7 @@ import TabSwitcher from "../../components/TabSwitcher";
 import Button from "../../components/Button";
 import Filter from "../../components/filter";
 import { get } from "../../helpers/api_helper";
-import { GET_PAYROLL } from "../../helpers/url_helper";
+import { GET_PAYROLL, DEPARTMENTS, GET_SHIFTS } from "../../helpers/url_helper";
 import { toast } from "react-toastify";
 
 const Payroll = () => {
@@ -31,13 +31,15 @@ const Payroll = () => {
   const [pageSize, setPageSize] = useState(10);
   const [totalResults, setTotalResults] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
-
-  const departmentOptions = ["All Departments", "IT", "HR", "Sales", "Marketing", "Finance"];
-  const shiftOptions = ["All Shifts", "Morning Shift", "Evening Shift", "Night Shift"];
+  const [departmentOptions, setDepartmentOptions] = useState([]);
+  const [shiftOptions, setShiftOptions] = useState([]);
+  const [loadingDepts, setLoadingDepts] = useState(false);
+  const [loadingShifts, setLoadingShifts] = useState(false);
 
   // Fetch payroll data on component mount or page change
   useEffect(() => {
     fetchPayrollData();
+    fetchDepartmentsAndShifts();
   }, [currentPage, pageSize]);
 
   const fetchPayrollData = async () => {
@@ -94,10 +96,148 @@ const Payroll = () => {
     }
   };
 
-  const handleFilterApply = (filters) => {
-    setAppliedFilters(filters);
+  const handleFilterApply = (queryParams) => {
+    console.log("Applied filter query params:", queryParams);
+    // Build the API URL with query parameters (per user-filters.md spec)
+    let url = GET_PAYROLL;
+    
+    // Add filter parameters
+    if (queryParams.departmentId) {
+      url += `?departmentId=${queryParams.departmentId}`;
+    }
+    if (queryParams.designation) {
+      url += (url.includes('?') ? '&' : '?') + `designation=${encodeURIComponent(queryParams.designation)}`;
+    }
+    if (queryParams.joinedFrom) {
+      url += (url.includes('?') ? '&' : '?') + `joinedFrom=${queryParams.joinedFrom}`;
+    }
+    if (queryParams.joinedTo) {
+      url += (url.includes('?') ? '&' : '?') + `joinedTo=${queryParams.joinedTo}`;
+    }
+    if (queryParams.status) {
+      url += (url.includes('?') ? '&' : '?') + `status=${queryParams.status}`;
+    }
+    if (queryParams.shiftId) {
+      url += (url.includes('?') ? '&' : '?') + `shiftId=${queryParams.shiftId}`;
+    }
+    if (queryParams.sortBy) {
+      url += (url.includes('?') ? '&' : '?') + `sortBy=${queryParams.sortBy}`;
+    }
+    
+    // Add pagination
+    url += (url.includes('?') ? '&' : '?') + `page=${queryParams.page || 1}&limit=${queryParams.limit || 10}`;
+    
+    setAppliedFilters(queryParams);
     setShowFilter(false);
-    console.log("Applied filters:", filters);
+    setCurrentPage(1);
+    
+    // Fetch filtered payroll data
+    fetchPayrollDataWithFilters(url);
+  };
+
+  // Fetch departments and shifts for filter dropdowns
+  const fetchDepartmentsAndShifts = async () => {
+    // Fetch departments
+    setLoadingDepts(true);
+    try {
+      const deptResponse = await get(DEPARTMENTS);
+      console.log("Departments response:", deptResponse);
+      
+      // Handle different response structures
+      const deptList = deptResponse?.results || deptResponse?.data || deptResponse || [];
+      
+      // Transform to dropdown options
+      const deptOptions = deptList.map((dept) => ({
+        value: dept.departmentName || dept.name || "N/A",
+        label: dept.departmentName || dept.name || "N/A",
+      }));
+      
+      setDepartmentOptions(deptOptions);
+      console.log("Department options:", deptOptions);
+    } catch (error) {
+      console.error("Error fetching departments:", error);
+      toast.error("Failed to load departments");
+    } finally {
+      setLoadingDepts(false);
+    }
+
+    // Fetch shifts
+    setLoadingShifts(true);
+    try {
+      const shiftResponse = await get(GET_SHIFTS);
+      console.log("Shifts response:", shiftResponse);
+      
+      // Handle different response structures
+      const shiftList = shiftResponse?.results || shiftResponse?.data || shiftResponse || [];
+      
+      // Transform to dropdown options
+      const shiftOpts = shiftList.map((shift) => ({
+        value: shift.shiftName || shift.name || "N/A",
+        label: shift.shiftName || shift.name || "N/A",
+      }));
+      
+      setShiftOptions(shiftOpts);
+      console.log("Shift options:", shiftOpts);
+    } catch (error) {
+      console.error("Error fetching shifts:", error);
+      toast.error("Failed to load shifts");
+    } finally {
+      setLoadingShifts(false);
+    }
+  };
+
+  const fetchPayrollDataWithFilters = async (url) => {
+    setLoading(true);
+    try {
+      const response = await get(url);
+      console.log("Filtered payroll data fetched:", response);
+      
+      let records = [];
+      
+      // Handle different response structures
+      if (Array.isArray(response)) {
+        records = response;
+      } else if (response?.results && Array.isArray(response.results)) {
+        records = response.results;
+        setTotalResults(response.totalResults || 0);
+        setTotalPages(response.totalPages || 0);
+      } else if (response?.data && Array.isArray(response.data)) {
+        records = response.data;
+      }
+      
+      // Transform API data to match table format
+      const transformedData = records.map((item) => ({
+        employeeId: item.employeeId,
+        name: item.name,
+        designation: item.designation,
+        department: item.department,
+        fullDay: item.fullDays || 0,
+        halfDay: item.halfDays || 0,
+        offDays: item.offDays || 0,
+        paidLeaves: item.paidLeaves || 0,
+        unpaidLeaves: item.unpaidLeaves || 0,
+        dailyWages: `₹${(item.dailyRate || 0).toFixed(2)}`,
+        grossWages: `₹${(item.grossWages || 0).toLocaleString('en-IN')}`,
+        earnedWages: `₹${(item.earnedWages || 0).toLocaleString('en-IN')}`,
+        otherWages: `₹${(item.otherWages || 0).toLocaleString('en-IN')}`,
+        overTime: `₹${(item.overtimeAmount || 0).toLocaleString('en-IN')}`,
+        extras: `₹${(item.extras || 0).toLocaleString('en-IN')}`,
+        grossEarnings: `₹${(item.grossEarnings || 0).toLocaleString('en-IN')}`,
+        penalties: `₹${(item.penalties || 0).toLocaleString('en-IN')}`,
+        loanAdvance: `₹${(item.loanAndAdvance || 0).toLocaleString('en-IN')}`,
+        otherDeductions: `₹${(item.otherDeductions || 0).toLocaleString('en-IN')}`,
+        takeHome: `₹${(item.takeHome || 0).toLocaleString('en-IN')}`,
+        preview: `₹${(item.takeHome || 0).toLocaleString('en-IN')}`,
+      }));
+      
+      setPayrollData(transformedData);
+    } catch (error) {
+      console.error("Error fetching filtered payroll data:", error);
+      toast.error("Failed to fetch payroll data with filters");
+      setPayrollData([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const columns = [
@@ -291,10 +431,10 @@ const Payroll = () => {
             searchPlaceholder="Search Employee"
             searchValue={search}
             onSearchChange={setSearch}
-            select1Options={departmentOptions}
+            select1Options={["All Departments", ...departmentOptions.map(d => d.value)]}
             select1Value={department}
             onSelect1Change={setDepartment}
-            select2Options={shiftOptions}
+            select2Options={["All Shifts", ...shiftOptions.map(s => s.value)]}
             select2Value={shift}
             onSelect2Change={setShift}
             showFilter={true}

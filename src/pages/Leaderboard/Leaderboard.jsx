@@ -10,7 +10,7 @@ import ZeroAbsenceChamp from "../../assets/images/Badges/ZeroAbsenceChamp.svg";
 import PerfectMonth from "../../assets/images/Badges/PerfectMonth.svg";
 import NeverLate from "../../assets/images/Badges/NeverLate.svg";
 import { get } from "../../helpers/api_helper";
-import { GET_LEADERBOARD } from "../../helpers/url_helper";
+import { GET_LEADERBOARD, DEPARTMENTS, GET_SHIFTS } from "../../helpers/url_helper";
 import { toast } from "react-toastify";
 
 const Leaderboard = () => {
@@ -30,11 +30,67 @@ const Leaderboard = () => {
   const [pageSize, setPageSize] = useState(10);
   const [totalResults, setTotalResults] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
+  const [departmentOptions, setDepartmentOptions] = useState([]);
+  const [shiftOptions, setShiftOptions] = useState([]);
+  const [loadingDepts, setLoadingDepts] = useState(false);
+  const [loadingShifts, setLoadingShifts] = useState(false);
 
   // Fetch leaderboard data on component mount and when pagination changes
   useEffect(() => {
     fetchLeaderboard(currentPage, pageSize);
+    fetchDepartmentsAndShifts();
   }, [currentPage, pageSize]);
+
+  // Fetch departments and shifts for filter dropdowns
+  const fetchDepartmentsAndShifts = async () => {
+    // Fetch departments
+    setLoadingDepts(true);
+    try {
+      const deptResponse = await get(DEPARTMENTS);
+      console.log("Departments response:", deptResponse);
+      
+      // Handle different response structures
+      const deptList = deptResponse?.results || deptResponse?.data || deptResponse || [];
+      
+      // Transform to dropdown options
+      const deptOptions = deptList.map((dept) => ({
+        value: dept.departmentName || dept.name || "N/A",
+        label: dept.departmentName || dept.name || "N/A",
+      }));
+      
+      setDepartmentOptions(deptOptions);
+      console.log("Department options:", deptOptions);
+    } catch (error) {
+      console.error("Error fetching departments:", error);
+      toast.error("Failed to load departments");
+    } finally {
+      setLoadingDepts(false);
+    }
+
+    // Fetch shifts
+    setLoadingShifts(true);
+    try {
+      const shiftResponse = await get(GET_SHIFTS);
+      console.log("Shifts response:", shiftResponse);
+      
+      // Handle different response structures
+      const shiftList = shiftResponse?.results || shiftResponse?.data || shiftResponse || [];
+      
+      // Transform to dropdown options
+      const shiftOpts = shiftList.map((shift) => ({
+        value: shift.shiftName || shift.name || "N/A",
+        label: shift.shiftName || shift.name || "N/A",
+      }));
+      
+      setShiftOptions(shiftOpts);
+      console.log("Shift options:", shiftOpts);
+    } catch (error) {
+      console.error("Error fetching shifts:", error);
+      toast.error("Failed to load shifts");
+    } finally {
+      setLoadingShifts(false);
+    }
+  };
 
   const fetchLeaderboard = async (page = 1, limit = 10) => {
     setIsLoading(true);
@@ -154,7 +210,7 @@ const Leaderboard = () => {
         searchPlaceholder="Search Employee"
         searchValue={search}
         onSearchChange={setSearch}
-        select1Options={["All Department", "IT", "HR", "Sales", "Marketing"]}
+        select1Options={["All Department", ...departmentOptions.map(d => d.value)]}
         select1Value={department}
         onSelect1Change={setDepartment}
         showFilter={true}

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import theme from "../../theme/theme";
@@ -7,10 +7,25 @@ import CalenderInput from "../../components/CalenderInput";
 import Button from "../../components/Button";
 import Select from "react-select";
 import { customSelectStyles } from "../../theme/reactSelectStyles";
+import { post, get } from "../../helpers/api_helper";
+import { 
+  CREATE_ADJUSTMENT, 
+  DEPARTMENTS,
+  GET_TEAMS_LIST,
+  GET_ALL_EMPLOYEES
+} from "../../helpers/url_helper";
+import { toast } from "react-toastify";
 
 const AddAdjustment = () => {
   const navigate = useNavigate();
   const [forWhom, setForWhom] = useState(null);
+  const [departmentOptions, setDepartmentOptions] = useState([]);
+  const [teamOptions, setTeamOptions] = useState([]);
+  const [_isLoadingDepts, _setIsLoadingDepts] = useState(false);
+  const [_isLoadingTeams, _setIsLoadingTeams] = useState(false);
+  const [employeeOptions, setEmployeeOptions] = useState([]);
+  const [employeesLoading, setEmployeesLoading] = useState(false);
+  const [isFetchingEmployeeDetails, setIsFetchingEmployeeDetails] = useState(false);
   const [formData, setFormData] = useState({
     // Team fields
     department: null,
@@ -40,26 +55,8 @@ const AddAdjustment = () => {
     { value: "individual", label: "Individual" },
   ];
 
-  const departmentOptions = [
-    { value: "ui_ux", label: "UI UX Design" },
-    { value: "development", label: "Development" },
-    { value: "marketing", label: "Marketing" },
-  ];
-
-  const teamOptions = [
-    { value: "ui_ux_design", label: "UI UX Design" },
-    { value: "frontend", label: "Frontend Team" },
-    { value: "backend", label: "Backend Team" },
-  ];
-
-  const employeeOptions = [
-    { value: "manoj", label: "Manoj Kumar" },
-    { value: "john", label: "John Doe" },
-    { value: "jane", label: "Jane Smith" },
-  ];
-
   const typeOptions = [
-    { value: "addiction", label: "Addiction" },
+    { value: "addition", label: "Addition" },
     { value: "deduction", label: "Deduction" },
   ];
 
@@ -73,7 +70,7 @@ const AddAdjustment = () => {
   const generateMonthOptions = () => {
     const currentDate = new Date();
     const currentYear = currentDate.getFullYear();
-    const currentMonth = currentDate.getMonth(); // 0-11
+    const currentMonth = currentDate.getMonth();
     
     const months = [
       "Jan", "Feb", "Mar", "Apr", "May", "Jun",
@@ -82,7 +79,6 @@ const AddAdjustment = () => {
     
     const options = [];
     
-    // Add remaining months of current year (from current month onwards)
     for (let i = currentMonth; i < 12; i++) {
       options.push({
         value: `${months[i].toLowerCase()}${currentYear}`,
@@ -90,7 +86,6 @@ const AddAdjustment = () => {
       });
     }
     
-    // Add all months of next year
     for (let i = 0; i < 12; i++) {
       options.push({
         value: `${months[i].toLowerCase()}${currentYear + 1}`,
@@ -108,17 +103,351 @@ const AddAdjustment = () => {
     { value: "no", label: "No" },
   ];
 
+  // Fetch departments on component mount
+  useEffect(() => {
+    fetchDepartments();
+    fetchEmployees();
+  }, []);
+
+  // Fetch employees from API
+  const fetchEmployees = async () => {
+    setEmployeesLoading(true);
+    try {
+      const response = await get(`${GET_ALL_EMPLOYEES}?page=1&limit=100`);
+      let employees = [];
+      if (Array.isArray(response)) {
+        employees = response;
+      } else if (response?.results && Array.isArray(response.results)) {
+        employees = response.results;
+      } else if (response?.data && Array.isArray(response.data)) {
+        employees = response.data;
+      } else if (response?.users && Array.isArray(response.users)) {
+        employees = response.users;
+      }
+
+      const options = employees.map((emp) => ({
+        value: emp.id || emp._id,
+        label: emp.name || (emp.firstName && emp.lastName ? `${emp.firstName} ${emp.lastName}` : emp.email || "Unknown"),
+        empCode: emp.employeeId || emp.empCode || "N/A",
+      }));
+      setEmployeeOptions(options);
+      console.log("Employee options:", options);
+    } catch (error) {
+      console.error("Error fetching employees:", error);
+      toast.error("Failed to fetch employees");
+    } finally {
+      setEmployeesLoading(false);
+    }
+  };
+
+  // Handle employee selection and fetch details
+  const handleEmployeeSelect = async (option) => {
+    if (!option || !option.value) {
+      handleChange("employee", null);
+      handleChange("employeeId", "");
+      handleChange("designation", "");
+      return;
+    }
+
+    setIsFetchingEmployeeDetails(true);
+    try {
+      // Fetch detailed employee data
+      const employeeData = await get(`/v1/users/${option.value}`);
+
+      if (employeeData) {
+        const empDetails = {
+          id: employeeData.id || employeeData._id || option.value,
+          name: employeeData.name || option.label,
+          empCode: employeeData.employeeId || employeeData.empCode || option.empCode || "N/A",
+          designation:
+            employeeData.workInformation?.designation ||
+            employeeData.designation?.name ||
+            employeeData.designation ||
+            "N/A",
+        };
+
+        handleChange("employee", option);
+        handleChange("employeeId", empDetails.empCode);
+        handleChange("designation", empDetails.designation);
+
+        toast.success("Employee details loaded successfully");
+      }
+    } catch (error) {
+      console.error("Error fetching employee details:", error);
+      toast.error(error.message || "Failed to fetch employee details");
+      handleChange("employee", null);
+    } finally {
+      setIsFetchingEmployeeDetails(false);
+    }
+  };
+
+  // Fetch departments - Use same pattern as AddTeamModal
+  const fetchDepartments = async () => {
+    _setIsLoadingDepts(true);
+    try {
+      const response = await get(DEPARTMENTS);
+      console.log("Departments response:", response);
+      
+      // Handle different response structures - same as AddTeamModal
+      const departmentsList = response?.results || response?.data || response || [];
+      
+      // Transform departments to select options
+      const options = departmentsList.map((dept) => {
+        // Extract MongoDB _id for API calls
+        const mongoId = dept._id;
+        
+        return {
+          value: mongoId || dept.id, // Use _id as primary value for API
+          _id: mongoId, // Explicitly store _id
+          label: dept.departmentName || dept.name || "N/A",
+        };
+      });
+      
+      console.log("Department options:", options);
+      setDepartmentOptions(options);
+    } catch (error) {
+      console.error("Error fetching departments:", error);
+      toast.error("Failed to load departments");
+      setDepartmentOptions([]);
+    } finally {
+      _setIsLoadingDepts(false);
+    }
+  };
+
+  // Fetch all teams without filtering by department
+  const fetchTeams = async () => {
+    _setIsLoadingTeams(true);
+    try {
+      // Fetch all teams from the API
+      // The API does NOT support departmentId filtering - it rejects the parameter
+      const response = await get(GET_TEAMS_LIST);
+      console.log("Teams response:", response);
+      
+      // Handle different response structures
+      const teamsList = response?.results || response?.data || response || [];
+      console.log("Total teams fetched:", teamsList.length);
+      
+      // Transform teams to select options without any filtering
+      // Display ALL teams for user to select manually
+      const options = teamsList.map((team) => {
+        // Extract MongoDB _id for API calls
+        const mongoId = team._id;
+        const teamCode = team.teamId || team.teamCode || team.id;
+        
+        // Extract team lead name - try multiple field names
+        const teamLeadName = team.teamLead 
+          ? (typeof team.teamLead === 'string' ? team.teamLead : team.teamLead.name || team.teamLead.fullName || String(team.teamLead))
+          : (team.leadName || team.lead || "");
+        
+        console.log(`Team: ${team.teamName}, TeamLead field:`, team.teamLead, "Extracted name:", teamLeadName);
+        
+        return {
+          value: mongoId || team.id, // Use _id as primary value for API
+          _id: mongoId, // Explicitly store _id
+          label: team.teamName || team.name || "N/A",
+          teamId: teamCode || "",
+          teamLead: teamLeadName || "", // Extracted team lead name
+        };
+      });
+      
+      console.log("Team options (all teams, no filtering):", options);
+      setTeamOptions(options);
+    } catch (error) {
+      console.error("Error fetching teams:", error);
+      toast.error("Failed to load teams");
+      setTeamOptions([]);
+    } finally {
+      _setIsLoadingTeams(false);
+    }
+  };
+
   const handleChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  // Handle department selection - fetch all teams (not filtered by department)
+  const handleDepartmentChange = (value) => {
+    console.log("Department selected:", value);
+    handleChange("department", value);
+    // Reset team selection
+    handleChange("team", null);
+    handleChange("teamId", "");
+    handleChange("teamLead", "");
+    
+    // Fetch teams (will fetch ALL teams from API, user selects manually)
+    if (value?.value || value?._id) {
+      console.log("Department changed, fetching all teams");
+      fetchTeams();
+    }
+  };
+
+  // Handle team selection and auto-fill team details
+  const handleTeamChange = (value) => {
+    console.log("Team selected:", value);
+    handleChange("team", value);
+    
+    if (value) {
+      // Auto-fill team ID and team lead from selection data
+      console.log("Auto-filling teamId:", value.teamId, "teamLead:", value.teamLead);
+      handleChange("teamId", value.teamId || "");
+      handleChange("teamLead", value.teamLead || "");
+    }
   };
 
   const handleCancel = () => {
     navigate("/admin/pay-hub/additionDeductions");
   };
 
-  const handleSave = () => {
-    console.log("Form data:", formData);
-    // Add your save logic here
+  const handleSave = async () => {
+    try {
+      // Validation
+      if (!forWhom) {
+        toast.error("Please select 'For Whom'");
+        return;
+      }
+
+      if (!formData.type) {
+        toast.error("Please select Type (Addition/Deduction)");
+        return;
+      }
+
+      if (!formData.component) {
+        toast.error("Please select Component");
+        return;
+      }
+
+      if (!formData.amount) {
+        toast.error("Please enter Amount");
+        return;
+      }
+
+      // Build payload based on forWhom type
+      let payload = {
+        type: formData.type.value === "addiction" ? "addition" : formData.type.value, // Convert "addiction" to "addition" for API
+        component: formData.component.value, // "emi", "bonus", "incentive", "allowance"
+        amount: parseFloat(formData.amount),
+        remarks: formData.remarks || "",
+      };
+
+      // Add date if selected
+      if (formData.date) {
+        payload.date = formData.date instanceof Date 
+          ? formData.date.toISOString().split('T')[0]
+          : formData.date;
+      }
+
+      // Parse and add payroll month/year (REQUIRED by backend)
+      // Default to current month if not selected
+      let payrollMonth = null;
+      let payrollYear = null;
+      
+      if (formData.payrollMonth) {
+        // payrollMonth value is in format "jul2026" or similar
+        const monthStr = formData.payrollMonth.value; // e.g., "jul2026"
+        
+        // Extract month number (3-letter month code to number)
+        const months = {
+          jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6,
+          jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12
+        };
+        const monthCode = monthStr.substring(0, 3).toLowerCase();
+        const monthNum = months[monthCode];
+        const yearNum = parseInt(monthStr.substring(3));
+        
+        if (monthNum && yearNum) {
+          payrollMonth = monthNum; // Number: 1-12
+          payrollYear = yearNum;   // Number: 2026
+          console.log(`Parsed payroll month: ${monthNum}/${yearNum} from "${monthStr}"`);
+        }
+      } else {
+        // Default to current month if not selected
+        const now = new Date();
+        payrollMonth = now.getMonth() + 1; // getMonth() returns 0-11, so add 1
+        payrollYear = now.getFullYear();
+        console.log(`No payroll month selected, using current: ${payrollMonth}/${payrollYear}`);
+      }
+      
+      // Always set these required fields
+      payload.payrollMonth = payrollMonth;
+      payload.payrollYear = payrollYear;
+
+      // For Team
+      if (forWhom.value === "team") {
+        if (!formData.department) {
+          toast.error("Please select Department");
+          return;
+        }
+        if (!formData.team) {
+          toast.error("Please select Team");
+          return;
+        }
+        if (!formData.teamId) {
+          toast.error("Selected team is invalid. Please choose another team or ensure the team has members assigned.");
+          return;
+        }
+
+        payload.forWhom = "team";
+        // Use MongoDB _id for department and team (not the user-facing IDs)
+        payload.department = formData.department._id || formData.department.value;
+        payload.team = formData.team._id || formData.team.value;
+        // Include teamId and teamLead for reference if backend needs them
+        payload.teamId = formData.teamId || "";
+        payload.teamLead = formData.teamLead || "";
+      }
+      // For Individual
+      else if (forWhom.value === "individual") {
+        if (!formData.employee) {
+          toast.error("Please select Employee");
+          return;
+        }
+
+        payload.forWhom = "individual";
+        payload.employeeId = formData.employeeId;
+        payload.employee = formData.employee.value;
+        payload.designation = formData.designation;
+      }
+
+      // Add EMI-specific fields
+      if (formData.component?.value === "emi") {
+        if (!formData.affectFrom || !formData.to) {
+          toast.error("Please select 'Affect From' and 'To' dates for EMI");
+          return;
+        }
+        if (!formData.totalMonths) {
+          toast.error("Please enter Total Months");
+          return;
+        }
+        if (!formData.perMonthDeduction) {
+          toast.error("Please enter Per Month Deduction");
+          return;
+        }
+
+        payload.affectFrom = formData.affectFrom.value;
+        payload.to = formData.to.value;
+        payload.totalMonths = parseInt(formData.totalMonths);
+        payload.perMonthDeduction = parseFloat(formData.perMonthDeduction);
+      }
+
+      // Add applied to payroll
+      if (formData.appliedToPayroll) {
+        payload.appliedToPayroll = formData.appliedToPayroll.value === "yes";
+      }
+
+      console.log("Sending adjustment payload:", payload);
+
+      // Make API call
+      const response = await post(CREATE_ADJUSTMENT, payload);
+      
+      console.log("API Response:", response);
+      toast.success("Adjustment created successfully!");
+      
+      // Navigate back to list
+      navigate("/admin/pay-hub/additionDeductions");
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || error.message || "Failed to create adjustment";
+      console.error("Error creating adjustment:", error);
+      toast.error(errorMessage);
+    }
   };
 
   return (
@@ -153,10 +482,13 @@ const AddAdjustment = () => {
                   <Select
                     options={departmentOptions}
                     value={formData.department}
-                    onChange={(value) => handleChange("department", value)}
-                    placeholder="UI UX Design"
+                    onChange={handleDepartmentChange}
+                    placeholder={_isLoadingDepts ? "Loading..." : "Select Department"}
                     styles={customSelectStyles}
                     isSearchable
+                    isClearable
+                    isDisabled={_isLoadingDepts}
+                    isLoading={_isLoadingDepts}
                   />
                 </SelectWrapper>
               </Col>
@@ -166,10 +498,13 @@ const AddAdjustment = () => {
                   <Select
                     options={teamOptions}
                     value={formData.team}
-                    onChange={(value) => handleChange("team", value)}
-                    placeholder="UI UX Design"
+                    onChange={handleTeamChange}
+                    placeholder={_isLoadingTeams ? "Loading..." : "Select Team"}
                     styles={customSelectStyles}
                     isSearchable
+                    isClearable
+                    isDisabled={_isLoadingTeams || teamOptions.length === 0}
+                    isLoading={_isLoadingTeams}
                   />
                 </SelectWrapper>
               </Col>
@@ -180,9 +515,10 @@ const AddAdjustment = () => {
                   label="Team ID"
                   placeholder="#1253366"
                   value={formData.teamId}
-                  onChange={(e) => handleChange("teamId", e.target.value)}
                   labelMargin="0 0 0.625rem 0"
                   height="50px"
+                  readOnly
+                  disabled
                 />
               </Col>
               <Col>
@@ -190,9 +526,10 @@ const AddAdjustment = () => {
                   label="Team lead"
                   placeholder="Manoj Kumar"
                   value={formData.teamLead}
-                  onChange={(e) => handleChange("teamLead", e.target.value)}
                   labelMargin="0 0 0.625rem 0"
                   height="50px"
+                  readOnly
+                  disabled
                 />
               </Col>
             </Row>
@@ -219,10 +556,11 @@ const AddAdjustment = () => {
                   <Select
                     options={employeeOptions}
                     value={formData.employee}
-                    onChange={(value) => handleChange("employee", value)}
-                    placeholder="Select Employee"
+                    onChange={handleEmployeeSelect}
+                    placeholder={employeesLoading || isFetchingEmployeeDetails ? "Loading..." : "Select Employee"}
                     styles={customSelectStyles}
                     isSearchable
+                    isLoading={employeesLoading || isFetchingEmployeeDetails}
                   />
                 </SelectWrapper>
               </Col>

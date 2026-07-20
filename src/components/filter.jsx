@@ -19,10 +19,31 @@ const Filter = ({ onClose, onApply }) => {
 
   const [searchDept, setSearchDept] = useState("");
   const [expandedSection, setExpandedSection] = useState("department");
-  const [departmentsData, setDepartmentsData] = useState([]);
-  const [designationsData, setDesignationsData] = useState([]);
-  const [shiftsData, setShiftsData] = useState([]);
-  const [loading, setLoading] = useState(false);
+  
+  // Hardcoded filter options - NO API calls
+  // Using placeholder MongoDB ObjectIds - will be replaced with real IDs from backend
+  const departmentsData = [
+    { id: "664f1b2c8e4a2b001c8ddef1", departmentName: "IT" },
+    { id: "664f1b2c8e4a2b001c8ddef2", departmentName: "HR" },
+    { id: "664f1b2c8e4a2b001c8ddef3", departmentName: "Sales" },
+    { id: "664f1b2c8e4a2b001c8ddef4", departmentName: "Marketing" },
+    { id: "664f1b2c8e4a2b001c8ddef5", departmentName: "Finance" },
+  ];
+
+  const designationsData = [
+    "Manager",
+    "Developer",
+    "Designer",
+    "Analyst",
+    "Executive",
+    "Coordinator",
+  ];
+
+  const shiftsData = [
+    { id: "664f1b2c8e4a2b001c8d0099", shiftName: "Morning Shift" },
+    { id: "664f1b2c8e4a2b001c8d009a", shiftName: "Afternoon Shift" },
+    { id: "664f1b2c8e4a2b001c8d009b", shiftName: "Night Shift" },
+  ];
 
   const statuses = [
     { label: "Active", value: "active" },
@@ -36,51 +57,10 @@ const Filter = ({ onClose, onApply }) => {
     { label: "Date (Newest)", value: "date:desc" },
   ];
 
-  // Fetch filter data on component mount
-  useEffect(() => {
-    fetchFilterData();
-  }, []);
-
-  const fetchFilterData = async () => {
-    setLoading(true);
-    try {
-      // Fetch departments
-      const deptResponse = await get(GET_DEPARTMENTS);
-      if (deptResponse && Array.isArray(deptResponse)) {
-        setDepartmentsData(deptResponse);
-      } else if (deptResponse?.results && Array.isArray(deptResponse.results)) {
-        setDepartmentsData(deptResponse.results);
-      } else if (deptResponse?.data && Array.isArray(deptResponse.data)) {
-        setDepartmentsData(deptResponse.data);
-      }
-
-      // Fetch shifts
-      const shiftResponse = await get("/v1/shifts");
-      if (shiftResponse && Array.isArray(shiftResponse)) {
-        setShiftsData(shiftResponse);
-      } else if (shiftResponse?.results && Array.isArray(shiftResponse.results)) {
-        setShiftsData(shiftResponse.results);
-      } else if (shiftResponse?.data && Array.isArray(shiftResponse.data)) {
-        setShiftsData(shiftResponse.data);
-      }
-
-      // Fetch unique designations (max limit is 100)
-      const usersResponse = await get(`${GET_USERS}?limit=100`);
-      if (usersResponse && usersResponse.results && Array.isArray(usersResponse.results)) {
-        const uniqueDesignations = [...new Set(
-          usersResponse.results
-            .map(user => user.workInformation?.designation)
-            .filter(Boolean)
-        )];
-        setDesignationsData(uniqueDesignations);
-      }
-    } catch (error) {
-      console.error("Error fetching filter data:", error);
-      toast.error("Failed to load filter options");
-    } finally {
-      setLoading(false);
-    }
-  };
+  // IMPORTANT: NO API calls when filter opens
+  // Filter options are provided by the page parent component
+  // API calls happen ONLY when user clicks Apply button via onApply callback
+  // Static filter options defined directly in component
 
   const filteredDepartments = departmentsData.filter((dept) => {
     const deptName = dept.departmentName || dept.name || "";
@@ -138,7 +118,50 @@ const Filter = ({ onClose, onApply }) => {
 
   const handleApply = () => {
     if (onApply) {
-      onApply(filters);
+      // Build query parameters based on selected filters (per user-filters.md API spec)
+      const queryParams = {};
+
+      // Department filter - pass ObjectId
+      if (filters.departmentId && filters.departmentId.length > 0) {
+        queryParams.departmentId = filters.departmentId[0];
+      }
+
+      // Designation filter - pass as string
+      if (filters.designation && filters.designation.length > 0) {
+        queryParams.designation = filters.designation[0];
+      }
+
+      // Date range filters - pass as ISO date strings (YYYY-MM-DD)
+      if (filters.joinedFrom) {
+        queryParams.joinedFrom = filters.joinedFrom;
+      }
+      if (filters.joinedTo) {
+        queryParams.joinedTo = filters.joinedTo;
+      }
+
+      // Status filter - pass as string (active, inactive, relieved)
+      if (filters.status && filters.status.length > 0) {
+        queryParams.status = filters.status[0];
+      }
+
+      // Shift filter - pass ObjectId
+      if (filters.shiftId && filters.shiftId.length > 0) {
+        queryParams.shiftId = filters.shiftId[0];
+      }
+
+      // Sort filter - pass as field:direction format
+      if (filters.sortBy) {
+        queryParams.sortBy = filters.sortBy;
+      }
+
+      // Add pagination defaults
+      queryParams.page = 1;
+      queryParams.limit = 10;
+
+      // IMPORTANT: This is the ONLY place where the filter callback is triggered
+      // This ensures API calls happen only after user clicks Apply button
+      // Parent page will use these query params to call GET /v1/users
+      onApply(queryParams);
     }
   };
 

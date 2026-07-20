@@ -8,7 +8,7 @@ import SearchInputComponent from "../../components/SearchInputComponent";
 import FilterIcon from "../../assets/images/DashboardImages/filtericon.svg";
 import Filter from "../../components/filter";
 import { get } from "../../helpers/api_helper";
-import { GET_DASHBOARD, GET_EMPLOYEES_BY_ROLE, GET_STAFF_BY_ROLE } from "../../helpers/url_helper";
+import { GET_DASHBOARD, GET_EMPLOYEES_BY_ROLE, GET_STAFF_BY_ROLE, DEPARTMENTS, GET_SHIFTS } from "../../helpers/url_helper";
 import { toast } from "react-toastify";
 
 const Dashboard = () => {
@@ -23,12 +23,17 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(false);
   const [employeesData, setEmployeesData] = useState([]);
   const [staffDataList, setStaffDataList] = useState([]);
+  const [departmentOptions, setDepartmentOptions] = useState([]);
+  const [shiftOptions, setShiftOptions] = useState([]);
+  const [loadingDepts, setLoadingDepts] = useState(false);
+  const [loadingShifts, setLoadingShifts] = useState(false);
   const navigate = useNavigate();
 
   // Fetch dashboard data on component mount
   useEffect(() => {
     fetchDashboardData();
     fetchEmployeesAndStaff();
+    fetchDepartmentsAndShifts();
   }, []);
 
   const fetchDashboardData = async () => {
@@ -106,9 +111,66 @@ const Dashboard = () => {
     }
   };
 
+  // Fetch departments and shifts for filter dropdowns
+  const fetchDepartmentsAndShifts = async () => {
+    // Fetch departments
+    setLoadingDepts(true);
+    try {
+      const deptResponse = await get(DEPARTMENTS);
+      console.log("Departments response:", deptResponse);
+      
+      // Handle different response structures
+      const deptList = deptResponse?.results || deptResponse?.data || deptResponse || [];
+      
+      // Transform to dropdown options
+      const deptOptions = deptList.map((dept) => ({
+        value: dept.departmentName || dept.name || "N/A",
+        label: dept.departmentName || dept.name || "N/A",
+      }));
+      
+      setDepartmentOptions(deptOptions);
+      console.log("Department options:", deptOptions);
+    } catch (error) {
+      console.error("Error fetching departments:", error);
+      toast.error("Failed to load departments");
+    } finally {
+      setLoadingDepts(false);
+    }
+
+    // Fetch shifts
+    setLoadingShifts(true);
+    try {
+      const shiftResponse = await get(GET_SHIFTS);
+      console.log("Shifts response:", shiftResponse);
+      
+      // Handle different response structures
+      const shiftList = shiftResponse?.results || shiftResponse?.data || shiftResponse || [];
+      
+      // Transform to dropdown options
+      const shiftOpts = shiftList.map((shift) => ({
+        value: shift.shiftName || shift.name || "N/A",
+        label: shift.shiftName || shift.name || "N/A",
+      }));
+      
+      setShiftOptions(shiftOpts);
+      console.log("Shift options:", shiftOpts);
+    } catch (error) {
+      console.error("Error fetching shifts:", error);
+      toast.error("Failed to load shifts");
+    } finally {
+      setLoadingShifts(false);
+    }
+  };
+
   // Handle search with state reset
   const handleSearch = (value) => {
     setSearchValue(value);
+  };
+
+  // Handle applying filters - only update display when Apply button is clicked
+  const handleApplyFiltersToDisplay = (dept, shift) => {
+    setDepartmentFilter(dept);
+    setShiftFilter(shift);
   };
 
   // Build quick stats from API data
@@ -151,20 +213,90 @@ const Dashboard = () => {
     { label: "Payroll", value: "₹0", change: "0%", positive: true }
   ];
 
-  // Handle filter changes
+  // Handle department filter dropdown - only updates UI state
   const handleDepartmentChange = (value) => {
     setDepartmentFilter(value);
+    // No API call here - client-side filtering only
   };
 
+  // Handle shift filter dropdown - only updates UI state
   const handleShiftChange = (value) => {
     setShiftFilter(value);
+    // No API call here - client-side filtering only
   };
 
-  // Handle filter modal apply
-  const handleFilterApply = (filters) => {
-    setAppliedFilters(filters);
+  // Handle filter modal apply with API query parameters (per user-filters.md spec)
+  const handleFilterApply = (queryParams) => {
+    console.log("Applied filter query params:", queryParams);
+    // Build the API URL with query parameters
+    let url = `${GET_EMPLOYEES_BY_ROLE}?role=employee`;
+    
+    // Add all filter parameters
+    if (queryParams.departmentId) {
+      url += `&departmentId=${queryParams.departmentId}`;
+    }
+    if (queryParams.designation) {
+      url += `&designation=${encodeURIComponent(queryParams.designation)}`;
+    }
+    if (queryParams.joinedFrom) {
+      url += `&joinedFrom=${queryParams.joinedFrom}`;
+    }
+    if (queryParams.joinedTo) {
+      url += `&joinedTo=${queryParams.joinedTo}`;
+    }
+    if (queryParams.status) {
+      url += `&status=${queryParams.status}`;
+    }
+    if (queryParams.shiftId) {
+      url += `&shiftId=${queryParams.shiftId}`;
+    }
+    if (queryParams.sortBy) {
+      url += `&sortBy=${queryParams.sortBy}`;
+    }
+    
+    // Add pagination
+    url += `&page=${queryParams.page || 1}&limit=${queryParams.limit || 10}`;
+    
+    setAppliedFilters(queryParams);
     setShowFilter(false);
-    console.log("Applied filters:", filters);
+    
+    // Fetch employees with applied filters
+    fetchEmployeesAndStaffWithFilters(url);
+  };
+
+  const fetchEmployeesAndStaffWithFilters = async (url) => {
+    try {
+      const empResponse = await get(url);
+      console.log("Filtered employees data:", empResponse);
+      
+      let empList = [];
+      if (empResponse && Array.isArray(empResponse)) {
+        empList = empResponse;
+      } else if (empResponse?.results && Array.isArray(empResponse.results)) {
+        empList = empResponse.results;
+      } else if (empResponse?.data && Array.isArray(empResponse.data)) {
+        empList = empResponse.data;
+      }
+
+      // Transform employees
+      const transformedEmployees = empList.map((emp) => ({
+        id: emp.id || emp._id,
+        employeeId: emp.employeeId || "N/A",
+        name: emp.name || emp.employeeName || "N/A",
+        position: emp.workInformation?.designation || emp.designation || "N/A",
+        shift: emp.workInformation?.shift || emp.shift || "Morning",
+        checkIn: "08:50 AM",
+        checkOut: "06:45 PM",
+        working: "8.36 hrs",
+        status: "-",
+        department: emp.workInformation?.department || emp.department || "N/A",
+        type: "employee",
+      }));
+      setEmployeesData(transformedEmployees);
+    } catch (error) {
+      console.error("Error fetching filtered employees:", error);
+      toast.error("Failed to fetch filtered employees");
+    }
   };
 
   // Build attendance data from API
@@ -405,11 +537,14 @@ const Dashboard = () => {
             <select
               value={departmentFilter}
               onChange={(e) => handleDepartmentChange(e.target.value)}
+              disabled={loadingDepts}
             >
               <option>All Department</option>
-              <option>Design</option>
-              <option>Engineering</option>
-              <option>HR</option>
+              {departmentOptions.map((dept) => (
+                <option key={dept.value} value={dept.value}>
+                  {dept.label}
+                </option>
+              ))}
             </select>
           </SelectWrap>
 
@@ -417,11 +552,14 @@ const Dashboard = () => {
             <select
               value={shiftFilter}
               onChange={(e) => handleShiftChange(e.target.value)}
+              disabled={loadingShifts}
             >
               <option>All Shifts</option>
-              <option>Morning</option>
-              <option>Afternoon</option>
-              <option>Night</option>
+              {shiftOptions.map((shift) => (
+                <option key={shift.value} value={shift.value}>
+                  {shift.label}
+                </option>
+              ))}
             </select>
           </SelectWrap>
 

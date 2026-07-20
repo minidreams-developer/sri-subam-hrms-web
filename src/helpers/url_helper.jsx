@@ -147,6 +147,7 @@ export const CREATE_SERIES_CONFIGURATION = "/v1/seriesConfiguration";
 
 // Payroll
 export const GET_PAYROLL = "/v1/payroll";
+export const CREATE_PAYROLL = "/v1/payroll";
 export const GET_STOPPED_PAYROLL = "/v1/payroll/stopped";
 export const GET_DASHBOARD = "/v1/dashboard";
 export const STOP_PAYROLL = "/v1/payroll/:employeeId/stop";
@@ -165,3 +166,13 @@ export const GET_HIERARCHY_TREE = "/v1/hierarchy/tree";
 // Users Filter
 export const GET_USERS = "/v1/users";
 export const GET_DEPARTMENTS = "/v1/departments";
+
+// Adjustments (Additions & Deductions)
+export const CREATE_ADJUSTMENT = "/v1/adjustments";
+export const GET_ADJUSTMENTS_QUICK_STATS = "/v1/adjustments/quick-stats";
+export const GET_ADJUSTMENTS = "/v1/adjustments";
+export const GET_ADJUSTMENTS_PENDING = "/v1/adjustments/pending";
+
+// Team & Department for Adjustments
+export const GET_DEPARTMENTS_LIST = "/v1/departments";
+export const GET_TEAMS_LIST = "/v1/teams";

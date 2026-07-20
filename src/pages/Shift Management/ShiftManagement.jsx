@@ -180,6 +180,18 @@ const ShiftManagement = () => {
     setCurrentPage(1); // Reset to first page when changing page size
   };
 
+  // Filter shifts based on search query
+  const filteredShifts = shiftsData.filter((shift) => {
+    if (!search || search.trim() === "") return true;
+    const searchLower = search.toLowerCase();
+    return (
+      (shift.shiftCode && shift.shiftCode.toLowerCase().includes(searchLower)) ||
+      (shift.shiftName && shift.shiftName.toLowerCase().includes(searchLower)) ||
+      (shift.status && shift.status.toLowerCase().includes(searchLower)) ||
+      (shift.shifttype && shift.shifttype.toLowerCase().includes(searchLower))
+    );
+  });
+
   // Fetch detailed shift information
   const fetchShiftDetails = async (shiftId) => {
     setSidebarLoading(true);
@@ -229,12 +241,12 @@ const ShiftManagement = () => {
       ) : (
         <ReusableTable
           columns={columns}
-          data={shiftsData}
+          data={filteredShifts}
           rowsPerPage={pageSize}
-          totalResults={totalResults}
-          totalPages={totalPages}
+          totalResults={filteredShifts.length}
+          totalPages={Math.ceil(filteredShifts.length / pageSize) || 1}
           currentPage={currentPage}
-          server={true}
+          server={false}
           onPageChange={handlePageChange}
           alwaysShowPagination
           actionType="default"

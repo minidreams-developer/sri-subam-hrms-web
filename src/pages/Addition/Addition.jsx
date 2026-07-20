@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import theme from "../../theme/theme";
@@ -11,6 +11,9 @@ import PlusIcon from "../../assets/images/DashboardImages/plus-large_svgrepo.com
 import Adjustments from "./Adjustments";
 import Pendings from "./Pendings";
 import Filter from "../../components/filter";
+import { get } from "../../helpers/api_helper";
+import { GET_ADJUSTMENTS_QUICK_STATS } from "../../helpers/url_helper";
+import { toast } from "react-toastify";
 
 const Addition = () => {
   const navigate = useNavigate();
@@ -19,23 +22,86 @@ const Addition = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedMonthFilter, setSelectedMonthFilter] = useState("This Month");
   const [showFilter, setShowFilter] = useState(false);
-  const [appliedFilters, setAppliedFilters] = useState(null);
+  const [quickStats, setQuickStats] = useState([
+    { label: "Total Additions Amount", value: "₹0", percentage: "0 %", isPositive: true },
+    { label: "Total Deductions Amount", value: "₹0", percentage: "0 %", isPositive: false },
+    { label: "Pending Approvals", value: "₹0", percentage: "0 %", isPositive: true },
+    { label: "Applied to Payroll", value: "0", percentage: "0 %", isPositive: true },
+  ]);
+  const [_loadingStats, _setLoadingStats] = useState(false);
 
-  const handleFilterApply = (filters) => {
-    setAppliedFilters(filters);
-    setShowFilter(false);
-    console.log("Applied filters:", filters);
+  // Fetch quick stats
+  const fetchQuickStats = async () => {
+    try {
+      _setLoadingStats(true);
+      
+      // Call API without month/year parameters
+      const response = await get(GET_ADJUSTMENTS_QUICK_STATS);
+      
+      console.log("Quick stats response:", response);
+      
+      // Handle different response structures
+      let stats = response?.data || response || {};
+      
+      setQuickStats([
+        { 
+          label: "Total Additions Amount", 
+          value: stats.totalAdditionsAmount ? `₹${stats.totalAdditionsAmount.toLocaleString('en-IN')}` : "₹0", 
+          percentage: stats.additionsPercentage ? `${stats.additionsPercentage}%` : "0%", 
+          isPositive: true 
+        },
+        { 
+          label: "Total Deductions Amount", 
+          value: stats.totalDeductionsAmount ? `₹${stats.totalDeductionsAmount.toLocaleString('en-IN')}` : "₹0", 
+          percentage: stats.deductionsPercentage ? `${stats.deductionsPercentage}%` : "0%", 
+          isPositive: false 
+        },
+        { 
+          label: "Pending Approvals", 
+          value: stats.pendingApprovalsAmount ? `₹${stats.pendingApprovalsAmount.toLocaleString('en-IN')}` : "₹0", 
+          percentage: stats.pendingPercentage ? `${stats.pendingPercentage}%` : "0%", 
+          isPositive: true 
+        },
+        { 
+          label: "Applied to Payroll", 
+          value: stats.appliedToPayrollCount ? `${stats.appliedToPayrollCount}` : "0", 
+          percentage: stats.appliedPercentage ? `${stats.appliedPercentage}%` : "0%", 
+          isPositive: true 
+        },
+      ]);
+    } catch (error) {
+      console.error("Error fetching quick stats:", error);
+      // Show error but don't crash the page
+      if (error.response?.status === 500) {
+        toast.error("Backend error: Please check the server logs");
+      } else {
+        toast.error("Failed to load quick stats");
+      }
+      // Set default stats to prevent page from breaking
+      setQuickStats([
+        { label: "Total Additions Amount", value: "₹0", percentage: "0%", isPositive: true },
+        { label: "Total Deductions Amount", value: "₹0", percentage: "0%", isPositive: false },
+        { label: "Pending Approvals", value: "₹0", percentage: "0%", isPositive: true },
+        { label: "Applied to Payroll", value: "0", percentage: "0%", isPositive: true },
+      ]);
+    } finally {
+      _setLoadingStats(false);
+    }
   };
 
-  const quickStats = [
-    { label: "Total Additions Amount", value: "₹12,50,000", percentage: "18.5 %", isPositive: true },
-    { label: "Total Deductions Amount", value: "₹8,75,000", percentage: "10.2 %", isPositive: false },
-    { label: "Pending Approvals", value: "₹3,75,000", percentage: "8.3 %", isPositive: true },
-    { label: "Applied to Payroll", value: "285", percentage: "15.7 %", isPositive: true },
-  ];
+  useEffect(() => {
+    fetchQuickStats();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleAddAdjustment = () => {
     navigate("/admin/pay-hub/additionDeductions/add");
+  };
+
+  const handleFilterApply = (filters) => {
+    // TODO: Implement filter API call when needed
+    console.log("Applied filters:", filters);
+    setShowFilter(false);
   };
 
   return (

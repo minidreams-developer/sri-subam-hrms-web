@@ -10,6 +10,7 @@ import PlusIcon from "../../assets/images/DashboardImages/plus-large_svgrepo.com
 import GreenArrow from "../../assets/images/DashboardImages/green.svg";
 import RedArrow from "../../assets/images/DashboardImages/red.svg";
 import Filter from "../../components/filter";
+import AddPayroll from "./AddPayroll";
 import { get } from "../../helpers/api_helper";
 import {
   GET_PAYSHEET_QUICK_STATS,
@@ -25,6 +26,7 @@ const Paysheet = () => {
   const [selectedPayrollMonth, setSelectedPayrollMonth] = useState("This Month");
   const [searchQuery, setSearchQuery] = useState("");
   const [showFilter, setShowFilter] = useState(false);
+  const [showAddPayroll, setShowAddPayroll] = useState(false);
   const [appliedFilters, setAppliedFilters] = useState(null);
   const [quickStatsData, setQuickStatsData] = useState(null);
   const [payrollOverviewData, setPayrollOverviewData] = useState(null);
@@ -80,10 +82,86 @@ const Paysheet = () => {
     }
   };
 
-  const handleFilterApply = (filters) => {
-    setAppliedFilters(filters);
+  const handleFilterApply = (queryParams) => {
+    console.log("Applied filter query params:", queryParams);
+    // Build the API URL with query parameters (per user-filters.md spec)
+    let url = `${GET_PAYSHEET_LIST}?month=${getCurrentMonth()}&year=${getCurrentYear()}`;
+    
+    // Add filter parameters
+    if (queryParams.departmentId) {
+      url += `&departmentId=${queryParams.departmentId}`;
+    }
+    if (queryParams.designation) {
+      url += `&designation=${encodeURIComponent(queryParams.designation)}`;
+    }
+    if (queryParams.joinedFrom) {
+      url += `&joinedFrom=${queryParams.joinedFrom}`;
+    }
+    if (queryParams.joinedTo) {
+      url += `&joinedTo=${queryParams.joinedTo}`;
+    }
+    if (queryParams.status) {
+      url += `&status=${queryParams.status}`;
+    }
+    if (queryParams.shiftId) {
+      url += `&shiftId=${queryParams.shiftId}`;
+    }
+    if (queryParams.sortBy) {
+      url += `&sortBy=${queryParams.sortBy}`;
+    }
+    
+    // Add pagination
+    url += `&page=${queryParams.page || 1}&limit=${queryParams.limit || 10}`;
+    
+    setAppliedFilters(queryParams);
     setShowFilter(false);
-    console.log("Applied filters:", filters);
+    setCurrentPage(1);
+    
+    // Fetch filtered payroll list data
+    fetchPayrollListWithFilters(url);
+  };
+
+  const fetchPayrollListWithFilters = async (url) => {
+    setLoading(true);
+    try {
+      const payrollList = await get(url);
+      console.log("Filtered payroll list data:", payrollList);
+      if (payrollList) {
+        setPayrollListData(payrollList.results || []);
+        setTotalPages(payrollList.totalPages || 1);
+      }
+    } catch (error) {
+      console.error("Error fetching filtered payroll list:", error);
+      toast.error("Failed to fetch payroll data with filters");
+      setPayrollListData([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle month dropdown changes - these only update UI, not API calls
+  const handleMonthChange = (value) => {
+    setSelectedMonth(value);
+    // No API call here - just UI update
+  };
+
+  // Handle year dropdown changes - these only update UI, not API calls
+  const handleYearChange = (value) => {
+    setSelectedYear(value);
+    // No API call here - just UI update
+  };
+
+  // Handle payroll month dropdown changes - these only update UI, not API calls
+  const handlePayrollMonthChange = (value) => {
+    setSelectedPayrollMonth(value);
+    // No API call here - just UI update
+  };
+
+  const handleAddPayrollSubmit = (payrollData) => {
+    console.log("Payroll data submitted:", payrollData);
+    toast.success("Payroll added successfully");
+    setShowAddPayroll(false);
+    fetchPaysheetData();
   };
 
   const quickStats = quickStatsData ? [
@@ -264,7 +342,7 @@ const Paysheet = () => {
         <SectionHeader>
           <SectionTitle>Quick Stats</SectionTitle>
           <HeaderRight>
-            <DropdownSelect value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)}>
+            <DropdownSelect value={selectedMonth} onChange={(e) => handleMonthChange(e.target.value)}>
               <option>This Month</option>
               <option>Last Month</option>
               <option>This Year</option>
@@ -302,7 +380,7 @@ const Paysheet = () => {
         <ChartCard>
           <ChartHeader>
             <ChartTitle>Payroll Overview</ChartTitle>
-            <DropdownSelect value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)}>
+            <DropdownSelect value={selectedYear} onChange={(e) => handleYearChange(e.target.value)}>
               <option>This Year</option>
               <option>Last Year</option>
             </DropdownSelect>
@@ -358,7 +436,7 @@ const Paysheet = () => {
         <ChartCard>
           <ChartHeader>
             <ChartTitle>Payroll Breakdown</ChartTitle>
-            <DropdownSelect value={selectedPayrollMonth} onChange={(e) => setSelectedPayrollMonth(e.target.value)}>
+            <DropdownSelect value={selectedPayrollMonth} onChange={(e) => handlePayrollMonthChange(e.target.value)}>
               <option>This Month</option>
               <option>Last Month</option>
             </DropdownSelect>
@@ -406,7 +484,7 @@ const Paysheet = () => {
         <TableHeader>
           <TableTitle>Payroll</TableTitle>
           <TableControls>
-            <DropdownSelect value={selectedPayrollMonth} onChange={(e) => setSelectedPayrollMonth(e.target.value)}>
+            <DropdownSelect value={selectedPayrollMonth} onChange={(e) => handlePayrollMonthChange(e.target.value)}>
               <option>This Month</option>
               <option>Last Month</option>
             </DropdownSelect>
@@ -421,7 +499,7 @@ const Paysheet = () => {
               width="300px"
               height="45px"
             />
-            <AddPayrollButton>
+            <AddPayrollButton onClick={() => setShowAddPayroll(true)}>
               <img src={PlusIcon} alt="add" width="16" height="16" />
               Add Payroll
             </AddPayrollButton>
@@ -448,6 +526,13 @@ const Paysheet = () => {
         <Filter
           onClose={() => setShowFilter(false)}
           onApply={handleFilterApply}
+        />
+      )}
+
+      {showAddPayroll && (
+        <AddPayroll
+          onClose={() => setShowAddPayroll(false)}
+          onSubmit={handleAddPayrollSubmit}
         />
       )}
     </Container>

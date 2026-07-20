@@ -4,32 +4,44 @@ import TableToolbar from "../../../components/TableToolbar";
 import ReusableTable from "../../../components/ReusableTable";
 import AddDepartmentModal from "../../../components/AddDepartmentModal";
 import PlusIcon from "../../../assets/images/DashboardImages/plus-large_svgrepo.com.svg";
-import DotMenuIcon from "../../../assets/images/DayOff/dot-menu.svg";
-import { get } from "../../../helpers/api_helper";
-import { DEPARTMENTS } from "../../../helpers/url_helper";
+import EditIcon from "../../../assets/images/employee/editIcon.svg";
+import DeleteIcon from "../../../assets/images/employee/Cross.svg";
+import { get, del } from "../../../helpers/api_helper";
+import { DEPARTMENTS, DELETE_DEPARTMENT } from "../../../helpers/url_helper";
 import { toast } from "react-toastify";
 
 const Departments = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editingDepartmentId, setEditingDepartmentId] = useState(null);
   const [departmentsData, setDepartmentsData] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [itemsPerPage] = useState(10);
 
-  // Fetch departments on component mount
+  // Fetch departments when page changes
   useEffect(() => {
-    fetchDepartments();
-  }, []);
+    fetchDepartments(currentPage, searchQuery);
+  }, [currentPage, searchQuery]);
 
-  const fetchDepartments = async () => {
+  const fetchDepartments = async (page = 1, searchQuery = "") => {
     setIsLoading(true);
     try {
-      const response = await get(DEPARTMENTS);
+      let url = `${DEPARTMENTS}?page=${page}&limit=${itemsPerPage}`;
+      if (searchQuery) {
+        url += `&search=${encodeURIComponent(searchQuery)}`;
+      }
+      
+      const response = await get(url);
       console.log("Departments response:", response);
 
-      // Map API response to table format
-      // Handle different possible response structures
+      // Extract pagination info from response
+      const totalPagesFromAPI = response?.totalPages || 1;
       const departmentsList = response?.results || response?.data || response || [];
-      
+
+      // Map API response to table format
       const mappedData = departmentsList.map((dept) => {
         // Extract department head name from various possible structures
         let headName = "N/A";
@@ -62,26 +74,13 @@ const Departments = () => {
 
       console.log("Mapped departments data:", mappedData);
       setDepartmentsData(mappedData);
+      setTotalPages(totalPagesFromAPI);
     } catch (error) {
       console.error("Error fetching departments:", error);
       toast.error("Failed to fetch departments");
-      // Set fallback data for demo
-      setDepartmentsData([
-        {
-          id: "1",
-          deptId: "#DPE8740",
-          department: "Assistant Manager",
-          head: "Manoj Kumar",
-          status: "Active",
-        },
-        {
-          id: "2",
-          deptId: "#DPE8741",
-          department: "Admin",
-          head: "Deepak Kumar",
-          status: "Active",
-        },
-      ]);
+      // Reset on error
+      setDepartmentsData([]);
+      setTotalPages(1);
     } finally {
       setIsLoading(false);
     }
@@ -114,28 +113,71 @@ const Departments = () => {
       header: "Action",
       key: "actions",
       render: (row) => (
-        <ActionButton onClick={(e) => { e.stopPropagation(); console.log("Action clicked:", row); }}>
-          <img src={DotMenuIcon} alt="menu" width="20" height="20" />
-        </ActionButton>
+        <ActionIcons>
+          <IconButton 
+            onClick={(e) => handleEditDepartment(e, row.id)}
+            title="Edit"
+          >
+            <img src={EditIcon} alt="edit" width="18" height="18" />
+          </IconButton>
+          <IconButton 
+            onClick={(e) => handleDeleteDepartment(e, row.id)}
+            title="Delete"
+            $delete
+          >
+            <img src={DeleteIcon} alt="delete" width="18" height="18" />
+          </IconButton>
+        </ActionIcons>
       ),
     },
   ];
 
   const handleNewDepartment = () => {
+    setIsEditMode(false);
+    setEditingDepartmentId(null);
     setIsModalOpen(true);
   };
 
-  const handleSaveDepartment = (data) => {
-    console.log("New department data:", data);
-    // Refresh the departments list after saving
-    fetchDepartments();
+  const handleEditDepartment = (e, departmentId) => {
+    e.stopPropagation();
+    setEditingDepartmentId(departmentId);
+    setIsEditMode(true);
+    setIsModalOpen(true);
   };
 
-  // Filter departments based on search query
-  const filteredData = departmentsData.filter((dept) =>
-    dept.department.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    dept.deptId.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const handleDeleteDepartment = async (e, departmentId) => {
+    e.stopPropagation();
+    // Confirmation dialog before delete
+    if (window.confirm("Are you sure you want to delete this department?")) {
+      try {
+        const url = DELETE_DEPARTMENT.replace(":departmentId", departmentId);
+        await del(url);
+        toast.success("Department deleted successfully!");
+        // Refresh the departments list
+        setCurrentPage(1);
+        fetchDepartments(1);
+      } catch (error) {
+        const errorMessage = error.response?.data?.message || error.message || "Failed to delete department";
+        toast.error(errorMessage);
+        console.error("Delete department error:", error);
+      }
+    }
+  };
+
+  const handleSaveDepartment = (data) => {
+    console.log("Department data:", data);
+    // Refresh the departments list after saving (go back to page 1)
+    setCurrentPage(1);
+    setIsEditMode(false);
+    setEditingDepartmentId(null);
+  };
+
+  const handlePageChange = (newPage) => {
+    setCurrentPage(newPage);
+  };
+
+  // Server-side search is handled in useEffect when searchQuery changes
+  // No need for client-side filtering
 
   return (
     <Container>
@@ -157,9 +199,13 @@ const Departments = () => {
         ) : (
           <ReusableTable
             columns={columns}
-            data={filteredData}
-            itemsPerPage={10}
-            enablePagination={true}
+            data={departmentsData}
+            isLoading={isLoading}
+            server={true}
+            totalPages={totalPages}
+            currentPage={currentPage}
+            onPageChange={handlePageChange}
+            rowsPerPage={itemsPerPage}
             alwaysShowPagination={true}
           />
         )}
@@ -167,8 +213,14 @@ const Departments = () => {
 
       <AddDepartmentModal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={() => {
+          setIsModalOpen(false);
+          setIsEditMode(false);
+          setEditingDepartmentId(null);
+        }}
         onSave={handleSaveDepartment}
+        isEditMode={isEditMode}
+        editingDepartmentId={editingDepartmentId}
       />
     </Container>
   );
@@ -205,17 +257,36 @@ const StatusBadge = styled.span`
   background: transparent;
 `;
 
-const ActionButton = styled.button`
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  padding: 0.25rem;
+const ActionIcons = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 0.75rem;
+  padding: 0.5rem;
+`;
+
+const IconButton = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background: ${({ $delete }) => $delete ? "#fee2e2" : "#edf6f9"};
+  border: 1px solid ${({ $delete }) => $delete ? "#fecaca" : "#d1e7ed"};
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
 
   &:hover {
-    opacity: 0.7;
+    background: ${({ $delete }) => $delete ? "#fecaca" : "#d1e7ed"};
+    transform: scale(1.05);
+  }
+
+  img {
+    width: 18px;
+    height: 18px;
+    object-fit: contain;
   }
 `;
 
