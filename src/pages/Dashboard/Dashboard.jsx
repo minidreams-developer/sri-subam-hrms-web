@@ -445,7 +445,7 @@ const Dashboard = () => {
                 <LegendBox color="#E0E3E6" /> Late
               </LegendItem>
             </Legend>
-            <ResponsiveContainer width="100%" height={300}>
+            <ResponsiveContainer width="100%" height={220}>
               <BarChart data={attendanceData} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                 <XAxis dataKey="date" tick={{ fontSize: 12 }} />
@@ -514,13 +514,15 @@ const Dashboard = () => {
               Staffs
             </Tab>
           </TabsSection>
+        </TabsAndButtonSection>
+        <AttendanceHeading>
           <RightControls>
             <DateText>Today (18 Aug 2025)</DateText>
             <AddEmployeeButton onClick={() => navigate("/admin/time-hub/attendance/add")}>
-              + Add Manually
+              <span aria-hidden="true">＋</span> Add Manually
             </AddEmployeeButton>
           </RightControls>
-        </TabsAndButtonSection>
+        </AttendanceHeading>
 
         <ControlsSection>
           <SearchWrap>
@@ -629,13 +631,15 @@ const Dashboard = () => {
 const Container = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 2rem;
+  gap: 0;
+  max-width: 1140px;
+  margin: 0 auto;
 `;
 
 const QuickStatsSection = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 14px;
 `;
 
 const SectionHeader = styled.div`
@@ -653,7 +657,7 @@ const HeaderRight = styled.div`
 `;
 
 const SectionTitle = styled.h2`
-  font-size: 1.25rem;
+  font-size: 1.125rem;
   font-weight: 600;
   font-family: "Inter", sans-serif;
   color: ${theme.colors.textColor};
@@ -661,7 +665,9 @@ const SectionTitle = styled.h2`
 `;
 
 const DateSelect = styled.select`
-  padding: 0.5rem 1rem;
+  width: 130px;
+  height: 40px;
+  padding: 0 12px;
   border: 1px solid ${theme.colors.border};
   border-radius: 0.5rem;
   font-size: 0.875rem;
@@ -679,7 +685,7 @@ const DateSelect = styled.select`
 const StatsGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(5, 1fr);
-  gap: 1rem;
+  gap: 20px;
 
   @media (max-width: 1400px) {
     grid-template-columns: repeat(5, 1fr);
@@ -696,9 +702,11 @@ const StatsGrid = styled.div`
 
 const StatCard = styled.div`
   background: ${theme.colors.white};
-  border: 1px solid ${theme.colors.border};
-  border-radius: 0.75rem;
-  padding: 1rem;
+  border: 0;
+  border-radius: 10px;
+  padding: 14px;
+  height: 130px;
+  justify-content: space-between;
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
@@ -714,9 +722,10 @@ const StatHeader = styled.div`
 `;
 
 const StatLabel = styled.span`
-  font-size: 0.875rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: ${theme.colors.textColor};
   font-family: "Inter", sans-serif;
-  color: ${theme.colors.secondaryTextColor};
   flex: 1;
   min-width: 0;
 `;
@@ -735,12 +744,12 @@ const StatChangeIndicator = styled.div`
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  padding: 0.35rem 0.75rem;
+  padding: 3px 8px;
   background: ${(props) => (props.$positive ? "#d1fae5" : "#fee2e2")};
   color: ${(props) => (props.$positive ? "#10B981" : "#dc2626")};
   border-radius: 20px;
   font-size: 0.75rem;
-  font-weight: 700;
+  font-weight: 500;
   font-family: "Inter", sans-serif;
   border: 1px solid ${(props) => (props.$positive ? "#10B981" : "#dc2626")};
   flex-shrink: 0;
@@ -754,7 +763,8 @@ const ChangeIcon = styled.span`
 const ChartsSection = styled.div`
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 1.5rem;
+  gap: 20px;
+  margin-top: 14px;
   width: 100%;
 
   @media (max-width: 1200px) {
@@ -764,9 +774,10 @@ const ChartsSection = styled.div`
 
 const AttendanceCard = styled.div`
   background: ${theme.colors.white};
-  border: 1px solid ${theme.colors.border};
-  border-radius: 0.75rem;
-  padding: 1.5rem;
+  border: 0;
+  border-radius: 10px;
+  padding: 14px;
+  height: 342px;
   width: 100%;
   flex: 1;
   overflow: hidden;
@@ -774,9 +785,10 @@ const AttendanceCard = styled.div`
 
 const PayrollCard = styled.div`
   background: ${theme.colors.white};
-  border: 1px solid ${theme.colors.border};
-  border-radius: 0.75rem;
-  padding: 1.5rem;
+  border: 0;
+  border-radius: 10px;
+  padding: 14px;
+  height: 342px;
   width: 100%;
   flex: 1;
   overflow: hidden;
@@ -790,7 +802,7 @@ const ChartHeader = styled.div`
 `;
 
 const ChartTitle = styled.h3`
-  font-size: 1.125rem;
+  font-size: 0.875rem;
   font-weight: 600;
   font-family: "Inter", sans-serif;
   color: ${theme.colors.textColor};
@@ -798,11 +810,13 @@ const ChartTitle = styled.h3`
 `;
 
 const PeriodSelect = styled.select`
-  padding: 0.375rem 0.75rem;
+  width: 106px;
+  height: 32px;
+  padding: 0 10px;
   border: 1px solid ${theme.colors.border};
   border-radius: 4px;
   font-family: "Inter", sans-serif;
-  font-size: 0.875rem;
+  font-size: 0.75rem;
   background: white;
   cursor: pointer;
 `;
@@ -822,7 +836,7 @@ const LegendItem = styled.div`
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: 0.875rem;
+  font-size: 0.75rem;
   color: ${theme.colors.textColor};
   font-family: "Inter", sans-serif;
 `;
@@ -837,13 +851,13 @@ const LegendBox = styled.div`
 const PayrollContent = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 16px;
 `;
 
 const PayrollMain = styled.div`
   display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
+  align-items: baseline;
+  gap: 12px;
 `;
 
 const PayrollAmount = styled.h3`
@@ -865,7 +879,7 @@ const BreakdownBars = styled.div`
   display: flex;
   width: 100%;
   height: 60px;
-  gap: 3px;
+  gap: 4px;
 `;
 
 const BreakdownBar = styled.div`
@@ -920,17 +934,13 @@ const PayrollLegendValue = styled.span`
 `;
 
 const EmployeesSection = styled.div`
-  background: white;
-  padding: 1.5rem;
-  border-radius: 0.75rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-  border: 1px solid ${theme.colors.border};
+  margin-top: 26px;
 `;
 
 const TabsSection = styled.div`
   display: flex;
   gap: 2rem;
-  border-bottom: 1px solid ${theme.colors.border};
+  border-bottom: 0;
   padding-bottom: 0;
 `;
 
@@ -938,7 +948,14 @@ const TabsAndButtonSection = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 1.5rem;
+  border-bottom: 1px solid ${theme.colors.border};
+`;
+
+const AttendanceHeading = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 18px;
 `;
 
 const Tab = styled.button`
@@ -973,12 +990,14 @@ const RightControls = styled.div`
   display: flex;
   align-items: center;
   gap: 1.5rem;
+  width: 100%;
+  justify-content: space-between;
   flex-wrap: wrap;
 `;
 
 const DateText = styled.span`
-  font-size: 0.875rem;
-  color: ${theme.colors.secondaryTextColor};
+  font-size: 1.125rem;
+  color: ${theme.colors.textColor};
   font-family: "Inter", sans-serif;
   font-weight: 500;
 `;
@@ -988,7 +1007,8 @@ const ControlsSection = styled.div`
   align-items: center;
   gap: 1rem;
   padding: 1rem 0;
-  margin-bottom: 1.5rem;
+  margin-bottom: 14px;
+  justify-content: flex-end;
   flex-wrap: wrap;
 
   @media (max-width: 1024px) {
@@ -997,7 +1017,8 @@ const ControlsSection = styled.div`
 `;
 
 const SearchWrap = styled.div`
-  width: 18rem;
+  width: 356px;
+  margin-right: auto;
   flex-shrink: 0;
 
   @media (max-width: 768px) {
@@ -1006,13 +1027,14 @@ const SearchWrap = styled.div`
 `;
 
 const SelectWrap = styled.div`
-  min-width: 160px;
+  width: 226px;
   flex-shrink: 0;
 
   select {
     width: 100%;
-    min-width: 160px;
-    padding: 0.5rem 1rem;
+    min-width: 0;
+    height: 40px;
+    padding: 0 12px;
     border: 1px solid ${theme.colors.border};
     border-radius: 6px;
     font-family: "Inter", sans-serif;
@@ -1045,7 +1067,8 @@ const FilterButton = styled.button`
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.5rem 1rem;
+  height: 40px;
+  padding: 0 12px;
   border: 1px solid ${theme.colors.border};
   background: white;
   border-radius: 6px;
@@ -1062,8 +1085,9 @@ const FilterButton = styled.button`
 `;
 
 const AddEmployeeButton = styled.button`
-  padding: 0.5rem 1.25rem;
-  background: #0B7A75;
+  height: 40px;
+  padding: 0 14px;
+  background: #066c78;
   color: white;
   border: none;
   border-radius: 6px;
@@ -1082,10 +1106,13 @@ const AddEmployeeButton = styled.button`
 const EmployeesTable = styled.table`
   width: 100%;
   border-collapse: collapse;
+  background: white;
+  border-radius: 10px;
+  overflow: hidden;
 `;
 
 const TableHead = styled.thead`
-  background: #f9fafb;
+  background: white;
 `;
 
 const TableRow = styled.tr`
@@ -1097,7 +1124,7 @@ const TableRow = styled.tr`
 `;
 
 const Th = styled.th`
-  padding: 0.75rem 1rem;
+  padding: 12px 10px;
   text-align: left;
   font-family: "Inter", sans-serif;
   font-size: 0.75rem;
@@ -1108,7 +1135,7 @@ const Th = styled.th`
 const TableBody = styled.tbody``;
 
 const Td = styled.td`
-  padding: 0.75rem 1rem;
+  padding: 12px 10px;
   font-family: "Inter", sans-serif;
   font-size: 0.875rem;
   color: ${theme.colors.textColor};

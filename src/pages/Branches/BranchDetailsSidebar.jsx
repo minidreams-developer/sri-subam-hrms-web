@@ -6,8 +6,12 @@ import CardDetails from "../../components/CardDetails";
 import EditIcon from "../../assets/images/employee/editIcon.svg";
 import Switch from "react-switch";
 
-const BranchDetailsSidebar = ({ open, onClose, data }) => {
+const BranchDetailsSidebar = ({ open, onClose, data, onEdit }) => {
   const [isPrimary, setIsPrimary] = React.useState(data?.isPrimary || false);
+
+  React.useEffect(() => {
+    setIsPrimary(Boolean(data?.isPrimary));
+  }, [data]);
 
   return (
     <>
@@ -28,9 +32,9 @@ const BranchDetailsSidebar = ({ open, onClose, data }) => {
               onChange={setIsPrimary}
               onColor={theme.colors.primary}
               offColor="#ccc"
-              height={24}
-              width={48}
-              handleDiameter={20}
+              height={22}
+              width={40}
+              handleDiameter={18}
               uncheckedIcon={false}
               checkedIcon={false}
             />
@@ -39,7 +43,7 @@ const BranchDetailsSidebar = ({ open, onClose, data }) => {
           <Section>
             <SectionHeader>
               <SectionTitle>Basic Details</SectionTitle>
-              <PrimaryBadge>Primary</PrimaryBadge>
+              {isPrimary && <PrimaryBadge>(Primary)</PrimaryBadge>}
             </SectionHeader>
             <CardDetails
               columns={2}
@@ -94,8 +98,8 @@ const BranchDetailsSidebar = ({ open, onClose, data }) => {
               title="Other Details"
               columns={2}
               items={[
-                { label: "Total Employees", value: data?.totalEmployees || "Branch 5B" },
-                { label: "Departments in Branch", value: data?.departments || "4" },
+                { label: "Total Employees", value: data?.totalEmployees || data?.noOfPeople || "56" },
+                { label: "Departments in Branch", value: Array.isArray(data?.departments) ? data.departments.length : data?.departments || "4" },
                 { label: "Active Shifts", value: data?.activeShifts || "2" },
                 { label: "Managers Assigned", value: data?.managersAssigned || "2" },
               ]}
@@ -104,7 +108,7 @@ const BranchDetailsSidebar = ({ open, onClose, data }) => {
         </ScrollContent>
 
         <Footer>
-          <EditButton>
+          <EditButton type="button" onClick={onEdit}>
             <img src={EditIcon} alt="edit" width="16" height="16" />
             Edit details
           </EditButton>
@@ -131,8 +135,7 @@ const Container = styled.div`
   position: fixed;
   top: 0;
   right: 0;
-  width: 36.5rem;
-  min-width: 36.5rem;
+  width: min(36.5rem, 100vw);
   height: 100vh;
   background: ${theme.colors.white};
   z-index: 999;
@@ -149,7 +152,8 @@ const Container = styled.div`
 `;
 
 const Header = styled.div`
-  padding: 1.5rem;
+  min-height: 4.625rem;
+  padding: 1.25rem;
   border-bottom: 1px solid ${theme.colors.border};
   display: flex;
   align-items: center;
@@ -178,11 +182,11 @@ const ScrollContent = styled.div`
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 1.5rem;
-  padding-bottom: 2rem;
+  padding: 1.5rem 1.25rem;
+  padding-bottom: 5rem;
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1.25rem;
 
   /* Custom Scrollbar */
   &::-webkit-scrollbar {
@@ -255,7 +259,7 @@ const StatusText = styled.span`
 `;
 
 const Footer = styled.div`
-  padding: 1rem 1.5rem;
+  padding: 0 1.25rem 1.375rem;
   border-top: 1px solid ${theme.colors.border};
   background: ${theme.colors.white};
   display: flex;

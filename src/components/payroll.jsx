@@ -4,10 +4,68 @@ import { useState } from "react";
 import EditIcon from "../assets/images/employee/editIcon.svg";
 import CardDetails from "./CardDetails";
 import PayrollIcon from "./Frame 1000009178 - Copy.svg";
+import { patch } from "../helpers/api_helper";
+import { toast } from "react-toastify";
 
-const PayrollComponent = () => {
+const money = (value) => value === "" || value == null ? "-" : Number(value).toLocaleString("en-IN");
+
+const PayrollComponent = ({ employee, onEmployeeUpdated }) => {
   const [expandedYear, setExpandedYear] = useState("2026");
   const [expandedMonth, setExpandedMonth] = useState("February 2026");
+  const [editor, setEditor] = useState(null);
+  const [form, setForm] = useState({});
+  const [saving, setSaving] = useState(false);
+  const workInformation = employee?.workInformation || {};
+  const salaryDetails = workInformation.salaryDetails || workInformation.SalaryDetails || employee?.salaryDetails || {};
+  const currentSalary = employee?.currentMonthSalary || employee?.payrollDetails || {};
+
+  const openBasicEditor = () => {
+    setForm({
+      annualCTC: salaryDetails.annualCTC ?? employee?.annualCTC ?? "",
+      monthlyCTC: salaryDetails.monthlyCTC ?? employee?.monthlyCTC ?? "",
+      effectiveFrom: salaryDetails.effectiveFrom ?? "",
+      basicSalary: salaryDetails.basicSalary ?? salaryDetails.baseSalary ?? employee?.salary ?? "",
+      houseRentAllowance: salaryDetails.houseRentAllowance ?? salaryDetails.hra ?? "",
+      conveyanceAllowance: salaryDetails.conveyanceAllowance ?? "",
+      specialAllowance: salaryDetails.specialAllowance ?? "",
+      otherFixedAllowances: salaryDetails.otherFixedAllowances ?? "",
+    });
+    setEditor("basic");
+  };
+
+  const openSalaryEditor = () => {
+    setForm({
+      totalSalary: currentSalary.totalSalary ?? salaryDetails.monthlyCTC ?? "",
+      overtimePayment: currentSalary.overtimePayment ?? "",
+      additionPayment: currentSalary.additionPayment ?? "",
+      deductions: currentSalary.deductions ?? "",
+      totalPayableAmount: currentSalary.totalPayableAmount ?? "",
+    });
+    setEditor("current");
+  };
+
+  const change = (event) => setForm((values) => ({ ...values, [event.target.name]: event.target.value }));
+  const save = async (event) => {
+    event.preventDefault();
+    const employeeId = employee?.id || employee?._id;
+    if (!employeeId) return toast.error("Employee ID is missing");
+    const numericForm = Object.fromEntries(Object.entries(form).map(([key, value]) => [key, key === "effectiveFrom" ? value : (value === "" ? "" : Number(value))]));
+    const payload = editor === "basic"
+      ? { workInformation: { ...workInformation, salaryDetails: { ...salaryDetails, ...numericForm } } }
+      : { currentMonthSalary: { ...currentSalary, ...numericForm } };
+    setSaving(true);
+    try {
+      const response = await patch(`/v1/users/${employeeId}`, payload);
+      const updated = response?.data || response?.user || response;
+      onEmployeeUpdated?.({ ...employee, ...payload, ...(updated || {}) });
+      setEditor(null);
+      toast.success(editor === "basic" ? "Payroll details updated successfully" : "Salary updated successfully");
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to update payroll details");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const toggleYear = (year) => {
     setExpandedYear(expandedYear === year ? null : year);
@@ -30,39 +88,39 @@ const PayrollComponent = () => {
         showEdit={true}
         editIcon={EditIcon}
         editText="Edit details"
-        onEdit={() => {}}
+        onEdit={openBasicEditor}
         items={[
           {
             label: "CTC (Annual)",
-            value: "4,00,000",
+            value: money(salaryDetails.annualCTC ?? employee?.annualCTC),
           },
           {
             label: "Monthly CTC",
-            value: "33,333",
+            value: money(salaryDetails.monthlyCTC ?? employee?.monthlyCTC),
           },
           {
             label: "Effective From",
-            value: "Every Month 1 day",
+            value: salaryDetails.effectiveFrom || "Every Month 1 day",
           },
           {
             label: "Basic Salary",
-            value: "20,000",
+            value: money(salaryDetails.basicSalary ?? salaryDetails.baseSalary ?? employee?.salary),
           },
           {
             label: "HRA (House Rent Allowance)",
-            value: "5,000",
+            value: money(salaryDetails.houseRentAllowance ?? salaryDetails.hra),
           },
           {
             label: "Conveyance Allowance",
-            value: "5,000",
+            value: money(salaryDetails.conveyanceAllowance),
           },
           {
             label: "Special Allowance",
-            value: "1,500",
+            value: money(salaryDetails.specialAllowance),
           },
           {
             label: "Other Fixed Allowances",
-            value: "2,000",
+            value: money(salaryDetails.otherFixedAllowances),
           },
         ]}
       />
@@ -73,27 +131,27 @@ const PayrollComponent = () => {
         showEdit={true}
         editIcon={EditIcon}
         editText="Edit Salary"
-        onEdit={() => {}}
+        onEdit={openSalaryEditor}
         items={[
           {
             label: "Total Salary",
-            value: "4,00,000",
+            value: money(currentSalary.totalSalary ?? salaryDetails.monthlyCTC),
           },
           {
             label: "Overtime Payment",
-            value: "5000",
+            value: money(currentSalary.overtimePayment),
           },
           {
             label: "Addition Payment",
-            value: "2500",
+            value: money(currentSalary.additionPayment),
           },
           {
             label: "Deductions",
-            value: "0",
+            value: money(currentSalary.deductions ?? 0),
           },
           {
             label: "Total Payable Amount",
-            value: "2,08,000",
+            value: money(currentSalary.totalPayableAmount),
           },
         ]}
       />
@@ -187,6 +245,28 @@ const PayrollComponent = () => {
           </YearHeader>
         </YearSection>
       </Section>
+      {editor && (
+        <ModalBackdrop onMouseDown={(event) => event.target === event.currentTarget && setEditor(null)}>
+          <Modal role="dialog" aria-modal="true" aria-labelledby="payroll-editor-title">
+            <ModalTitle id="payroll-editor-title">{editor === "basic" ? "Edit Payroll Details" : "Edit Salary"}</ModalTitle>
+            <EditForm onSubmit={save}>
+              {(editor === "basic" ? [
+                ["annualCTC", "CTC (Annual)", "number"], ["monthlyCTC", "Monthly CTC", "number"],
+                ["effectiveFrom", "Effective From", "text"], ["basicSalary", "Basic Salary", "number"],
+                ["houseRentAllowance", "HRA", "number"], ["conveyanceAllowance", "Conveyance Allowance", "number"],
+                ["specialAllowance", "Special Allowance", "number"], ["otherFixedAllowances", "Other Fixed Allowances", "number"],
+              ] : [
+                ["totalSalary", "Total Salary", "number"], ["overtimePayment", "Overtime Payment", "number"],
+                ["additionPayment", "Addition Payment", "number"], ["deductions", "Deductions", "number"],
+                ["totalPayableAmount", "Total Payable Amount", "number"],
+              ]).map(([name, label, type]) => (
+                <Field key={name}><label htmlFor={`payroll-${name}`}>{label}</label><input id={`payroll-${name}`} type={type} min={type === "number" ? "0" : undefined} step={type === "number" ? "0.01" : undefined} name={name} value={form[name] ?? ""} onChange={change} /></Field>
+              ))}
+              <ModalActions><CancelButton type="button" onClick={() => setEditor(null)}>Cancel</CancelButton><SaveButton type="submit" disabled={saving}>{saving ? "Saving..." : "Save Changes"}</SaveButton></ModalActions>
+            </EditForm>
+          </Modal>
+        </ModalBackdrop>
+      )}
     </Wrapper>
   );
 };
@@ -389,3 +469,12 @@ const DetailValue = styled.span`
   font-family: "Inter-Medium", sans-serif;
   color: ${theme.colors.textColor};
 `;
+
+const ModalBackdrop = styled.div`position:fixed;inset:0;z-index:1000;background:#0c242780;display:grid;place-items:center;padding:24px;`;
+const Modal = styled.div`width:min(720px,100%);max-height:90vh;overflow:auto;background:#fff;border-radius:12px;padding:24px;box-shadow:0 20px 60px #0003;`;
+const ModalTitle = styled.h2`margin:0 0 20px;color:${theme.colors.textColor};font:600 20px "Inter-SemiBold",sans-serif;`;
+const EditForm = styled.form`display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;@media(max-width:650px){grid-template-columns:1fr;}`;
+const Field = styled.div`display:flex;flex-direction:column;gap:6px;label{color:${theme.colors.secondaryTextColor};font:500 12px "Inter-Medium",sans-serif;}input{height:42px;border:1px solid ${theme.colors.border};border-radius:7px;padding:0 11px;color:${theme.colors.textColor};font:500 13px "Inter-Medium",sans-serif;outline:none;}input:focus{border-color:${theme.colors.primary};box-shadow:0 0 0 2px #087d8820;}`;
+const ModalActions = styled.div`grid-column:1/-1;display:flex;justify-content:flex-end;gap:12px;margin-top:8px;`;
+const CancelButton = styled.button`height:40px;padding:0 22px;border:1px solid ${theme.colors.primary};border-radius:7px;background:#fff;color:${theme.colors.primary};cursor:pointer;font-weight:600;`;
+const SaveButton = styled.button`height:40px;padding:0 22px;border:0;border-radius:7px;background:${theme.colors.primary};color:#fff;cursor:pointer;font-weight:600;&:disabled{opacity:.65;cursor:not-allowed;}`;

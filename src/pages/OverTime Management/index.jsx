@@ -10,10 +10,37 @@ import PlusIcon from "../../assets/images/DashboardImages/plus-large_svgrepo.com
 import actionIcon from "../../assets/images/Overtime/actionDot.svg";
 import Pending from "./Pending/Pending";
 import Approved from "./Approved/Approved";
+import AddOvertimeModal from "./AddOvertimeModal";
 
 const OverTimeManage = () => {
   const stats = overTimeStats;
   const [activeTab, setActiveTab] = React.useState("Pending");
+  const [movedRequests, setMovedRequests] = React.useState([]);
+  const [isAddOpen, setIsAddOpen] = React.useState(false);
+  const [refreshKey, setRefreshKey] = React.useState(0);
+
+  const moveRequest = (request, status) => {
+    setMovedRequests((current) => [
+      ...current.filter((item) => item.id !== request.id),
+      { ...request, status, action: status.toLowerCase() },
+    ]);
+    setActiveTab(status);
+  };
+
+  const moveAllRequests = (requests) => {
+    setMovedRequests((current) => {
+      const requestIds = new Set(requests.map((item) => item.id));
+      return [
+        ...current.filter((item) => !requestIds.has(item.id)),
+        ...requests.map((item) => ({
+          ...item,
+          status: "Approved",
+          action: "approved",
+        })),
+      ];
+    });
+    setActiveTab("Approved");
+  };
 
   return (
     <Container>
@@ -35,6 +62,7 @@ const OverTimeManage = () => {
             icon={<img src={PlusIcon} alt="plus" />}
             width="9.625rem"
             radius="0.625rem"
+            onClick={() => setIsAddOpen(true)}
           />
           <DotIcon src={actionIcon} alt="dot" />
         </Controls>
@@ -66,9 +94,33 @@ const OverTimeManage = () => {
         active={activeTab}
         onChange={setActiveTab}
       />
-      {activeTab === "Pending" && <Pending />}
-      {activeTab === "Approved" && <Approved statusFilter="approved" />}
-      {activeTab === "Rejected" && <Approved statusFilter="rejected" />}
+      {activeTab === "Pending" && (
+        <Pending refreshKey={refreshKey} onStatusChange={moveRequest} onApproveAll={moveAllRequests} />
+      )}
+      {activeTab === "Approved" && (
+        <Approved
+          statusFilter="approved"
+          injectedRecords={movedRequests.filter(
+            (item) => item.status === "Approved",
+          )}
+        />
+      )}
+      {activeTab === "Rejected" && (
+        <Approved
+          statusFilter="rejected"
+          injectedRecords={movedRequests.filter(
+            (item) => item.status === "Rejected",
+          )}
+        />
+      )}
+      <AddOvertimeModal
+        isOpen={isAddOpen}
+        onClose={() => setIsAddOpen(false)}
+        onAdded={() => {
+          setActiveTab("Pending");
+          setRefreshKey((key) => key + 1);
+        }}
+      />
     </Container>
   );
 };

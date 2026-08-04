@@ -43,6 +43,7 @@ import DaySettings from "../pages/Settings/DaySettings/DaySettings";
 import SeriesConfigurationPage from "../pages/Settings/SeriesConfiguration";
 import AddSeriesPage from "../pages/Settings/AddSeriesPage";
 import AttendancePage from "../pages/Attendance/Attendance";
+import Timesheet from "../pages/Timesheet/Timesheet";
 import AddAttendance from "../pages/Attendance/Add";
 import ContractorOverview from "../pages/Contractors/Overview";
 import ContractorOverviewAnalysis from "../pages/Contractors/OverviewAnalysis";
@@ -142,6 +143,10 @@ const privateRoutes = [
       {
         path: "time-hub/attendance",
         element: <AttendancePage />,
+      },
+      {
+        path: "time-hub/timesheet",
+        element: <Timesheet />,
       },
       {
         path: "time-hub/attendance/add",

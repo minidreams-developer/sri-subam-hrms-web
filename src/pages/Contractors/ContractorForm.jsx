@@ -31,6 +31,7 @@ const ContractorForm = () => {
     identificationMark: "",
     address: "",
     city: "",
+    district: "",
     country: "India",
     state: "",
     pinCode: "",
@@ -49,6 +50,7 @@ const ContractorForm = () => {
         relation: "",
         address: "",
         city: "",
+        district: "",
         country: "India",
         state: "",
         pinCode: "",
@@ -142,6 +144,7 @@ const ContractorForm = () => {
       relation: "",
       address: "",
       city: "",
+      district: "",
       country: "",
       state: "",
       pinCode: "",
@@ -239,7 +242,7 @@ const ContractorForm = () => {
         },
         address: {
           addressLine1: formData.address?.trim() || "",
-          district: formData.state?.trim() || "",
+          district: formData.district?.trim() || "",
           city: formData.city?.trim() || "",
           state: formData.state?.trim() || "",
           pincode: parseInt(formData.pinCode || "0", 10),
@@ -253,7 +256,7 @@ const ContractorForm = () => {
             relationship: contact.relation?.trim() || "",
             address: {
               addressLine1: contact.address?.trim() || "",
-              district: contact.state?.trim() || "",
+              district: contact.district?.trim() || "",
               city: contact.city?.trim() || "",
               state: contact.state?.trim() || "",
               pincode: parseInt(contact.pinCode || "0", 10),
@@ -331,21 +334,13 @@ const ContractorForm = () => {
   return (
     <Container>
       <PageHeader>
-        <Title>Add New Contractor</Title>
-        <Subtitle>Fill in the details to add a new contractor to the database</Subtitle>
+        <Title>{currentStep === 1 ? "Add New Contractor" : "Work & Job Details"}</Title>
+        <Subtitle>
+          {currentStep === 1
+            ? "Fill in the details to register a new contractor."
+            : "Provide work information and define job items for the contractor."}
+        </Subtitle>
       </PageHeader>
-
-      <StepsIndicator>
-        <StepItem $active={currentStep === 1} onClick={() => setCurrentStep(1)}>
-          <StepNumber $active={currentStep === 1}>1</StepNumber>
-          <StepLabel>Personal Info</StepLabel>
-        </StepItem>
-        <StepConnector $completed={currentStep > 1} />
-        <StepItem $active={currentStep === 2} onClick={() => setCurrentStep(2)}>
-          <StepNumber $active={currentStep === 2}>2</StepNumber>
-          <StepLabel>Work & Job Details</StepLabel>
-        </StepItem>
-      </StepsIndicator>
 
       <FormContainer onSubmit={handleSubmit}>
         {currentStep === 1 && (
@@ -553,12 +548,12 @@ const ContractorForm = () => {
                 </FormGroup>
 
                 <FormGroup>
-                  <Label>Country</Label>
+                  <Label>District</Label>
                   <Input
                     type="text"
-                    name="country"
-                    placeholder="India"
-                    value={formData.country}
+                    name="district"
+                    placeholder="District"
+                    value={formData.district}
                     onChange={handleInputChange}
                   />
                 </FormGroup>
@@ -586,8 +581,8 @@ const ContractorForm = () => {
                 </FormGroup>
 
                 <FormGroup>
-                  <Label>Country 2</Label>
-                  <Select name="country2" value={formData.country2} onChange={handleInputChange}>
+                  <Label>Country</Label>
+                  <Select name="country" value={formData.country} onChange={handleInputChange}>
                     <option value="">Select</option>
                     <option value="India">India</option>
                   </Select>
@@ -649,14 +644,18 @@ const ContractorForm = () => {
 
                   <FormGroup>
                     <Label>Relation</Label>
-                    <Input
-                      type="text"
-                      placeholder="eg. Brother, Sister"
+                    <Select
                       value={contact.relation}
                       onChange={(e) =>
                         handleEmergencyContactChange(index, "relation", e.target.value)
                       }
-                    />
+                    >
+                      <option value="">Select Relation</option>
+                      <option value="Parent">Parent</option>
+                      <option value="Spouse">Spouse</option>
+                      <option value="Sibling">Sibling</option>
+                      <option value="Other">Other</option>
+                    </Select>
                   </FormGroup>
 
                   <FormGroup fullWidth>
@@ -683,17 +682,16 @@ const ContractorForm = () => {
                     />
                   </FormGroup>
 
-                  <FormGroup>
-                    <Label>Country</Label>
-                    <Select
-                      value={contact.country}
+                <FormGroup>
+                    <Label>District</Label>
+                    <Input
+                      type="text"
+                      placeholder="District"
+                      value={contact.district || ""}
                       onChange={(e) =>
-                        handleEmergencyContactChange(index, "country", e.target.value)
+                        handleEmergencyContactChange(index, "district", e.target.value)
                       }
-                    >
-                      <option value="">Select</option>
-                      <option value="India">India</option>
-                    </Select>
+                    />
                   </FormGroup>
 
                   <FormGroup>
@@ -718,6 +716,15 @@ const ContractorForm = () => {
                         handleEmergencyContactChange(index, "pinCode", e.target.value)
                       }
                     />
+                  </FormGroup>
+                  <FormGroup>
+                    <Label>Country</Label>
+                    <Select
+                      value={contact.country}
+                      onChange={(e) => handleEmergencyContactChange(index, "country", e.target.value)}
+                    >
+                      <option value="India">India</option>
+                    </Select>
                   </FormGroup>
                 </FormGrid>
               </EmergencySection>
@@ -795,32 +802,37 @@ const ContractorForm = () => {
             <FormSection>
               <SectionHeader>
                 <SectionTitle>Work Information</SectionTitle>
-                <Description>Please check and update the following details for the contractor.</Description>
               </SectionHeader>
 
               <FormGrid>
                 <FormGroup>
                   <Label>Company Name</Label>
-                  <Input type="text" name="companyName" placeholder="Company Name" value={workData.companyName} onChange={handleWorkDataChange} />
+                  <Input type="text" name="companyName" placeholder="Enter company name" value={workData.companyName} onChange={handleWorkDataChange} />
                 </FormGroup>
-                <FormGroup>
+                <FormGroup $span={2}>
                   <Label>Address</Label>
                   <Input type="text" name="companyAddress" placeholder="Company Address, Location" value={workData.companyAddress} onChange={handleWorkDataChange} />
                 </FormGroup>
                 <FormGroup>
-                  <Label>Specialization</Label>
-                  <Input type="text" name="specialization" value={workData.specialization} onChange={handleWorkDataChange} />
+                  <Label>Specialty</Label>
+                  <Select name="specialization" value={workData.specialization} onChange={handleWorkDataChange}>
+                    <option value="">Select Specialty</option>
+                    <option value="Painting">Painting</option>
+                    <option value="Electrical">Electrical</option>
+                    <option value="Plumbing">Plumbing</option>
+                    <option value="Civil">Civil</option>
+                  </Select>
                 </FormGroup>
                 <FormGroup>
                   <Label>License No</Label>
-                  <Input type="text" name="licenseNo" placeholder="License Registration No" value={workData.licenseNo} onChange={handleWorkDataChange} />
+                  <Input type="text" name="licenseNo" placeholder="License or Registration No" value={workData.licenseNo} onChange={handleWorkDataChange} />
                 </FormGroup>
                 <FormGroup>
                   <Label>Date of Joining</Label>
-                  <Input type="text" name="dateOfJoining" placeholder="Select the date" value={workData.dateOfJoining} onChange={handleWorkDataChange} />
+                  <Input type="date" name="dateOfJoining" value={workData.dateOfJoining} onChange={handleWorkDataChange} />
                 </FormGroup>
                 <FormGroup>
-                  <Label>Branch</Label>
+                  <Label>Branch <Required>*</Required></Label>
                   <Select name="branch" value={workData.branch} onChange={handleWorkDataChange}>
                     <option>Select Branch</option>
                     <option>Headquarters</option>
@@ -828,7 +840,7 @@ const ContractorForm = () => {
                   </Select>
                 </FormGroup>
                 <FormGroup>
-                  <Label>Reporting Person</Label>
+                  <Label>Reporting Person <Required>*</Required></Label>
                   <Select name="reportingPerson" value={workData.reportingPerson} onChange={handleWorkDataChange}>
                     <option>Select Reporting Person</option>
                   </Select>
@@ -840,8 +852,8 @@ const ContractorForm = () => {
             <FormSection>
               <SectionHeaderRow>
                 <SectionTitle>Job Items - Headquarters</SectionTitle>
-                <AddJobButton onClick={addHqJobItem}>
-                  + Add New Job Item
+                <AddJobButton type="button" onClick={addHqJobItem}>
+                  ＋ Create Job Item
                 </AddJobButton>
               </SectionHeaderRow>
 
@@ -849,29 +861,35 @@ const ContractorForm = () => {
                 <Table>
                   <TableHead>
                     <TableRow>
+                      <Th>S.No</Th>
                       <Th>Job Item</Th>
-                      <Th>unit</Th>
+                      <Th>Unit</Th>
                       <Th>Price/Unit</Th>
                       <Th>Action</Th>
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {hqJobItems.map((item) => (
+                    {hqJobItems.map((item, index) => (
                       <TableRow key={item.id}>
+                        <Td>{index + 1}</Td>
                         <Td>
                           <CellInput
                             type="text"
                             value={item.jobItem}
-                            placeholder="Job Item"
+                            placeholder="Enter job item description"
                             onChange={(e) => handleHqJobItemChange(hqJobItems.indexOf(item), "jobItem", e.target.value)}
                           />
                         </Td>
                         <Td>
-                          <CellInput
-                            type="number"
+                          <CellSelect
                             value={item.split}
                             onChange={(e) => handleHqJobItemChange(hqJobItems.indexOf(item), "split", e.target.value)}
-                          />
+                          >
+                            <option value="">Select Unit</option>
+                            <option value="Sq. Ft.">Sq. Ft.</option>
+                            <option value="Piece">Piece</option>
+                            <option value="Day">Day</option>
+                          </CellSelect>
                         </Td>
                         <Td>
                           <CellInput
@@ -883,8 +901,8 @@ const ContractorForm = () => {
                         </Td>
                         <Td>
                           <ActionButtons>
-                            <IconButton><img src={editIcon} alt="edit" width="16" height="16" /></IconButton>
-                            <IconButton onClick={() => removeHqJobItem(hqJobItems.indexOf(item))}><img src={deleteIcon} alt="delete" width="16" height="16" /></IconButton>
+                            <IconButton type="button"><img src={editIcon} alt="edit" width="16" height="16" /></IconButton>
+                            <IconButton type="button" onClick={() => removeHqJobItem(hqJobItems.indexOf(item))}><img src={deleteIcon} alt="delete" width="16" height="16" /></IconButton>
                           </ActionButtons>
                         </Td>
                       </TableRow>
@@ -898,8 +916,8 @@ const ContractorForm = () => {
             <FormSection>
               <SectionHeaderRow>
                 <SectionTitle>Job Items - North Region</SectionTitle>
-                <AddJobButton onClick={addNorthJobItem}>
-                  + Add New Job Item
+                <AddJobButton type="button" onClick={addNorthJobItem}>
+                  ＋ Create Job Item
                 </AddJobButton>
               </SectionHeaderRow>
 
@@ -907,29 +925,35 @@ const ContractorForm = () => {
                 <Table>
                   <TableHead>
                     <TableRow>
+                      <Th>S.No</Th>
                       <Th>Job Item</Th>
-                      <Th>unit</Th>
+                      <Th>Unit</Th>
                       <Th>Price/Unit</Th>
                       <Th>Action</Th>
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {northJobItems.map((item) => (
+                    {northJobItems.map((item, index) => (
                       <TableRow key={item.id}>
+                        <Td>{index + 1}</Td>
                         <Td>
                           <CellInput
                             type="text"
                             value={item.jobItem}
-                            placeholder="Job Item"
+                            placeholder="Enter job item description"
                             onChange={(e) => handleNorthJobItemChange(northJobItems.indexOf(item), "jobItem", e.target.value)}
                           />
                         </Td>
                         <Td>
-                          <CellInput
-                            type="number"
+                          <CellSelect
                             value={item.split}
                             onChange={(e) => handleNorthJobItemChange(northJobItems.indexOf(item), "split", e.target.value)}
-                          />
+                          >
+                            <option value="">Select Unit</option>
+                            <option value="Sq. Ft.">Sq. Ft.</option>
+                            <option value="Piece">Piece</option>
+                            <option value="Day">Day</option>
+                          </CellSelect>
                         </Td>
                         <Td>
                           <CellInput
@@ -941,8 +965,8 @@ const ContractorForm = () => {
                         </Td>
                         <Td>
                           <ActionButtons>
-                            <IconButton><img src={editIcon} alt="edit" width="16" height="16" /></IconButton>
-                            <IconButton onClick={() => removeNorthJobItem(northJobItems.indexOf(item))}><img src={deleteIcon} alt="delete" width="16" height="16" /></IconButton>
+                            <IconButton type="button"><img src={editIcon} alt="edit" width="16" height="16" /></IconButton>
+                            <IconButton type="button" onClick={() => removeNorthJobItem(northJobItems.indexOf(item))}><img src={deleteIcon} alt="delete" width="16" height="16" /></IconButton>
                           </ActionButtons>
                         </Td>
                       </TableRow>
@@ -957,9 +981,9 @@ const ContractorForm = () => {
         {/* Action Buttons - Only at the end of Step 2 */}
         {currentStep === 2 && (
           <FormActions>
-            <CancelButton onClick={handleCancel} disabled={isSubmitting}>Cancel</CancelButton>
+            <CancelButton type="button" onClick={() => setCurrentStep(1)} disabled={isSubmitting}>Back</CancelButton>
             <SubmitButton type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Submitting..." : "Submit"}
+              {isSubmitting ? "Saving..." : "Save"}
             </SubmitButton>
           </FormActions>
         )}
@@ -980,27 +1004,29 @@ const ContractorForm = () => {
 // Styled Components - Step Indicator
 const Container = styled.div`
   width: 100%;
-  padding: 2rem;
-  background: #F5F7FA;
+  padding: 56px 24px 0;
+  background: #f3f5f9;
   min-height: 100vh;
+  color: #101828;
+  box-sizing: border-box;
 `;
 
 const PageHeader = styled.div`
-  margin-bottom: 2rem;
+  margin-bottom: 24px;
 `;
 
 const Title = styled.h1`
-  font-size: 1.75rem;
+  font-size: 24px;
   font-weight: 700;
-  color: #222;
+  color: #101828;
   margin: 0;
   font-family: "Inter", sans-serif;
 `;
 
 const Subtitle = styled.p`
-  font-size: 0.9rem;
-  color: #888;
-  margin: 0.5rem 0 0 0;
+  font-size: 14px;
+  color: #737373;
+  margin: 4px 0 0;
   font-family: "Inter", sans-serif;
   font-weight: 500;
 `;
@@ -1056,32 +1082,40 @@ const StepConnector = styled.div`
 const FormContainer = styled.form`
   display: flex;
   flex-direction: column;
-  gap: 2rem;
+  gap: 24px;
 `;
 
 const FormSection = styled.div`
   background: white;
-  border: 1px solid #E5E7EB;
+  border: 1px solid #e1e4e8;
   border-radius: 12px;
-  padding: 2rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  padding: 24px;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+
+  > hr {
+    border: 0;
+    border-top: 1px solid #e5e7eb;
+    margin: 16px 0 24px;
+  }
 `;
 
 const EmergencySection = styled(FormSection)`
-  border: 1px solid #DC2626;
+  border: 2px solid #f04444;
 `;
 
 const SectionHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1.5rem;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #e5e7eb;
 `;
 
 const SectionTitle = styled.h2`
   font-size: 1.1rem;
   font-weight: 700;
-  color: #222;
+  color: #101828;
   margin: 0;
   font-family: "Inter", sans-serif;
 `;
@@ -1105,19 +1139,17 @@ const SectionHeaderRow = styled.div`
 const PhotoUploadArea = styled.div`
   display: flex;
   align-items: center;
-  gap: 2rem;
-  margin-bottom: 2rem;
-  padding: 1.5rem;
-  background: #F9F9F9;
-  border-radius: 8px;
-  border: 1px dashed #D1D5DB;
+  gap: 24px;
+  margin-bottom: 28px;
+  padding: 4px 0;
 `;
 
 const PhotoPlaceholder = styled.div`
   width: 80px;
   height: 80px;
-  border-radius: 8px;
-  background: #E0E7FF;
+  border-radius: 50%;
+  background: #f7f8f9;
+  border: 2px dashed #cfd4dc;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1128,7 +1160,7 @@ const PhotoPlaceholder = styled.div`
 const PhotoInfo = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 8px;
 `;
 
 const UploadText = styled.p`
@@ -1152,14 +1184,15 @@ const UploadLabel = styled.label`
   display: inline-block;
   padding: 0.5rem 1rem;
   background: white;
-  color: #0047AB;
-  border: 2px solid #0047AB;
+  color: #101828;
+  border: 1px solid #cfd4dc;
   border-radius: 6px;
   font-weight: 600;
   font-size: 0.8rem;
   cursor: pointer;
   font-family: "Inter", sans-serif;
-  width: fit-content;
+  width: 272px;
+  text-align: center;
   transition: all 0.2s;
 
   &:hover {
@@ -1170,7 +1203,7 @@ const UploadLabel = styled.label`
 const FormGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 1.5rem;
+  gap: 20px 24px;
 
   @media (max-width: 1024px) {
     grid-template-columns: repeat(2, 1fr);
@@ -1185,23 +1218,30 @@ const FormGroup = styled.div`
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  grid-column: ${(props) => (props.fullWidth ? "1 / -1" : "auto")};
+  grid-column: ${(props) => props.fullWidth ? "1 / -1" : props.$span ? `span ${props.$span}` : "auto"};
+`;
+
+const Required = styled.span`
+  color: #f04444;
 `;
 
 const Label = styled.label`
   font-size: 0.85rem;
-  font-weight: 600;
-  color: #222;
+  font-weight: 500;
+  color: #101828;
   font-family: "Inter", sans-serif;
 `;
 
 const Input = styled.input`
-  padding: 0.75rem;
-  border: 1px solid #D1D5DB;
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid #cfd4dc;
   border-radius: 6px;
   font-size: 0.9rem;
   font-family: "Inter", sans-serif;
   transition: all 0.2s;
+  box-sizing: border-box;
+  width: 100%;
 
   &:focus {
     outline: none;
@@ -1215,8 +1255,9 @@ const Input = styled.input`
 `;
 
 const Select = styled.select`
-  padding: 0.75rem;
-  border: 1px solid #D1D5DB;
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid #cfd4dc;
   border-radius: 6px;
   font-size: 0.9rem;
   font-family: "Inter", sans-serif;
@@ -1239,7 +1280,7 @@ const Select = styled.select`
 
 const AddMoreButton = styled.button`
   padding: 0.6rem 1rem;
-  background: #DC2626;
+  background: #f04444;
   color: white;
   border: none;
   border-radius: 6px;
@@ -1274,7 +1315,7 @@ const RemoveButton = styled.button`
 const DocumentsGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 1.5rem;
+  gap: 24px;
 
   @media (max-width: 1024px) {
     grid-template-columns: repeat(2, 1fr);
@@ -1288,8 +1329,8 @@ const DocumentsGrid = styled.div`
 const CompactUploadButton = styled.label`
   padding: 0.6rem 0.8rem;
   background: white;
-  color: #0047AB;
-  border: 1px solid #D1D5DB;
+  color: #101828;
+  border: 1px solid #cfd4dc;
   border-radius: 6px;
   font-weight: 600;
   font-size: 0.75rem;
@@ -1330,9 +1371,9 @@ const CompactFileNameDisplay = styled.p`
 
 const TableWrapper = styled.div`
   overflow-x: auto;
-  border: 1px solid #E5E7EB;
+  border: 1px solid #e0e3e6;
   border-radius: 8px;
-  margin-bottom: 0.75rem;
+  margin-top: 16px;
 `;
 
 const Table = styled.table`
@@ -1341,7 +1382,7 @@ const Table = styled.table`
 `;
 
 const TableHead = styled.thead`
-  background: #F9FAFB;
+  background: #f7f8f9;
 `;
 
 const TableRow = styled.tr`
@@ -1349,7 +1390,7 @@ const TableRow = styled.tr`
 `;
 
 const Th = styled.th`
-  padding: 0.75rem;
+  padding: 10px 12px;
   text-align: left;
   font-family: "Inter", sans-serif;
   font-size: 0.75rem;
@@ -1360,7 +1401,9 @@ const Th = styled.th`
 const TableBody = styled.tbody``;
 
 const Td = styled.td`
-  padding: 0.5rem 0.75rem;
+  padding: 10px 12px;
+  color: #101828;
+  font: 500 13px "Inter", sans-serif;
 `;
 
 const CellInput = styled.input`
@@ -1372,6 +1415,17 @@ const CellInput = styled.input`
   font-size: 0.85rem;
   background: white;
   box-sizing: border-box;
+`;
+
+const CellSelect = styled.select`
+  width: 100%;
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid #cfd4dc;
+  border-radius: 6px;
+  background: white;
+  color: #101828;
+  font: 500 13px "Inter", sans-serif;
 `;
 
 const ActionButtons = styled.div`
@@ -1390,7 +1444,8 @@ const IconButton = styled.button`
 `;
 
 const AddJobButton = styled.button`
-  padding: 0.5rem 1rem;
+  height: 36px;
+  padding: 0 14px;
   background: #0047AB;
   color: white;
   border: none;
@@ -1410,18 +1465,20 @@ const FormActions = styled.div`
   display: flex;
   gap: 1rem;
   justify-content: flex-end;
-  padding: 1.5rem;
+  padding: 20px 48px;
   background: white;
-  border-radius: 12px;
-  border: 1px solid #E5E7EB;
+  border-radius: 0;
+  border: 0;
+  margin: 16px -24px 0;
 `;
 
 const CancelButton = styled.button`
-  padding: 0.8rem 2rem;
+  height: 40px;
+  padding: 0 20px;
   background: white;
   color: #222;
-  border: 2px solid #D1D5DB;
-  border-radius: 8px;
+  border: 1px solid #cfd4dc;
+  border-radius: 6px;
   font-weight: 600;
   font-size: 0.9rem;
   cursor: pointer;
@@ -1440,11 +1497,12 @@ const CancelButton = styled.button`
 `;
 
 const NextButton = styled.button`
-  padding: 0.8rem 2rem;
+  height: 40px;
+  padding: 0 24px;
   background: #0047AB;
   color: white;
   border: none;
-  border-radius: 8px;
+  border-radius: 6px;
   font-weight: 600;
   font-size: 0.9rem;
   cursor: pointer;
@@ -1466,11 +1524,12 @@ const NextButton = styled.button`
 `;
 
 const SubmitButton = styled.button`
-  padding: 0.8rem 2rem;
+  height: 40px;
+  padding: 0 24px;
   background: #0047AB;
   color: white;
   border: none;
-  border-radius: 8px;
+  border-radius: 6px;
   font-weight: 600;
   font-size: 0.9rem;
   cursor: pointer;

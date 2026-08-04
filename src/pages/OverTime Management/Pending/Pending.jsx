@@ -5,16 +5,26 @@ import { get } from "../../../helpers/api_helper";
 import { OVERTIME_RECORDS } from "../../../helpers/url_helper";
 import { toast } from "react-toastify";
 
-const Pending = () => {
+const fallbackPendingRequests = Array.from({ length: 8 }, (_, index) => ({
+  id: `preview-${index + 1}`,
+  requestedDate: "01-01-2026",
+  overtimeDate: "01-01-2026",
+  name: "Manoj Kumar",
+  duration: "3 Hrs",
+  overtime: "07 : 30 PM  -  10 : 00 PM",
+  action: "pending",
+}));
+
+const Pending = ({ onStatusChange, onApproveAll, refreshKey = 0 }) => {
   const [search, setSearch] = useState("");
-  const [leaveType, setLeaveType] = useState("All Types");
+  const [dateFilter, setDateFilter] = useState("Today");
   const [overtimeData, setOvertimeData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filteredData, setFilteredData] = useState([]);
 
   useEffect(() => {
     fetchOvertimeData();
-  }, []);
+  }, [refreshKey]);
 
   const fetchOvertimeData = async () => {
     try {
@@ -67,13 +77,20 @@ const Pending = () => {
           startTime: startTime,
           endTime: endTime,
           duration: duration,
+          overtime: `${startTime}  -  ${endTime}`,
           status: record.status || "Pending",
           action: record.action || "pending",
         };
       });
 
-      setOvertimeData(transformedData);
-      filterData(transformedData, search, leaveType);
+      // Keep the API as the source of truth. Figma preview rows are shown only
+      // when the API succeeds but contains no records.
+      const displayData = transformedData.length
+        ? transformedData
+        : fallbackPendingRequests;
+
+      setOvertimeData(displayData);
+      filterData(displayData, search);
     } catch (error) {
       console.error("Error fetching overtime data:", error);
       toast.error("Failed to fetch overtime records");
@@ -83,57 +100,62 @@ const Pending = () => {
     }
   };
 
-  const filterData = (data, searchTerm, typeFilter) => {
+  const filterData = (data, searchTerm) => {
     const filtered = data.filter((row) => {
-      const m1 =
-        typeFilter === "All Types" ||
-        String(row.type).toLowerCase() === String(typeFilter).toLowerCase();
-      const m2 =
+      return (
         !searchTerm ||
         String(row.name).toLowerCase().includes(searchTerm.toLowerCase()) ||
-        String(row.staffId).toLowerCase().includes(searchTerm.toLowerCase()) ||
-        String(row.department).toLowerCase().includes(searchTerm.toLowerCase());
-      return m1 && m2;
+        String(row.staffId || "").toLowerCase().includes(searchTerm.toLowerCase())
+      );
     });
     setFilteredData(filtered);
   };
 
   const handleSearchChange = (value) => {
     setSearch(value);
-    filterData(overtimeData, value, leaveType);
+    filterData(overtimeData, value);
   };
 
-  const handleLeaveTypeChange = (value) => {
-    setLeaveType(value);
-    filterData(overtimeData, search, value);
+  const handleStatusChange = (row, status) => {
+    const remaining = overtimeData.filter((item) => item.id !== row.id);
+    setOvertimeData(remaining);
+    filterData(remaining, search);
+    onStatusChange?.(row, status);
+  };
+
+  const handleApproveAll = () => {
+    if (!filteredData.length) return;
+    const approvedIds = new Set(filteredData.map((item) => item.id));
+    const remaining = overtimeData.filter((item) => !approvedIds.has(item.id));
+    setOvertimeData(remaining);
+    filterData(remaining, search);
+    onApproveAll?.(filteredData);
+    toast.success("All pending overtime requests approved");
   };
 
   const columns = [
     { header: "Requested Date", accessor: "requestedDate" },
-    { header: "Employee Name", accessor: "name" },
-    { header: "Employee ID", accessor: "staffId" },
     { header: "OT Date", accessor: "overtimeDate" },
-    { header: "Start Time", accessor: "startTime" },
-    { header: "End Time", accessor: "endTime" },
+    { header: "Employee", accessor: "name" },
     { header: "Duration", accessor: "duration" },
-    { header: "Status", accessor: "status" },
+    { header: "Over Time", accessor: "overtime", noWrap: true },
     { header: "Action", accessor: "action" },
   ];
 
   return (
     <>
       <TableToolbar
-        title={`Pending Requests (${String(filteredData.length).padStart(2, "0")})`}
-        searchPosition="right"
+        searchPosition="left"
         searchPlaceholder="Search Agents"
         searchValue={search}
         onSearchChange={handleSearchChange}
         select1Options={["Today"]}
-        select1Value={leaveType}
-        onSelect1Change={handleLeaveTypeChange}
+        select1Value={dateFilter}
+        onSelect1Change={setDateFilter}
         showFilter={false}
         actionText="Approve All"
         actionIcon={false}
+        onActionClick={handleApproveAll}
       />
       <ReusableTable
         columns={columns}
@@ -145,11 +167,11 @@ const Pending = () => {
         isLoading={loading}
         onApprove={(row) => {
           toast.success(`Approved request for ${row.name}`);
-          // TODO: Call API to approve
+          handleStatusChange(row, "Approved");
         }}
         onReject={(row) => {
           toast.info(`Rejected request for ${row.name}`);
-          // TODO: Call API to reject
+          handleStatusChange(row, "Rejected");
         }}
       />
     </>

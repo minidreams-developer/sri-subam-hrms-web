@@ -15,7 +15,7 @@ import { toast } from "react-toastify";
 const Payroll = () => {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
-  const [department, setDepartment] = useState("All Departments");
+  const [department, setDepartment] = useState("All Department");
   const [shift, setShift] = useState("All Shifts");
   const [activeTopTab, setActiveTopTab] = useState("Payroll");
   const [activeInnerTab, setActiveInnerTab] = useState("Employees");
@@ -241,6 +241,7 @@ const Payroll = () => {
   };
 
   const columns = [
+    { header: "S. No.", accessor: "serialNo" },
     { header: "Employee ID", accessor: "employeeId" },
     { header: "Name", accessor: "name" },
     { header: "Designation", accessor: "designation" },
@@ -250,7 +251,7 @@ const Payroll = () => {
     { header: "Off Days", accessor: "offDays" },
     { header: "Paid Leaves", accessor: "paidLeaves" },
     { header: "Unpaid Leaves", accessor: "unpaidLeaves" },
-    { header: "Daily Wages", accessor: "dailyWages" },
+    { header: "Basic pay", accessor: "dailyWages" },
     { header: "Gross Wages", accessor: "grossWages" },
     { header: "Earned Wages", accessor: "earnedWages" },
     { header: "Other Wages", accessor: "otherWages" },
@@ -419,42 +420,47 @@ const Payroll = () => {
     if (activeTopTab === "Payroll") {
       return (
         <>
-          <TabSwitcher
-            tabs={[
-              { label: "Employees", value: "Employees" },
-              { label: "Staffs", value: "Staffs" }
-            ]}
-            active={activeInnerTab}
-            onChange={setActiveInnerTab}
-          />
-          <TableToolbar
-            searchPlaceholder="Search Employee"
-            searchValue={search}
-            onSearchChange={setSearch}
-            select1Options={["All Departments", ...departmentOptions.map(d => d.value)]}
-            select1Value={department}
-            onSelect1Change={setDepartment}
-            select2Options={["All Shifts", ...shiftOptions.map(s => s.value)]}
-            select2Value={shift}
-            onSelect2Change={setShift}
-            showFilter={true}
-            filterText="Filter"
-            showDotIcon={true}
-            dotIcon={DotIcon}
-            searchPosition="left"
-            onFilterClick={() => setShowFilter(true)}
-          />
+          <PayrollControls>
+            <TabSwitcher
+              tabs={[
+                { label: "Employees", value: "Employees" },
+                { label: "Staffs", value: "Staffs" }
+              ]}
+              active={activeInnerTab}
+              onChange={setActiveInnerTab}
+            />
+            <TableToolbar
+              searchPlaceholder="Search Employee"
+              searchValue={search}
+              onSearchChange={setSearch}
+              select1Options={["All Department", ...departmentOptions.map(d => d.value)]}
+              select1Value={department}
+              onSelect1Change={setDepartment}
+              select2Options={["All Shifts", ...shiftOptions.map(s => s.value)]}
+              select2Value={shift}
+              onSelect2Change={setShift}
+              showFilter={true}
+              filterText="Filter"
+              showDotIcon={true}
+              dotIcon={DotIcon}
+              searchPosition="left"
+              onFilterClick={() => setShowFilter(true)}
+              widths={{ search: "22.25rem", select: "12.5rem" }}
+            />
+          </PayrollControls>
           <TableContainer>
             <ReusableTable 
               columns={columns} 
-              data={payrollData.length > 0 ? payrollData : []}
+              data={(payrollData.length > 0 ? payrollData : data)
+                .filter((row) => !search || `${row.employeeId} ${row.name}`.toLowerCase().includes(search.toLowerCase()))
+                .map((row, index) => ({ ...row, serialNo: String(index + 1).padStart(2, "0") }))}
               rowsPerPage={pageSize}
               totalResults={totalResults}
               currentPage={currentPage}
               totalPages={totalPages}
               onPageChange={setCurrentPage}
               server={true}
-              loading={loading}
+              isLoading={loading}
             />
           </TableContainer>
         </>
@@ -672,34 +678,98 @@ export default Payroll;
 
 const Container = styled.div`
   width: 100%;
-  padding: 1.5rem 0;
+  padding: 0.5rem 0 1.5rem;
 `;
 
 const TopTabsContainer = styled.div`
+  width: max-content;
   display: flex;
-  gap: 0.5rem;
-  margin-bottom: 1.5rem;
-
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  padding: 0.5rem;
+  margin-bottom: 2rem;
+  border-radius: 1rem;
+  background: rgba(6, 108, 120, 0.05);
 `;
 
 const TopTab = styled.button`
-  padding: 0.75rem 1.25rem;
-  font-size: 0.875rem;
-  font-weight: 500;
+  padding: 0.5rem 1rem;
+  font-size: 1rem;
+  line-height: 1.6;
+  font-weight: 600;
   font-family: "Inter", sans-serif;
-  background: ${props => props.$active ? theme.colors.primary : theme.colors.white};
+  background: ${props => props.$active ? theme.colors.primary : "transparent"};
   color: ${props => props.$active ? theme.colors.white : theme.colors.textColor};
   border: none;
-  border-radius:7px;
+  border-radius: 0.5rem;
   cursor: pointer;
   transition: all 0.2s ease;
-  margin-bottom: -1px;
+`;
+
+const PayrollControls = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+
+  > div:first-child {
+    margin: 0;
+  }
+
+  > div:nth-child(2) {
+    margin-bottom: 1.5rem;
+  }
+
+  @media (max-width: 1100px) {
+    > div:nth-child(2) {
+      align-items: flex-start;
+      flex-direction: column;
+    }
+  }
 `;
 
 const TableContainer = styled.div`
   background: ${theme.colors.white};
   border-radius: 0.75rem;
   overflow: hidden;
+  border: 1px solid #e0e3e6;
+  padding: 1rem;
+
+  table {
+    min-width: 2788px;
+  }
+
+  th {
+    padding-top: 0.25rem;
+    padding-bottom: 0.75rem;
+  }
+
+  th:first-child,
+  td:first-child {
+    min-width: 64px;
+  }
+
+  th:nth-child(2),
+  td:nth-child(2) {
+    min-width: 120px;
+  }
+
+  th:nth-child(3),
+  td:nth-child(3) {
+    min-width: 190px;
+  }
+
+  th:nth-child(4),
+  td:nth-child(4) {
+    min-width: 180px;
+  }
+
+  td {
+    height: 48px;
+    padding-top: 0.75rem;
+    padding-bottom: 0.75rem;
+    white-space: nowrap;
+  }
 `;
 
 const PlaceholderContent = styled.div`

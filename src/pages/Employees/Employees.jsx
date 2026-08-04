@@ -221,7 +221,9 @@ const Employees = () => {
   };
 
   const handleRowClick = (row) => {
-    navigate("/admin/peopleHub/employees/employeeProfile");
+    navigate("/admin/peopleHub/employees/employeeProfile", {
+      state: { employeeId: row.id },
+    });
   };
 
   const handlePageChange = (newPage) => {

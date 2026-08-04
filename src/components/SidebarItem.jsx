@@ -22,25 +22,6 @@ const SidebarItems = [
     iconDark: AnnIcon,
   },
   {
-    name: "Contractors",
-    icon: GroupIcon,
-    iconDark: GroupIcon,
-    submenu: [
-      {
-        name: "Overview",
-        path: "/admin/contractors/overview",
-      },
-      {
-        name: "Contractors",
-        path: "/admin/contractors/contractors",
-      },
-      {
-        name: "Payments",
-        path: "/admin/contractors/payments",
-      },
-    ],
-  },
-  {
     name: "People Hub",
     icon: GroupIcon,
     iconDark: GroupIcon,
@@ -53,6 +34,7 @@ const SidebarItems = [
       {
         name: "Employees",
         path: "/admin/peopleHub/employees",
+        activePaths: ["/admin/peopleHub/staff/create"],
       },
       {
         name: "Agents",
@@ -77,6 +59,41 @@ const SidebarItems = [
     ],
   },
   {
+    name: "Contractors",
+    icon: GroupIcon,
+    iconDark: GroupIcon,
+    submenu: [
+      {
+        name: "Overview",
+        path: "/admin/contractors/overview",
+        activePaths: ["/admin/contractors/overviewanalysis"],
+      },
+      {
+        name: "Contractors",
+        path: "/admin/contractors/contractors",
+        activePaths: [
+          "/admin/contractors/add",
+          "/admin/contractors/work-job-details",
+          "/admin/contractors/add-work-entry",
+          "/admin/contractors/bio-data-report",
+          "/admin/contractors/report/all-contractors",
+          "/admin/contractors/:id/details",
+          "/admin/contractors/:id/print",
+          "/admin/contractors/:id/report",
+        ],
+      },
+      {
+        name: "Payments",
+        path: "/admin/contractors/payments",
+        activePaths: [
+          "/admin/contractors/payment-report",
+          "/admin/contractors/pay/:contractorName",
+          "/admin/contractors/payment-receipt/:contractorName",
+        ],
+      },
+    ],
+  },
+  {
     name: "Time Hub",
     icon: TimeIcon,
     iconDark: TimeIcon,
@@ -84,6 +101,10 @@ const SidebarItems = [
       {
         name: "Attendance",
         path: "/admin/time-hub/attendance",
+      },
+      {
+        name: "Timesheet",
+        path: "/admin/time-hub/timesheet",
       },
       {
         name: "Leave Attendance",
@@ -115,6 +136,7 @@ const SidebarItems = [
       {
         name: "Payroll",
         path: "/admin/pay-hub/payroll",
+        activePaths: ["/admin/pay-hub/payslip"],
       },
       {
         name: "Paysheet",
@@ -130,12 +152,12 @@ const SidebarItems = [
       },
     ],
   },
-  // {
-  //   name: "Help",
-  //   path: "/admin/help",
-  //   icon: MessageIcon,
-  //   iconDark: MessageIcon,
-  // },
+  {
+    name: "Help",
+    path: "/admin/help",
+    icon: MessageIcon,
+    iconDark: MessageIcon,
+  },
   {
     name: "Settings",
     icon: SettingsIcon,

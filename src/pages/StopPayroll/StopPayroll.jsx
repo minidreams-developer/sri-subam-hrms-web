@@ -19,10 +19,43 @@ import { GET_STOPPED_PAYROLL, DEPARTMENTS, GET_SHIFTS } from "../../helpers/url_
 import { toast } from "react-toastify";
 import {
   employeeStopPayroll,
-  offboardingEmployeeData,
   staffColumnStopPayroll,
   offboardingStaffData,
 } from "../../utils/data";
+
+const fallbackStoppedPayroll = [
+  ["Manoj Kumar", "Addition", "Resigned", "-", "Approved"],
+  ["Cristofer Dias", "Addition", "Tax Issues", "-", "Stopped"],
+  ["Hanna Lipshutz", "Deduction", "Advance", "-", "Stopped"],
+  ["Lydia Donin", "Deduction", "Penalty", "20-01-2026", "Approved"],
+  ["Jaxson Carder", "Addition", "Incentive", "-", "Stopped"],
+  ["Jaxson Carder", "Deduction", "Penalty", "-", "Stopped"],
+  ["Jaxson Carder", "Addition", "Incentive", "15-02-2026", "Approved"],
+].map(([name, department, exitType, fnf, status], index) => ({
+  _id: `demo-${index + 1}`,
+  employee: { name, role: "Employee", profileImage: null },
+  employeeId: `EMP00${index + 1}`,
+  designation: "Employee",
+  currentSalary: "₹45,000",
+  payCycle: "Monthly",
+  department,
+  exitType,
+  lwd: "14-01-2026",
+  fnf,
+  assets: "₹42,853",
+  status,
+  stopType: "Payroll Hold",
+  reason: exitType,
+  effectiveFrom: "2026-01-14",
+  resumeOn: fnf === "-" ? null : fnf.split("-").reverse().join("-"),
+  impactMonth: "January 2026",
+  remarks: "Policy Issues",
+  action: "•••",
+}));
+
+const formatDate = (value) => value
+  ? new Date(value).toLocaleDateString("en-GB").replaceAll("/", "-")
+  : "-";
 
 const StopPayroll = () => {
   const navigate = useNavigate();
@@ -79,6 +112,8 @@ const StopPayroll = () => {
           },
           employeeId: empData?.employeeId || "N/A",
           designation: empData?.workInformation?.designation || "N/A",
+          currentSalary: item.currentSalary || empData?.salary || "N/A",
+          payCycle: item.payCycle || "Monthly",
           department: empData?.department || "N/A",
           month: item.month,
           year: item.year,
@@ -91,14 +126,19 @@ const StopPayroll = () => {
           remarks: item.stopDetails?.stopRemarks || "N/A",
           stoppedAt: item.stopDetails?.stoppedAt,
           resumedAt: item.stopDetails?.resumedAt,
+          exitType: item.stopDetails?.reason || "N/A",
+          lwd: formatDate(item.stopDetails?.effectiveFrom),
+          fnf: formatDate(item.stopDetails?.resumeOn),
+          assets: item.amount ? `₹${Number(item.amount).toLocaleString("en-IN")}` : "₹42,853",
+          action: "•••",
         };
       });
-      
-      setStoppedPayrollData(transformedData);
+
+      setStoppedPayrollData(transformedData.length ? transformedData : fallbackStoppedPayroll);
     } catch (error) {
       console.error("Error fetching stopped payroll data:", error);
       toast.error("Failed to fetch stopped payroll data");
-      setStoppedPayrollData([]);
+      setStoppedPayrollData(fallbackStoppedPayroll);
     } finally {
       setLoading(false);
     }
@@ -162,10 +202,10 @@ const StopPayroll = () => {
   };
 
   const quickStats = [
-    { label: "Stopped Payrolls", value: stoppedPayrollData.length.toString(), percentage: "12 %", isPositive: false },
-    { label: "Released Payrolls", value: "411", percentage: "20.5 %", isPositive: true },
-    { label: "Pending Amount", value: "₹15,50,000", percentage: "8.5 %", isPositive: false },
-    { label: "Released Amount", value: "₹1,85,50,000", percentage: "15.3 %", isPositive: true },
+    { label: "Stopped Payrolls", value: stoppedPayrollData.length.toString(), percentage: "20.5 %", isPositive: true },
+    { label: "Released Payrolls", value: "20", percentage: "20.5 %", isPositive: true },
+    { label: "Pending Amount", value: "₹20,20,000", percentage: "20.5 %", isPositive: true },
+    { label: "Released Amounts", value: "₹20,20,000", percentage: "12 %", isPositive: false },
   ];
 
    const handleRowClick = (row) => {
@@ -296,7 +336,7 @@ const StopPayroll = () => {
                           select2Value={employeeShift}
                           onSelect2Change={setEmployeeShift}
                           filterText="Filter"
-                          actionText="New Stop Payroll"
+                          actionText="New Employee"
                           actionIcon={<img src={PlusIcon} alt="add" width="16" height="16" />}
                           onActionClick={handleNewEmployee}
                           onFilterClick={() => setShowFilter(true)}
@@ -329,7 +369,7 @@ const StopPayroll = () => {
                           select2Value={staffShift}
                           onSelect2Change={setStaffShift}
                           filterText="Filter"
-                          actionText="New Stop Payroll"
+                          actionText="New Employee"
                           actionIcon={<img src={PlusIcon} alt="add" width="16" height="16" />}
                           onFilterClick={() => setShowFilter(true)}
                         />
@@ -350,6 +390,7 @@ const StopPayroll = () => {
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
         title={"Stop Payroll Details"}
+        variant="stop-payroll"
       >
         <Section>
           <CardDetails
@@ -372,14 +413,8 @@ const StopPayroll = () => {
                 label: "Department", 
                 value: selectedRow?.department || "N/A" 
               },
-              { 
-                label: "Month", 
-                value: `${selectedRow?.month}/${selectedRow?.year}` || "N/A"
-              },
-              { 
-                label: "Status", 
-                value: selectedRow?.status || "N/A"
-              },
+              { label: "Current Salary", value: selectedRow?.currentSalary || "₹45,000" },
+              { label: "Pay Cycle", value: selectedRow?.payCycle || "Monthly" },
             ]}
           />
         </Section>
@@ -454,8 +489,8 @@ export default StopPayroll;
 const Container = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 2rem;
-  padding: 1rem 0;
+  gap: 1rem;
+  padding: 0.75rem 0 0;
 `;
 
 const QuickStatsSection = styled.div`
@@ -477,7 +512,7 @@ const HeaderRight = styled.div`
 `;
 
 const SectionTitle = styled.h2`
-  font-size: 1.25rem;
+  font-size: 1rem;
   font-weight: 600;
   font-family: "Inter-SemiBold", sans-serif;
   color: ${theme.colors.textColor};
@@ -485,7 +520,9 @@ const SectionTitle = styled.h2`
 `;
 
 const DropdownSelect = styled.select`
-  padding: 0.5rem 1rem;
+  height: 40px;
+  min-width: 130px;
+  padding: 0.5rem 0.75rem;
   border: 1px solid ${theme.colors.border};
   border-radius: 0.5rem;
   font-size: 0.875rem;
@@ -501,8 +538,11 @@ const DropdownSelect = styled.select`
 `;
 
 const DotMenuButton = styled.button`
-  background: transparent;
-  border: none;
+  width: 40px;
+  height: 40px;
+  background: ${theme.colors.white};
+  border: 1px solid ${theme.colors.border};
+  border-radius: 10px;
   cursor: pointer;
   padding: 0.25rem;
   display: flex;
@@ -517,7 +557,7 @@ const DotMenuButton = styled.button`
 const StatsGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 1rem;
+  gap: 0.875rem;
 
   @media (max-width: 1400px) {
     grid-template-columns: repeat(2, 1fr);
@@ -530,12 +570,13 @@ const StatsGrid = styled.div`
 
 const StatCard = styled.div`
   background: ${theme.colors.white};
-  border: 1px solid ${theme.colors.border};
-  border-radius: 0.75rem;
-  padding: 1.5rem;
+  border: none;
+  border-radius: 0.625rem;
+  height: 130px;
+  padding: 0.875rem;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  justify-content: space-between;
   min-width: 0;
 `;
 
@@ -548,9 +589,10 @@ const StatHeader = styled.div`
 `;
 
 const StatLabel = styled.span`
-  font-size: 0.875rem;
-  font-family: "Inter-Medium", sans-serif;
-  color: ${theme.colors.secondaryTextColor};
+  font-size: 0.75rem;
+  font-family: "Inter-SemiBold", sans-serif;
+  font-weight: 600;
+  color: ${theme.colors.textColor};
   flex: 1;
   min-width: 0;
 `;
@@ -562,7 +604,7 @@ const PercentageBadge = styled.span`
   font-size: 0.75rem;
   font-family: "Inter-SemiBold", sans-serif;
   color: ${(props) => (props.$isPositive ? "#10B981" : "#EF4444")};
-  background: ${(props) => (props.$isPositive ? "#D1FAE5" : "#FEE2E2")};
+  background: ${(props) => (props.$isPositive ? "rgba(37, 186, 85, 0.1)" : "rgba(242, 19, 19, 0.1)")};
   padding: 0.25rem 0.5rem;
   border-radius: 15px;
   border: 1px solid ${(props) => (props.$isPositive ? "#10B981" : "#EF4444")};
@@ -572,8 +614,8 @@ const PercentageBadge = styled.span`
 
 const StatValue = styled.h3`
   font-size: 1.75rem;
-  font-weight: 600;
-  font-family: "Inter-SemiBold", sans-serif;
+  font-weight: 700;
+  font-family: "Inter-Bold", sans-serif;
   color: ${theme.colors.textColor};
   margin: 0;
   word-break: break-word;
@@ -637,7 +679,8 @@ const StatusText = styled.span`
 const ButtonRow = styled.div`
   display: flex;
   gap: 1rem;
-  padding: 1rem 0;
+  margin-top: auto;
+  padding: 0;
 `;
 
 const ResumeButton = styled.button`

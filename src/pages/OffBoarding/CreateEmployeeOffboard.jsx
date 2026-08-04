@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useOutletContext } from "react-router-dom";
 import styled from "styled-components";
 import theme from "../../theme/theme";
 import CalenderInput from "../../components/CalenderInput";
@@ -20,6 +20,7 @@ import { toast } from "react-toastify";
 
 const CreateEmployeeOffboard = () => {
   const navigate = useNavigate();
+  const { setHeaderTitle, setHeaderBackAction } = useOutletContext();
   const [formData, setFormData] = useState({
     employeeId: "",
     employee: null,
@@ -45,7 +46,13 @@ const CreateEmployeeOffboard = () => {
   ]);
 
   const [documents, setDocuments] = useState([
-    { id: 1, label: "Select Document", file: null, keepOriginal: false },
+    {
+      id: 1,
+      label: "Relieving Letter",
+      file: { name: "File Name" },
+      keepOriginal: false,
+    },
+    { id: 2, label: "Experience Letter", file: null, keepOriginal: false },
   ]);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -71,6 +78,16 @@ const CreateEmployeeOffboard = () => {
     fetchUsers();
     fetchEmployeeIds();
   }, []);
+
+  useEffect(() => {
+    setHeaderTitle("Employee Off-Board");
+    setHeaderBackAction(() => () => navigate("/admin/peopleHub/off-boarding"));
+
+    return () => {
+      setHeaderTitle("");
+      setHeaderBackAction(null);
+    };
+  }, [navigate, setHeaderBackAction, setHeaderTitle]);
 
   // Fetch all employee IDs for dropdown
   const fetchEmployeeIds = async () => {
@@ -1019,26 +1036,29 @@ export default CreateEmployeeOffboard;
 const Container = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 2rem;
+  gap: 0;
+  width: 100%;
 `;
 
 const Section = styled.div`
-  width: 80%;
+  width: min(820px, 100%);
+  padding: 0 0 2rem;
 `;
 
 const SectionTitle = styled.h2`
-  font-size: 1.125rem;
-  font-family: "Inter_18pt-Medium", sans-serif;
+  font-size: 0.875rem;
+  font-family: "Inter-SemiBold", sans-serif;
   font-weight: 600;
   color: ${theme.colors.primary};
-  margin: 0 0 1.5rem 0;
+  line-height: 1.6;
+  margin: 0 0 1.25rem;
 `;
 
 const Row = styled.div`
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 1.5rem;
-  margin-bottom: 1rem;
+  gap: 1.25rem;
+  margin-bottom: 1.25rem;
 
   &:last-child {
     margin-bottom: 0;
@@ -1068,10 +1088,10 @@ const Label = styled.label`
 `;
 
 const Divider = styled.div`
-  width: 100%;
+  width: calc(100% + 2.5rem);
   height: 1px;
   background-color: #E0E3E6;
-  margin: 1rem 0;
+  margin: 0 0 2rem -1.25rem;
 `;
 
 const AssetRow = styled.div`
@@ -1105,14 +1125,17 @@ const RemoveButton = styled.button`
 const FnFWrapper = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 2rem;
+  gap: 1.5rem;
 `;
 
 const AddMoreButton = styled.button`
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.625rem 1.25rem;
+  min-width: 154px;
+  height: 40px;
+  justify-content: center;
+  padding: 0.625rem 0.875rem;
   background: transparent;
   border: 1px solid ${theme.colors.primary};
   border-radius: 0.5rem;
@@ -1136,20 +1159,20 @@ const ButtonRow = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-top: 2rem;
-  padding-top: 2rem;
+  margin: 0 -1.25rem -1.25rem;
+  padding: 2rem 1.25rem 0;
   border-top: 1px solid ${theme.colors.border};
 `;
 
 const RightButtons = styled.div`
   display: flex;
-  gap: 1rem;
+  gap: 1.25rem;
 `;
 
 const DocumentRow = styled.div`
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 1.5rem;
+  gap: 1.25rem;
   margin-bottom: 1rem;
 
   &:last-child {

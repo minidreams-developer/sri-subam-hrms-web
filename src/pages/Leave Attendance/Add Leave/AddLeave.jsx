@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
 import styled from "styled-components";
 import theme from "../../../theme/theme";
 import { customSelectStyles } from "../../../theme/reactSelectStyles";
@@ -16,6 +16,9 @@ import { toast } from "react-toastify";
 const AddLeave = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const profileEmployee = location.state?.employee;
+  const returnTo = location.state?.returnTo || "/admin/time-hub/leaveAttendance";
 
   const leaveTypeOptions = [
     { value: "Sick Leave", label: "Sick Leave" },
@@ -63,7 +66,7 @@ const AddLeave = () => {
           label: emp.name || emp.firstName,
           employeeId: emp.employeeId,
           department: emp.department?.name || emp.department || "",
-          designation: emp.designation || "",
+          designation: emp.workInformation?.designation || emp.designation || "",
         }));
         setEmployees(formattedEmployees);
       } catch (error) {
@@ -76,6 +79,18 @@ const AddLeave = () => {
 
     fetchEmployees();
   }, []);
+
+  useEffect(() => {
+    if (!profileEmployee || employees.length === 0) return;
+
+    const profileId = profileEmployee._id || profileEmployee.id;
+    const profileEmployeeId = profileEmployee.employeeId;
+    const selected = employees.find(
+      (option) => option.value === profileId || option.employeeId === profileEmployeeId
+    );
+
+    if (selected) setEmployee(selected);
+  }, [employees, profileEmployee]);
 
   // Fetch departments on component mount
   useEffect(() => {
@@ -199,7 +214,7 @@ const AddLeave = () => {
 
       if (response) {
         toast.success("Leave request submitted successfully");
-        navigate("/admin/time-hub/leaveAttendance");
+        navigate(returnTo, { state: { activeTab: location.state?.returnTab } });
       }
     } catch (error) {
       console.error("Error submitting leave request:", error);
@@ -394,7 +409,7 @@ const AddLeave = () => {
           border={`1px solid ${theme.colors.primary}`}
           width="120px"
           radius="0.625rem"
-          onClick={() => navigate("/admin/time-hub/leaveAttendance")}
+          onClick={() => navigate(returnTo, { state: { activeTab: location.state?.returnTab } })}
           disabled={loading}
         />
       </ButtonRow>

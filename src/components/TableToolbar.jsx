@@ -33,7 +33,13 @@ const TableToolbar = ({
       <Left>
         {title ? (
           <TitleWrapper>
-            {titleIcon && <TitleIcon src={titleIcon} alt="title icon" />}
+            {titleIcon && (
+              React.isValidElement(titleIcon) ? (
+                <TitleIconBox>{titleIcon}</TitleIconBox>
+              ) : (
+                <TitleIcon src={titleIcon} alt="title icon" />
+              )
+            )}
             <Title>{title}</Title>
           </TitleWrapper>
         ) : (
@@ -134,6 +140,21 @@ const TitleWrapper = styled.div`
 const TitleIcon = styled.img`
   width: 2.5rem;
   height: 2.5rem;
+`;
+
+const TitleIconBox = styled.span`
+  width: 2.5rem;
+  height: 2.5rem;
+  display: grid;
+  place-items: center;
+  border-radius: 0.375rem;
+  background: ${theme.colors.secondaryPrimary};
+  color: ${theme.colors.primary};
+
+  svg {
+    width: 1.5rem;
+    height: 1.5rem;
+  }
 `;
 
 const Title = styled.h2`

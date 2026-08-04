@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import ReusableTable from "../../components/ReusableTable";
@@ -11,53 +11,50 @@ import PlusIcon from "../../assets/images/DashboardImages/plus-large_svgrepo.com
 import TabSwitcher from "../../components/TabSwitcher";
 import ProfileImage from "../../assets/images/employee/sampleProfile.jpg";
 import { get } from "../../helpers/api_helper";
-import { GET_OFFBOARDS, DEPARTMENTS, GET_SHIFTS } from "../../helpers/url_helper";
+import { GET_OFFBOARDS, DEPARTMENTS } from "../../helpers/url_helper";
 import { toast } from "react-toastify";
 import Filter from "../../components/filter";
 import {
-  dashboardStats,
   offboardingEmployeeColumns,
   offboardingStaffColumns,
 } from "../../utils/data";
 
+const offboardingStats = [
+  { title: "In Progress", value: "24", percent: "20.5 %", type: "up" },
+  { title: "Pending Clearance", value: "8", percent: "12 %", type: "down" },
+  { title: "FnF Pending", value: "5", percent: "20.5 %", type: "up" },
+  { title: "Completed", value: "40", percent: "20.5 %", type: "up" },
+  { title: "Avg Exit Time", value: "18", suffix: "Days", percent: "20.5 %", type: "up" },
+];
+
 const OffBoarding = () => {
   const navigate = useNavigate();
-  const stats = dashboardStats;
+  const stats = offboardingStats;
 
   const [selectedDepartment, setSelectedDepartment] = useState("All");
   const [selectedRange, setSelectedRange] = useState("Last 7 days");
   const [activeTab, setActiveTab] = useState("Employee");
   const [employeeSearch, setEmployeeSearch] = useState("");
   const [employeeDept, setEmployeeDept] = useState("All Department");
-  const [employeeShift, setEmployeeShift] = useState("All Shifts");
   const [staffSearch, setStaffSearch] = useState("");
   const [staffRole, setStaffRole] = useState("All Roles");
-  const [staffShift, setStaffShift] = useState("All Shifts");
   const [showFilter, setShowFilter] = useState(false);
-  const [appliedFilters, setAppliedFilters] = useState(null);
   
   // API state
   const [offboardingData, setOffboardingData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const pageSize = 10;
   const [totalResults, setTotalResults] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [departmentOptions, setDepartmentOptions] = useState([]);
-  const [shiftOptions, setShiftOptions] = useState([]);
-  const [loadingDepts, setLoadingDepts] = useState(false);
-  const [loadingShifts, setLoadingShifts] = useState(false);
 
   const handleFilterApply = (filters) => {
-    setAppliedFilters(filters);
     setShowFilter(false);
     console.log("Applied filters:", filters);
   };
 
-  // Fetch departments and shifts for filter dropdowns
-  const fetchDepartmentsAndShifts = async () => {
-    // Fetch departments
-    setLoadingDepts(true);
+  const fetchDepartments = async () => {
     try {
       const deptResponse = await get(DEPARTMENTS);
       console.log("Departments response:", deptResponse);
@@ -76,39 +73,15 @@ const OffBoarding = () => {
     } catch (error) {
       console.error("Error fetching departments:", error);
       toast.error("Failed to load departments");
-    } finally {
-      setLoadingDepts(false);
-    }
-
-    // Fetch shifts
-    setLoadingShifts(true);
-    try {
-      const shiftResponse = await get(GET_SHIFTS);
-      console.log("Shifts response:", shiftResponse);
-      
-      // Handle different response structures
-      const shiftList = shiftResponse?.results || shiftResponse?.data || shiftResponse || [];
-      
-      // Transform to dropdown options
-      const shiftOpts = shiftList.map((shift) => ({
-        value: shift.shiftName || shift.name || "N/A",
-        label: shift.shiftName || shift.name || "N/A",
-      }));
-      
-      setShiftOptions(shiftOpts);
-      console.log("Shift options:", shiftOpts);
-    } catch (error) {
-      console.error("Error fetching shifts:", error);
-      toast.error("Failed to load shifts");
-    } finally {
-      setLoadingShifts(false);
     }
   };
 
   // Fetch offboarding records on component mount
   useEffect(() => {
     fetchOffboardingRecords();
-    fetchDepartmentsAndShifts();
+    fetchDepartments();
+    // Both fetch functions are intentionally re-run only when pagination changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPage, pageSize]);
 
   const fetchOffboardingRecords = async () => {
@@ -157,6 +130,21 @@ const OffBoarding = () => {
     navigate("/admin/peopleHub/off-boarding/createEmployeeOffBoard");
   };
 
+  const handleExport = () => {
+    const headings = ["Employee", "Department", "Exit Type", "LWD", "FnF", "Assets", "Status"];
+    const rows = filteredEmployeeData.map((row) => [
+      row.employee.name, row.department, row.exitType, row.lwd, row.fnf, row.assets, row.status,
+    ]);
+    const csv = [headings, ...rows]
+      .map((row) => row.map((cell) => `"${String(cell ?? "").replaceAll('"', '""')}"`).join(","))
+      .join("\n");
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+    link.download = "off-boarding.csv";
+    link.click();
+    URL.revokeObjectURL(link.href);
+  };
+
   // Transform API data to table format
   const transformedEmployeeData = offboardingData.map((record) => ({
     id: record._id,
@@ -165,18 +153,21 @@ const OffBoarding = () => {
       role: record.userId?.employeeId || "N/A",
       profileImage: record.userId?.profileImage || ProfileImage,
     },
-    exitType: record.exitInformation?.exitType || "N/A",
-    exitReason: record.exitInformation?.exitReason || "N/A",
-    lastWorkingDate: record.exitInformation?.lastWorkingDate || "N/A",
-    exitApprovedBy: record.exitInformation?.exitApprovedBy || "N/A",
-    status: record.isEmailVerified ? "Verified" : "Pending",
+    department: record.userId?.department?.departmentName || record.userId?.department?.name || record.department?.name || record.department || "N/A",
+    exitType: record.exitInformation?.exitType || record.exitType || "N/A",
+    lwd: record.exitInformation?.lastWorkingDate || record.lastWorkingDate || "N/A",
+    fnf: record.clearance?.fnf || record.fnf || "Pending",
+    assets: record.clearance?.assets || record.assets || "Pending",
+    status: record.status || (record.completedAt ? "Completed" : "Pending"),
+    action: "•••",
   }));
 
   const filteredEmployeeData = transformedEmployeeData.filter((row) => {
     const m3 =
       !employeeSearch ||
       row.employee.name.toLowerCase().includes(employeeSearch.toLowerCase());
-    return m3;
+    const departmentMatches = employeeDept === "All Department" || row.department === employeeDept;
+    return m3 && departmentMatches;
   });
 
   // For staff tab, use same data (can be separated if needed)
@@ -188,7 +179,7 @@ const OffBoarding = () => {
   });
 
   // Custom columns with employee renderer
-  const employeeColumnsWithRenderer = offboardingEmployeeColumns.map((col) => {
+  const employeeColumnsWithRenderer = useMemo(() => offboardingEmployeeColumns.map((col) => {
     if (col.accessor === "employee") {
       return {
         ...col,
@@ -206,8 +197,9 @@ const OffBoarding = () => {
         ),
       };
     }
+    if (col.accessor === "action") return { ...col, align: "right" };
     return col;
-  });
+  }), []);
 
   const staffColumnsWithRenderer = offboardingStaffColumns.map((col) => {
     if (col.accessor === "staff") {
@@ -227,6 +219,7 @@ const OffBoarding = () => {
         ),
       };
     }
+    if (col.accessor === "action") return { ...col, align: "right" };
     return col;
   });
 
@@ -264,6 +257,7 @@ const OffBoarding = () => {
             border={`1px solid ${theme.colors.primary}`}
             width="9.625rem"
             radius="0.625rem"
+            onClick={handleExport}
           />
         </Controls>
       </Top>
@@ -274,7 +268,7 @@ const OffBoarding = () => {
             <CardTitle>{item.title}</CardTitle>
 
             <CardFooter>
-              <CardValue>{item.value}</CardValue>
+              <CardValue>{item.value}{item.suffix && <CardSuffix>{item.suffix}</CardSuffix>}</CardValue>
 
               <Badge type={item.type}>
                 {item.percent}
@@ -306,11 +300,8 @@ const OffBoarding = () => {
             select1Options={["All Department", ...departmentOptions.map(d => d.value)]}
             select1Value={employeeDept}
             onSelect1Change={setEmployeeDept}
-            select2Options={["All Shifts", ...shiftOptions.map(s => s.value)]}
-            select2Value={employeeShift}
-            onSelect2Change={setEmployeeShift}
             filterText="Filter"
-            actionText="New OffBoarding"
+            actionText="New Off-Board"
             actionIcon={<img src={PlusIcon} alt="add" width="16" height="16" />}
             onActionClick={handleNewOffBoarding}
             onFilterClick={() => setShowFilter(true)}
@@ -325,7 +316,7 @@ const OffBoarding = () => {
             onPageChange={setCurrentPage}
             onRowClick={handleRowClick}
             server={true}
-            loading={loading}
+            isLoading={loading}
           />
         </>
       ) : (
@@ -343,9 +334,6 @@ const OffBoarding = () => {
             ]}
             select1Value={staffRole}
             onSelect1Change={setStaffRole}
-            select2Options={["All Shifts", ...shiftOptions.map(s => s.value)]}
-            select2Value={staffShift}
-            onSelect2Change={setStaffShift}
             filterText="Filter"
             actionText="New Staff"
             actionIcon={<img src={PlusIcon} alt="add" width="16" height="16" />}
@@ -361,7 +349,7 @@ const OffBoarding = () => {
             onPageChange={setCurrentPage}
             onRowClick={handleRowClick}
             server={true}
-            loading={loading}
+            isLoading={loading}
           />
         </>
       )}
@@ -378,20 +366,27 @@ const OffBoarding = () => {
 
 const Container = styled.div`
   width: 100%;
-  padding: 1.5rem 0;
+  padding: 0;
 `;
 
 const StatsGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 1rem;
-  margin-bottom: 1.5rem;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 1.25rem;
+  margin-bottom: 1.25rem;
+
+  @media (max-width: 1200px) { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  @media (max-width: 760px) { grid-template-columns: 1fr; }
 `;
 
 const StatCard = styled.div`
   background: #ffffff;
-  padding: 0.704rem;
+  min-height: 132px;
+  padding: 15px;
   border-radius: 0.625rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 `;
 
 const CardTitle = styled.p`
@@ -399,7 +394,7 @@ const CardTitle = styled.p`
   color: ${theme.colors.textColor};
   font-weight: 600;
   font-family: "Inter-SemiBold", sans-serif;
-  margin-bottom: 3.125rem;
+  margin: 0;
 `;
 
 const CardFooter = styled.div`
@@ -414,6 +409,12 @@ const CardValue = styled.h2`
   font-family: "Inter-Bold", sans-serif;
   color: ${theme.colors.textColor};
   margin: 0;
+`;
+
+const CardSuffix = styled.span`
+  margin-left: 0.4rem;
+  font-size: 0.75rem;
+  font-weight: 500;
 `;
 
 const Badge = styled.div`
@@ -439,7 +440,7 @@ const Top = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin: 0 0 1.25rem 0;
+  margin: 0 0 1rem 0;
 `;
 
 const TopTitle = styled.h3`
@@ -458,7 +459,7 @@ const Controls = styled.div`
 `;
 
 const FilterSelect = styled.div`
-  width: 12rem;
+  width: 11.5rem;
 `;
 
 const EmployeeCell = styled.div`

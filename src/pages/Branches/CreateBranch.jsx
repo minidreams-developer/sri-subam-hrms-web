@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import theme from "../../theme/theme";
 import InputComponent from "../../components/InputComponent";
@@ -8,13 +8,16 @@ import Button from "../../components/Button";
 import Select from "react-select";
 import { customSelectStyles } from "../../theme/reactSelectStyles";
 import { IoArrowBack } from "react-icons/io5";
-import { post, get } from "../../helpers/api_helper";
+import { post, get, put } from "../../helpers/api_helper";
 import { CREATE_BRANCH, GENERATE_BRANCH_ID, DEPARTMENTS, GET_SHIFTS, GET_ALL_EMPLOYEES } from "../../helpers/url_helper";
 import { toast } from "react-toastify";
 import { stateDistrictMap, stateOptions } from "../../utils/statesAndDistricts";
 
 const CreateBranch = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const editBranch = location.state?.mode === "edit" ? location.state.branch : null;
+  const isEditMode = Boolean(editBranch);
   const [isLoading, setIsLoading] = useState(false);
   const [departmentsLoading, setDepartmentsLoading] = useState(false);
   const [shiftsLoading, setShiftsLoading] = useState(false);
@@ -24,33 +27,43 @@ const CreateBranch = () => {
   const [shiftOptions, setShiftOptions] = useState([]);
   const [branchHeadOptions, setBranchHeadOptions] = useState([]);
   
-  const [formData, setFormData] = useState({
-    branchNumber: "",
-    name: "",
-    branchType: null,
-    branchStatus: null,
-    effectiveFromDate: null,
-    branchHead: null,
-    phoneNumber: "",
-    emergencyContact: "",
-    email: "",
-    address: "",
-    city: "",
-    district: null,
-    state: null,
-    pinCode: "",
-    geoLocation: "",
-    selectDepartments: null,
-    selectShifts: null,
-  });
+  const [formData, setFormData] = useState(() => ({
+    branchNumber: editBranch?.branchNumber || "",
+    name: editBranch?.branchName || editBranch?.name || "",
+    branchType: editBranch?.branchType
+      ? { value: editBranch.branchType, label: editBranch.branchType }
+      : null,
+    branchStatus: editBranch?.branchStatus || editBranch?.status
+      ? { value: editBranch.branchStatus || editBranch.status, label: editBranch.branchStatus || editBranch.status }
+      : null,
+    effectiveFromDate: editBranch?.effectiveFromDate || editBranch?.effectiveDate || null,
+    branchHead: editBranch?.branchHead
+      ? { value: editBranch.branchHead?.id || editBranch.branchHead?._id || editBranch.branchHead, label: editBranch.branchHead?.name || String(editBranch.branchHead) }
+      : null,
+    phoneNumber: editBranch?.phoneNumber || "",
+    emergencyContact: editBranch?.emergencyContact || editBranch?.emergencyContactNumber || "",
+    email: editBranch?.email || "",
+    address: editBranch?.address || "",
+    city: editBranch?.city || "",
+    district: editBranch?.district ? { value: editBranch.district, label: editBranch.district } : null,
+    state: editBranch?.state ? { value: editBranch.state, label: editBranch.state } : null,
+    pinCode: editBranch?.pinCode || editBranch?.pincode || "",
+    geoLocation: editBranch?.geoLocation || "",
+    selectDepartments: editBranch?.departments
+      ? { value: Array.isArray(editBranch.departments) ? editBranch.departments.map((item) => item.id || item._id || item) : editBranch.departments, label: "Assigned departments" }
+      : null,
+    selectShifts: editBranch?.shifts
+      ? { value: Array.isArray(editBranch.shifts) ? editBranch.shifts.map((item) => item.id || item._id || item) : editBranch.shifts, label: "Assigned shifts" }
+      : null,
+  }));
 
   // Generate branch number and fetch dropdown data on component mount
   useEffect(() => {
-    generateBranchNumber();
+    if (!isEditMode) generateBranchNumber();
     fetchDepartments();
     fetchShifts();
     fetchBranchHeads();
-  }, []);
+  }, [isEditMode]);
 
   const generateBranchNumber = async () => {
     try {
@@ -204,7 +217,7 @@ const CreateBranch = () => {
   };
 
   const handleCancel = () => {
-    navigate("/admin/people/branch");
+    navigate("/admin/peopleHub/branch");
   };
 
   const handleNext = async () => {
@@ -250,17 +263,20 @@ const CreateBranch = () => {
         shifts: formData.selectShifts?.value,
       };
 
-      const response = await post(CREATE_BRANCH, payload);
+      const branchId = editBranch?.id || editBranch?._id || editBranch?.branchNumber;
+      const response = isEditMode
+        ? await put(`${CREATE_BRANCH}/${branchId}`, payload)
+        : await post(CREATE_BRANCH, payload);
 
       if (response) {
-        toast.success("Branch created successfully!");
+        toast.success(isEditMode ? "Branch updated successfully!" : "Branch created successfully!");
         navigate("/admin/peopleHub/branch");
       }
     } catch (error) {
       const errorMessage =
         error.response?.data?.message ||
         error.message ||
-        "Failed to create branch. Please try again.";
+        `Failed to ${isEditMode ? "update" : "create"} branch. Please try again.`;
       toast.error(errorMessage);
       console.error("Create branch error:", error);
     } finally {
@@ -274,7 +290,7 @@ const CreateBranch = () => {
         <BackButton onClick={handleBack}>
           <IoArrowBack size={20} />
         </BackButton>
-        <Title>Create New Branch</Title>
+        <Title>{isEditMode ? "Edit Branch" : "Create New Branch"}</Title>
       </Header>
 
       <FormContainer>

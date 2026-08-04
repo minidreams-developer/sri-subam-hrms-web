@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import styled from "styled-components";
-import { FiDownload, FiX } from "react-icons/fi";
+import styled, { createGlobalStyle } from "styled-components";
+import { FiDownload, FiMinus, FiPlus, FiX } from "react-icons/fi";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 
@@ -187,22 +187,26 @@ const AllContractorsReport = () => {
 
   return (
     <ReportWrapper>
+      <FigmaStyles />
       <ReportHeader>
-        <HeaderLeft>
-          <ReportTitle>All Contractors Summary Report</ReportTitle>
-          <ReportSubtitle>{period}</ReportSubtitle>
-        </HeaderLeft>
+        <ZoomControl aria-label="Report zoom controls">
+          <ZoomButton type="button" aria-label="Zoom out"><FiMinus /></ZoomButton>
+          <ZoomValue>100%</ZoomValue>
+          <ZoomButton type="button" aria-label="Zoom in"><FiPlus /></ZoomButton>
+        </ZoomControl>
+        <ReportTitle>All Contractors Summary - {period}.pdf</ReportTitle>
         <HeaderRight>
+          <CloseButton type="button" onClick={() => navigate("/admin/contractors/contractors")}>
+            <FiX size={16} /> Close
+          </CloseButton>
           <DownloadButton onClick={handleDownloadPDF}>
-            <FiDownload size={18} />
+            <FiDownload size={16} />
             Download Report
           </DownloadButton>
-          <CloseButton onClick={() => navigate("/admin/contractors/contractors")}>
-            <FiX size={20} />
-          </CloseButton>
         </HeaderRight>
       </ReportHeader>
 
+      <ContentArea>
       <ReportContent id="report-content">
         {/* Report Header */}
         <PDFHeader>
@@ -386,6 +390,7 @@ const AllContractorsReport = () => {
           </FooterItem>
         </ReportFooter>
       </ReportContent>
+      </ContentArea>
     </ReportWrapper>
   );
 };
@@ -697,6 +702,213 @@ const LoadingContainer = styled.div`
   font-size: 1.1rem;
   color: #666;
   font-family: "Inter", sans-serif;
+`;
+
+const ContentArea = styled.main`
+  flex: 1;
+  overflow: auto;
+  padding: 40px 24px 56px;
+  background: #f4f7f8;
+`;
+
+const ZoomControl = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  background: #f3f4f6;
+`;
+
+const ZoomButton = styled.button`
+  display: grid;
+  width: 26px;
+  height: 26px;
+  padding: 4px;
+  place-items: center;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: #374151;
+  cursor: pointer;
+`;
+
+const ZoomValue = styled.span`
+  width: 48px;
+  color: #111827;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+`;
+
+const FigmaStyles = createGlobalStyle`
+  ${ReportWrapper} {
+    height: 100vh;
+    background: #f4f7f8;
+    font-family: "Inter", sans-serif;
+  }
+
+  ${ReportHeader} {
+    position: relative;
+    z-index: 2;
+    min-height: 64px;
+    box-sizing: border-box;
+    padding: 0 24px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    box-shadow: 0 1px 1.5px rgba(0, 0, 0, 0.05);
+  }
+
+  ${ReportTitle} {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    max-width: 42vw;
+    overflow: hidden;
+    color: #111827;
+    font-size: 16px;
+    font-weight: 600;
+    line-height: normal;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  ${HeaderRight} { gap: 12px; }
+
+  ${CloseButton}, ${DownloadButton} {
+    display: flex;
+    height: 36px;
+    box-sizing: border-box;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+  }
+
+  ${CloseButton} {
+    padding: 0 17px;
+    border: 1px solid #d1d5db;
+    color: #374151;
+    background: #fff;
+  }
+
+  ${DownloadButton} {
+    padding: 0 20px;
+    background: #ef4444;
+  }
+
+  ${ReportContent} {
+    width: 960px;
+    min-height: 1502px;
+    box-sizing: border-box;
+    margin: 0 auto;
+    padding: 64px;
+    overflow: visible;
+    background: #fff;
+    box-shadow: 0 10px 15px -3px rgba(0,0,0,.1), 0 4px 6px -2px rgba(0,0,0,.05);
+  }
+
+  ${PDFHeader} {
+    position: relative;
+    box-sizing: border-box;
+    min-height: 121px;
+    margin: 0 0 16px;
+    padding: 0 0 26px;
+    align-items: flex-start;
+    gap: 12px;
+    border-bottom: 2px solid #111827;
+    box-shadow: none;
+  }
+
+  ${CompanyLogo} {
+    display: grid;
+    width: 32px;
+    height: 32px;
+    flex: 0 0 32px;
+    place-items: center;
+    color: #2563eb;
+    font-size: 27px;
+    line-height: 1;
+  }
+
+  ${CompanyInfo} { gap: 8px; }
+  ${CompanyName} { color: #111827; font-size: 24px; line-height: normal; }
+  ${ReportName} { color: #374151; font-size: 20px; font-weight: 600; }
+
+  ${HeaderMeta} {
+    min-width: 258px;
+    padding: 0;
+    border: 0;
+    gap: 8px;
+  }
+
+  ${MetaItem} { display: grid; grid-template-columns: 122px 1fr; gap: 8px; }
+  ${MetaLabel} { color: #6b7280; font-size: 15px; font-weight: 600; text-align: right; text-transform: none; }
+  ${MetaLabel}::after { content: ":"; }
+  ${MetaValue} { color: #111827; font-size: 15px; font-weight: 700; }
+  ${Divider} { display: none; }
+
+  ${Section} {
+    margin: 0 0 16px;
+    padding: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  ${SectionTitle} {
+    box-sizing: border-box;
+    margin: 0 0 16px;
+    padding: 10px 16px 10px 20px;
+    border-left: 4px solid #edab18;
+    background: #f3f4f6;
+    color: #111827;
+    font-size: 18px;
+    line-height: normal;
+  }
+
+  ${TableWrapper} { margin: 0; overflow: visible; }
+  ${Table} { border-collapse: collapse; color: #111827; font-size: 16px; table-layout: auto; }
+  ${TableRow} { border: 0; }
+  ${TableHeaderCell}, ${TableCell} {
+    box-sizing: border-box;
+    height: 46px;
+    padding: 12px 16px;
+    border: 1px solid #d1d5db;
+    color: #111827;
+    font-size: 16px;
+    line-height: 21px;
+  }
+  ${TableHeaderCell} { background: #f9fafb; color: #374151; font-weight: 700; }
+  ${TableCell} { font-weight: 400; }
+  ${TableHeaderCell}:nth-last-child(-n+3), ${TableCell}:nth-last-child(-n+3) { text-align: right; }
+  ${TableCell}:nth-child(2) { font-weight: 700; }
+  ${TableRow}[class*="isTotalRow"] { background: #f3f4f6; }
+  ${TableCell}[class*="highlight"] { color: #dc2626; font-weight: 700; }
+
+  ${ReportFooter} {
+    margin: 36px 0 0;
+    padding: 0 30px;
+    justify-content: space-between;
+    box-shadow: none;
+  }
+  ${FooterItem} { gap: 34px; }
+  ${FooterLabel} { color: #111827; font-size: 14px; }
+  ${FooterLine} { width: 160px; background: #6b7280; }
+
+  @media (max-width: 760px) {
+    ${ReportHeader} { padding: 0 12px; }
+    ${ReportTitle} { display: none; }
+    ${ZoomControl} { gap: 4px; }
+    ${CloseButton} { padding: 0 10px; }
+    ${DownloadButton} { padding: 0 12px; }
+  }
+
+  @media print {
+    ${ReportHeader}, ${ContentArea} { padding: 0; }
+    ${ReportHeader} { display: none; }
+    ${ReportContent} { width: 100%; min-height: 0; box-shadow: none; }
+  }
 `;
 
 export default AllContractorsReport;

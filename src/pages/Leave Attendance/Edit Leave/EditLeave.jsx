@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import theme from "../../../theme/theme";
 import { customSelectStyles } from "../../../theme/reactSelectStyles";
@@ -7,21 +8,28 @@ import Select from "react-select";
 import { Label } from "reactstrap";
 import CalenderInput from "../../../components/CalenderInput";
 import TimeInputComponent from "../../../components/TimeInputComponent";
+import Button from "../../../components/Button";
 
 const EditLeave = () => {
-  const options = [
-    { value: "John Doe", label: "John Doe" },
-    { value: "Jane Smith", label: "Jane Smith" },
-    { value: "Bob Johnson", label: "Bob Johnson" },
-  ];
+  const location = useLocation();
+  const navigate = useNavigate();
+  const profileEmployee = location.state?.employee;
+  const returnTo = location.state?.returnTo || "/admin/time-hub/leaveAttendance";
+  const employeeOption = profileEmployee ? {
+    value: profileEmployee._id || profileEmployee.id,
+    label: profileEmployee.name || profileEmployee.firstName || "Employee",
+  } : null;
+  const options = employeeOption ? [employeeOption] : [];
 
   const leaveOptions = [
+    { value: "Sick Leave", label: "Sick Leave" },
+    { value: "Casual Leave", label: "Casual Leave" },
+    { value: "Annual Leave", label: "Annual Leave" },
     { value: "Permission", label: "Permission" },
-    { value: "Leave", label: "Leave" },
   ];
 
-  const [employee, setEmployee] = useState(null);
-  const [employeeId, setEmployeeId] = useState("");
+  const [employee, setEmployee] = useState(employeeOption);
+  const [employeeId, setEmployeeId] = useState(profileEmployee?.employeeId || "");
   const [date, setDate] = useState(null);
   const [fromDate, setFromDate] = useState(null);
   const [toDate, setToDate] = useState(null);
@@ -72,9 +80,11 @@ const EditLeave = () => {
         <Col>
           <InputComponent
             label="Position"
-            placeholder="Enter Employee ID"
+            placeholder="Position"
+            value={profileEmployee?.workInformation?.designation || profileEmployee?.designation || ""}
             labelMargin="0 0 0.625rem 0"
             height="45px"
+            disabled
           />
         </Col>
         <Col>
@@ -92,11 +102,17 @@ const EditLeave = () => {
           </Label>
           <Select
             id="employeeSelect"
-            options={options}
-            value={employee}
+            options={profileEmployee?.department ? [{
+              value: profileEmployee.department?._id || profileEmployee.department,
+              label: profileEmployee.department?.name || profileEmployee.department,
+            }] : []}
+            value={profileEmployee?.department ? {
+              value: profileEmployee.department?._id || profileEmployee.department,
+              label: profileEmployee.department?.name || profileEmployee.department,
+            } : null}
             placeholder="Select Department"
             styles={customSelectStyles}
-            isSearchable
+            isDisabled
           />
         </Col>
       </Row>
@@ -183,6 +199,24 @@ const EditLeave = () => {
           />
         </Col>
       </Row>
+      <ButtonRow>
+        <Button
+          text="Update"
+          bg={theme.colors.primary}
+          color={theme.colors.white}
+          width="120px"
+          radius="0.625rem"
+        />
+        <Button
+          text="Cancel"
+          bg={theme.colors.white}
+          color={theme.colors.primary}
+          border={`1px solid ${theme.colors.primary}`}
+          width="120px"
+          radius="0.625rem"
+          onClick={() => navigate(returnTo, { state: { activeTab: location.state?.returnTab } })}
+        />
+      </ButtonRow>
     </Container>
   );
 };
@@ -255,4 +289,10 @@ const TextArea = styled.textarea`
     color: ${theme.colors.textGray || "#9ca3af"};
     font-family: "Inter", sans-serif;
   }
+`;
+
+const ButtonRow = styled.div`
+  display: flex;
+  gap: 1rem;
+  margin-top: 2rem;
 `;

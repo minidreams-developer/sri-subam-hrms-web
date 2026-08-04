@@ -2,10 +2,13 @@ import React, { useState, useEffect } from "react";
 import styled from "styled-components";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { MdMenu, MdKeyboardArrowUp, MdKeyboardArrowDown } from "react-icons/md";
+import { FiBell } from "react-icons/fi";
 import theme from "../../theme/theme";
 import SidebarItems from "../SidebarItem";
+import SearchInputComponent from "../SearchInputComponent";
 import { getStoredAuthUser } from "../../helpers/auth_helper";
 import MainLogo from "../../assets/images/DashboardImages/main_logo.svg";
+import sampleProfile from "../../assets/images/employee/sampleProfile.jpg";
 
 // Helper function to check if user has permission for a module
 const hasModulePermission = (permissions, moduleKey) => {
@@ -32,6 +35,7 @@ const getModuleKeyFromMenuItem = (menuName, isSubmenu = false, submenuName = nul
     "Time Hub": "attendance", // Parent key
     "Pay Hub": "payroll", // Parent key
     Settings: "generalSettings", // Parent key
+    Help: "help",
   };
 
   const submenuNameToModuleMap = {
@@ -49,6 +53,7 @@ const getModuleKeyFromMenuItem = (menuName, isSubmenu = false, submenuName = nul
     "Off-Boarding": "offBoarding",
     // Time Hub submenus
     Attendance: "attendance",
+    Timesheet: "timesheet",
     "Leave Attendance": "leaveAttendance",
     "Shift Management": "shiftManagement",
     "Overtime Management": "overtimeManagement",
@@ -108,11 +113,57 @@ const filterSidebarItems = (items, userPermissions) => {
     .filter(Boolean);
 };
 
+const normalizePath = (path = "") => {
+  const normalized = path.replace(/\/+$/, "").toLowerCase();
+  return normalized || "/";
+};
+
+const pathMatches = (pathname, pattern) => {
+  const currentParts = normalizePath(pathname).split("/").filter(Boolean);
+  const patternParts = normalizePath(pattern).split("/").filter(Boolean);
+
+  if (currentParts.length < patternParts.length) return false;
+
+  return patternParts.every(
+    (part, index) => part.startsWith(":") || part === currentParts[index],
+  );
+};
+
+const getActiveSubmenu = (items, pathname, locationState) => {
+  const current = normalizePath(pathname);
+
+  // Employee creation is shared by Onboarding and Employees. Navigation state
+  // tells us which sidebar entry launched it; direct links default to Onboarding.
+  if (current === "/admin/peoplehub/employees/create") {
+    return locationState?.from === "employees" ? "Employees" : "Onboarding";
+  }
+
+  let bestMatch = null;
+  let bestSpecificity = -1;
+
+  items.forEach((item) => {
+    [item.path, ...(item.activePaths || [])].filter(Boolean).forEach((pattern) => {
+      if (pathMatches(current, pattern)) {
+        const specificity = normalizePath(pattern).split("/").length;
+        if (specificity > bestSpecificity) {
+          bestMatch = item.name;
+          bestSpecificity = specificity;
+        }
+      }
+    });
+  });
+
+  return bestMatch;
+};
+
 const AdminLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [user, setUser] = useState(null);
   const [expandedMenu, setExpandedMenu] = useState({});
   const [visibleSidebarItems, setVisibleSidebarItems] = useState(SidebarItems);
+  const [headerTitle, setHeaderTitle] = useState("");
+  const [headerBackAction, setHeaderBackAction] = useState(null);
+  const [globalSearch, setGlobalSearch] = useState("");
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -147,6 +198,11 @@ const AdminLayout = () => {
     }
   }, []);
 
+  useEffect(() => {
+    setHeaderTitle("");
+    setHeaderBackAction(null);
+  }, [location.pathname]);
+
   const toggleSubmenu = (name, isExpanded) => {
     setExpandedMenu((prev) => ({
       ...prev,
@@ -179,15 +235,12 @@ const AdminLayout = () => {
         <SidebarNav>
           {visibleSidebarItems.map((item, index) => {
             const hasSubmenu = item.submenu && item.submenu.length > 0;
-            const isParentActive =
-              hasSubmenu &&
-              item.submenu.some(
-                (sub) =>
-                  location.pathname === sub.path ||
-                  location.pathname.startsWith(sub.path),
-              );
+            const activeSubmenu = hasSubmenu
+              ? getActiveSubmenu(item.submenu, location.pathname, location.state)
+              : null;
+            const isParentActive = Boolean(activeSubmenu);
             const isActive = item.path
-              ? location.pathname === item.path
+              ? pathMatches(location.pathname, item.path)
               : isParentActive;
             const isExpanded =
               expandedMenu[item.name] !== undefined
@@ -227,22 +280,7 @@ const AdminLayout = () => {
                 {hasSubmenu && isExpanded && sidebarOpen && (
                   <SubMenuContainer>
                     {item.submenu.map((subItem, subIndex) => {
-                      const current = location.pathname.replace(/\/+$/, "");
-                      const target = (subItem.path || "").replace(/\/+$/, "");
-
-                      let isSubActive = current === target;
-
-                      if (subItem.name === "Employees") {
-                        isSubActive =
-                          current === target ||
-                          (current === "/admin/peopleHub/employees/create" &&
-                            location.state?.from === "employees");
-                      } else if (subItem.name === "Onboarding") {
-                        isSubActive =
-                          current === target ||
-                          (current === "/admin/peopleHub/employees/create" &&
-                            location.state?.from === "onboarding");
-                      }
+                      const isSubActive = activeSubmenu === subItem.name;
 
                       return (
                         <SubMenuItem
@@ -270,6 +308,11 @@ const AdminLayout = () => {
       <MainContent open={sidebarOpen}>
         <Header>
           <CoverLeft>
+            {headerBackAction && (
+              <HeaderBackButton type="button" aria-label="Go back" onClick={headerBackAction}>
+                <span>←</span>
+              </HeaderBackButton>
+            )}
             <Hamburger
               onClick={() => setSidebarOpen(!sidebarOpen)}
               title="Sidebar is fixed width"
@@ -277,20 +320,35 @@ const AdminLayout = () => {
               <MdMenu />
             </Hamburger>
             <TextWrap>
-              <HeaderTitle>{getPageTitle()}</HeaderTitle>
+              <HeaderTitle>{headerTitle || getPageTitle()}</HeaderTitle>
               <SubHead></SubHead>
             </TextWrap>
           </CoverLeft>
-          <RightCover>
-            <Profile src={null} alt="profile" />
-            <TextWrap>
-              <Name>{user?.name || user?.username || "Admin"}</Name>
-              <Role>{user?.role || "Admin"}</Role>
-            </TextWrap>
-          </RightCover>
+          <HeaderActions>
+            <GlobalSearch>
+              <SearchInputComponent
+                placeholder="Global Search"
+                value={globalSearch}
+                onSearchChange={setGlobalSearch}
+                width="356px"
+                height="40px"
+              />
+            </GlobalSearch>
+            <NotificationButton type="button" aria-label="Notifications">
+              <FiBell />
+            </NotificationButton>
+            <HeaderDivider />
+            <RightCover>
+              <Profile src={sampleProfile} alt="profile" />
+              <TextWrap>
+                <Name>{user?.name || user?.username || "Manoj Kumar"}</Name>
+                <Role>{user?.role || "Admin"}</Role>
+              </TextWrap>
+            </RightCover>
+          </HeaderActions>
         </Header>
         <Content>
-          <Outlet />
+          <Outlet context={{ setHeaderTitle, setHeaderBackAction }} />
         </Content>
       </MainContent>
     </LayoutContainer>
@@ -311,7 +369,7 @@ const Sidebar = styled.div`
   display: flex;
   flex-direction: column;
   padding: ${(props) => (props.open ? "1.5rem 1.25rem" : "1.5rem 0.75rem")};
-  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+  box-shadow: none;
   overflow-y: auto;
   position: relative;
   transition: width 0.3s ease, padding 0.3s ease;
@@ -330,14 +388,14 @@ const Sidebar = styled.div`
 const LogoSection = styled.div`
   display: flex;
   align-items: center;
-  margin: 0 0 ${(props) => (props.open ? "2.5rem" : "1.5rem")} 0;
+  margin: 0 0 24px 0;
   justify-content: ${(props) => (props.open ? "flex-start" : "center")};
   gap: 0.75rem;
 `;
 
 const Logo = styled.img`
-  height: 2rem;
-  width: auto;
+  height: 40px;
+  width: ${(props) => (props.open ? "226px" : "40px")};
   object-fit: contain;
   cursor: pointer;
 `;
@@ -355,16 +413,21 @@ const SidebarNav = styled.ul`
 
   -ms-overflow-style: none;
   scrollbar-width: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 `;
 
 const SidebarItem = styled.li`
   display: flex;
   align-items: center;
   justify-content: ${(props) => (props.open ? "space-between" : "center")};
-  padding: 0.75rem ${(props) => (props.open ? "0.938rem" : "0.625rem")};
+  min-height: 40px;
+  box-sizing: border-box;
+  padding: 8px ${(props) => (props.open ? "15px" : "10px")};
   border: none;
-  border-radius: 4px;
-  margin: 0 0 0.625rem 0;
+  border-radius: 6px;
+  margin: 0;
   cursor: pointer;
   white-space: nowrap;
 
@@ -406,7 +469,7 @@ const ItemContent = styled.div`
 
   span {
     font-family: "Inter", sans-serif;
-    font-weight: 600;
+    font-weight: 500;
     font-size: 14px;
     line-height: 160%;
   }
@@ -469,8 +532,10 @@ const MainContent = styled.div`
 `;
 
 const Header = styled.header`
+  min-height: 90px;
+  box-sizing: border-box;
   background-color: ${theme.colors.bgColor};
-  padding: 1.25rem;
+  padding: 20px;
   border-bottom: 1px solid #e0e3e6;
   display: flex;
   align-items: center;
@@ -481,7 +546,7 @@ const Header = styled.header`
 const CoverLeft = styled.div`
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 10px;
 `;
 
 const Hamburger = styled.button`
@@ -490,11 +555,33 @@ const Hamburger = styled.button`
   font-size: 1.5rem;
   cursor: pointer;
   color: ${theme.colors.textColor};
+
+  @media (min-width: 769px) {
+    display: none;
+  }
+`;
+
+const HeaderBackButton = styled.button`
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  color: ${theme.colors.textColor};
+  cursor: pointer;
+
+  span {
+    font-family: "Inter", sans-serif;
+    font-size: 20px;
+    line-height: 1;
+  }
 `;
 
 const HeaderTitle = styled.h2`
   font-size: 1.125rem;
-  font-weight: 700;
+  font-weight: 600;
   font-family: "Inter", sans-serif;
   line-height: 160%;
   color: ${theme.colors.textColor};
@@ -506,6 +593,44 @@ const Content = styled.main`
   padding: 1.25rem;
   background-color: ${theme.colors.bgColor};
   overflow-y: auto;
+`;
+
+const HeaderActions = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  min-width: 0;
+`;
+
+const GlobalSearch = styled.div`
+  width: 356px;
+
+  @media (max-width: 1050px) {
+    display: none;
+  }
+`;
+
+const NotificationButton = styled.button`
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  color: ${theme.colors.primary};
+  cursor: pointer;
+
+  svg {
+    width: 20px;
+    height: 20px;
+  }
+`;
+
+const HeaderDivider = styled.div`
+  width: 1px;
+  height: 40px;
+  background: #e0e3e6;
 `;
 
 const TextWrap = styled.div`
@@ -536,7 +661,7 @@ const Profile = styled.img`
 `;
 
 const Name = styled.p`
-  font-size: 1rem;
+  font-size: 16px;
   font-weight: 600;
   font-family: "Inter", sans-serif;
   line-height: 160%;

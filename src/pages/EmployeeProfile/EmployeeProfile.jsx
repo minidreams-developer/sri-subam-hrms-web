@@ -10,9 +10,11 @@ import Assets from "../../components/assets";
 import { get } from "../../helpers/api_helper";
 import { GET_EMPLOYEES_BY_ROLE } from "../../helpers/url_helper";
 import { toast } from "react-toastify";
+import { useLocation } from "react-router-dom";
 
 const EmployeeProfile = () => {
-  const [active, setActive] = useState("Personal Details");
+  const location = useLocation();
+  const [active, setActive] = useState(location.state?.activeTab || "Personal Details");
   const [employees, setEmployees] = useState([]);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -41,9 +43,13 @@ const EmployeeProfile = () => {
       
       setEmployees(employeeList);
       
-      // Set first employee as default
+      // Open the employee selected in the table (fall back to the first result
+      // for direct links/bookmarks).
       if (employeeList.length > 0) {
-        setSelectedEmployee(employeeList[0]);
+        const requestedId = location.state?.employeeId;
+        setSelectedEmployee(
+          employeeList.find((item) => (item.id || item._id) === requestedId) || employeeList[0]
+        );
       }
     } catch (error) {
       const errorMessage = error.response?.data?.message || error.message || "Failed to fetch employees";
@@ -73,10 +79,12 @@ const EmployeeProfile = () => {
         <Section>Loading employee data...</Section>
       ) : selectedEmployee ? (
         <>
-          {active === "Personal Details" && <PersonalDetails employee={selectedEmployee} />}
+          {active === "Personal Details" && (
+            <PersonalDetails employee={selectedEmployee} onEmployeeUpdated={setSelectedEmployee} />
+          )}
           {active === "Work Details" && <WorkDetails employee={selectedEmployee} />}
           {active === "Attendance" && <Attendance employee={selectedEmployee} />}
-          {active === "Payroll" && <PayrollComponent employee={selectedEmployee} />}
+          {active === "Payroll" && <PayrollComponent employee={selectedEmployee} onEmployeeUpdated={setSelectedEmployee} />}
           {active === "Assets" && <Assets employee={selectedEmployee} />}
           {active === "Report" && <Section>Report content</Section>}
         </>
@@ -92,6 +100,23 @@ export default EmployeeProfile;
 const Container = styled.div`
   width: 100%;
   padding: 0;
+  font-family: "Inter", "Inter-Regular", sans-serif;
+
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+
+  > div:first-child {
+    gap: 32px;
+    margin-bottom: 20px;
+
+    button {
+      padding: 8px 0 13px;
+      border-bottom-width: 3px;
+      font-family: "Inter-Medium", sans-serif;
+      font-weight: 500;
+    }
+  }
 `;
 
 const Section = styled.div`

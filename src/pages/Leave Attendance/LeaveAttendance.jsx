@@ -1,18 +1,30 @@
 import React from "react";
+import { useOutletContext } from "react-router-dom";
 import styled from "styled-components";
 import theme from "../../theme/theme";
 import Button from "../../components/Button";
 import GreenArrow from "../../assets/images/DashboardImages/green.svg";
 import RedArrow from "../../assets/images/DashboardImages/red.svg";
-import { employeeStats } from "../../utils/data";
 import TabSwitcher from "../../components/TabSwitcher";
 import EmployeeLeaves from "./Employee Leaves/EmployeeLeaves";
 import StaffLeaves from "./Staff Leaves/StaffLeaves";
 import Permissions from "./Permissions/Permissions";
 
 const LeaveAttendance = () => {
-  const stats = employeeStats;
-  const [activeTab, setActiveTab] = React.useState("Employee Leaves");
+  const { setHeaderTitle } = useOutletContext() || {};
+  const [activeTab, setActiveTab] = React.useState("Staffs Leaves");
+
+  const stats = [
+    { title: "Leaves Today", value: "286", percent: "20.5 %", type: "up" },
+    { title: "Pending Request", value: "286", percent: "20.5 %", type: "up" },
+    { title: "Approved Request", value: "36", percent: "12 %", type: "down" },
+    { title: "Rejected Request", value: "200", percent: "20.5 %", type: "up" },
+  ];
+
+  React.useEffect(() => {
+    setHeaderTitle?.("Leave Requests");
+    return () => setHeaderTitle?.("");
+  }, [setHeaderTitle]);
 
   return (
     <Container>
@@ -20,7 +32,8 @@ const LeaveAttendance = () => {
         <TopTitle>Quick Stats</TopTitle>
         <Controls>
           <FilterSelect>
-            <select className="form-select" defaultValue="Last 7 days">
+            <select className="form-select" defaultValue="Today" aria-label="Statistics period">
+              <option>Today</option>
               <option>Last 7 days</option>
               <option>Last 30 days</option>
               <option>Last 90 days</option>
@@ -74,7 +87,7 @@ export default LeaveAttendance;
 
 const Container = styled.div`
   width: 100%;
-  padding: 1.5rem 0;
+  padding: 0;
 `;
 
 const Top = styled.div`
@@ -82,7 +95,13 @@ const Top = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin: 0 0 1.25rem 0;
+  margin: 0 0 0.75rem 0;
+
+  @media (max-width: 640px) {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
 `;
 
 const TopTitle = styled.h3`
@@ -98,31 +117,60 @@ const Controls = styled.div`
   display: flex;
   align-items: center;
   gap: 0.75rem;
+
+  @media (max-width: 640px) {
+    width: 100%;
+  }
 `;
 
 const FilterSelect = styled.div`
-  width: 12rem;
+  width: 8.125rem;
+
+  select {
+    width: 100%;
+    height: 40px;
+    padding: 0 2.25rem 0 0.75rem;
+    border: 1px solid #e0e3e6;
+    border-radius: 10px;
+    background-color: ${theme.colors.white};
+    color: ${theme.colors.textColor};
+    font: 500 0.75rem/1.6 "Inter", sans-serif;
+    cursor: pointer;
+    outline: none;
+
+    &:focus {
+      border-color: ${theme.colors.primary};
+    }
+  }
 `;
 
 const StatsGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 1rem;
+  gap: 1.25rem;
   margin-bottom: 1.5rem;
+
+  @media (max-width: 680px) {
+    grid-template-columns: 1fr;
+  }
 `;
 
 const StatCard = styled.div`
   background: #ffffff;
-  padding: 0.704rem;
+  min-height: 94px;
+  padding: 0.75rem 0.875rem;
   border-radius: 0.625rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 `;
 
 const CardTitle = styled.p`
-  font-size: 0.875rem;
+  font-size: 0.75rem;
   color: ${theme.colors.textColor};
   font-weight: 600;
   font-family: "Inter-SemiBold", sans-serif;
-  margin-bottom: 3.125rem;
+  margin: 0;
 `;
 
 const CardFooter = styled.div`
@@ -132,7 +180,7 @@ const CardFooter = styled.div`
 `;
 
 const CardValue = styled.h2`
-  font-size: 2.5rem;
+  font-size: 2rem;
   font-weight: 700;
   font-family: "Inter-Bold", sans-serif;
   color: ${theme.colors.textColor};
@@ -145,7 +193,7 @@ const Badge = styled.div`
   gap: 0.3rem;
   font-size: 0.75rem;
   font-weight: 500;
-  padding: 0.2rem 0.45rem;
+  padding: 0.125rem 0.375rem;
   border-radius: 999px;
   color: ${({ type }) => (type === "up" ? "#16a34a" : "#dc2626")};
   background: ${({ type }) => (type === "up" ? "#dcfce7" : "#fee2e2")};

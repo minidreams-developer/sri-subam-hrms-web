@@ -10,6 +10,8 @@ import { get } from "../../helpers/api_helper";
 import { BRANCHES } from "../../helpers/url_helper";
 import { toast } from "react-toastify";
 import PageLoader from "../../components/PageLoader";
+import { HiBuildingOffice2 } from "react-icons/hi2";
+import { BsThreeDots } from "react-icons/bs";
 
 const Branches = () => {
   const navigate = useNavigate();
@@ -56,16 +58,16 @@ const Branches = () => {
       
       // Transform API response to match table format
       const transformedData = branchList.map((branch, index) => ({
-        no: (index + 1).toString(),
-        branchName: branch.branchName || "N/A",
+        no: `${(page - 1) * limit + index + 1}.`.padStart(3, "0"),
+        branchName: branch.branchName || branch.name || "N/A",
         branchHead: typeof branch.branchHead === 'object' 
           ? (branch.branchHead?.name || branch.branchHead?.firstName + ' ' + branch.branchHead?.lastName || "N/A")
           : (branch.branchHead || "N/A"),
         branchNumber: branch.branchNumber || branch.id || "N/A",
-        noOfPeople: branch.departments?.length || 0,
+        noOfPeople: branch.noOfPeople || branch.totalEmployees || branch.employees?.length || 0,
         status: branch.branchStatus || branch.activeStatus || "Active",
-        isPrimary: false,
-        actions: "...",
+        isPrimary: Boolean(branch.isPrimary || branch.primaryBranch || branch.branchType === "Head Office"),
+        actions: <BsThreeDots size={20} aria-label="Branch actions" />,
         // Store original data for sidebar
         originalData: branch,
       }));
@@ -86,14 +88,14 @@ const Branches = () => {
   };
 
   const branchesColumns = [
-    { key: "no", label: "No." },
+    { key: "no", label: "No" },
     { 
       key: "branchName", 
-      label: "Branches Name",
+      label: "Branch Name",
       render: (row) => (
         <BranchNameCell>
           <span>{row.branchName}</span>
-          {row.isPrimary && <PrimaryBadge>Primary</PrimaryBadge>}
+          {row.isPrimary && <PrimaryBadge>(Primary)</PrimaryBadge>}
         </BranchNameCell>
       )
     },
@@ -104,10 +106,15 @@ const Branches = () => {
     { key: "actions", label: "Action" },
   ];
 
-  const filteredData = branchesData;
+  const filteredData = branchesData.filter((branch) => {
+    const query = searchValue.trim().toLowerCase();
+    if (!query) return true;
+    return [branch.branchName, branch.branchHead, branch.branchNumber, branch.status]
+      .some((value) => String(value ?? "").toLowerCase().includes(query));
+  });
 
   const handleRowClick = (row) => {
-    setSelectedBranch(row);
+    setSelectedBranch({ ...row.originalData, ...row });
     setIsSidebarOpen(true);
   };
 
@@ -119,6 +126,13 @@ const Branches = () => {
     navigate("/admin/peopleHub/branch/createBranch");
   };
 
+  const handleEditBranch = () => {
+    if (!selectedBranch) return;
+    navigate("/admin/peopleHub/branch/createBranch", {
+      state: { mode: "edit", branch: selectedBranch },
+    });
+  };
+
   if (isLoading) {
     return <PageLoader />;
   }
@@ -127,8 +141,9 @@ const Branches = () => {
     <Container>
       <TableToolbar
         title={"All Branches"}
+        titleIcon={<HiBuildingOffice2 />}
         searchPosition="right"
-        searchPlaceholder="Search Branches"
+        searchPlaceholder="Search Agents"
         searchValue={searchValue}
         onSearchChange={setSearchValue}
         select1Value={""}
@@ -157,6 +172,7 @@ const Branches = () => {
         open={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
         data={selectedBranch}
+        onEdit={handleEditBranch}
       />
     </Container>
   );
@@ -164,6 +180,10 @@ const Branches = () => {
 
 const Container = styled.div`
   width: 100%;
+  min-height: calc(100vh - 130px);
+  padding: 1.125rem 1.25rem;
+  border-radius: 0.625rem;
+  background: ${theme.colors.white};
 `;
 
 const BranchNameCell = styled.div`

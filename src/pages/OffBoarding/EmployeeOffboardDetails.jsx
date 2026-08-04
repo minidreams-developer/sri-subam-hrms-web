@@ -1,44 +1,87 @@
+import { useEffect, useState } from "react";
+import { useNavigate, useOutletContext } from "react-router-dom";
 import styled from "styled-components";
-import { useState } from "react";
 import theme from "../../theme/theme";
 import DocIcon from "../../assets/images/employee/document.svg";
-import EditIcon from "../../assets/images/employee/editIcon.svg";
+import EditIcon from "../../assets/images/employee/edit-05_svgrepo.com.svg";
 import CardDetails from "../../components/CardDetails";
 import CardDetailsAlt from "../../components/CardDetailsAlt";
 import FileUploadComponent from "../../components/FileUploadComponent";
 import CheckboxGroup from "../../components/CheckboxGroup";
 
+const earnings = [
+  "Last Month Salary",
+  "Pending Salary",
+  "Leave Encashment",
+  "Bonus / Incentives",
+  "Reimbursements",
+];
+
+const deductions = [
+  "Notice Pay",
+  "Asset Damage",
+  "Loan Recovery",
+  "Advance Salary",
+  "Tax Adjustments",
+];
+
 export const EmployeeOffboardDetails = () => {
-  const [docFiles, setDocFiles] = useState([]);
+  const navigate = useNavigate();
+  const { setHeaderTitle, setHeaderBackAction } = useOutletContext();
+  const [docFiles, setDocFiles] = useState([
+    { label: "Aadhaar", fileName: "File Name" },
+    { label: "Aadhaar", fileName: "File Name" },
+    { label: "Aadhaar", fileName: "File Name" },
+    { label: "Aadhaar", fileName: "File Name" },
+    { label: "Aadhaar", fileName: "File Name" },
+  ]);
+
+  useEffect(() => {
+    setHeaderTitle("Employee Off-Board Details");
+    setHeaderBackAction(() => () => navigate("/admin/peopleHub/off-boarding"));
+    return () => {
+      setHeaderTitle("");
+      setHeaderBackAction(null);
+    };
+  }, [navigate, setHeaderBackAction, setHeaderTitle]);
+
+  const handleUpload = (file) => {
+    const extension = file?.name?.split(".").pop()?.toLowerCase();
+    const label = extension === "pdf" ? "PDF" : "Document";
+    setDocFiles((files) => [...files, { label, fileName: file.name }]);
+  };
 
   return (
-    <Wrapper>
+    <PageCard>
       <HeaderRow>
-        <LeftHead>
-          <IconWrap>
-            <Icon src={DocIcon} alt="offboard" />
-          </IconWrap>
-          <Title>Off-Board  Details</Title>
-        </LeftHead>
-        <EditBtn>
-          <img src={EditIcon} alt="edit" width="16" height="16" />
+        <Heading>
+          <IconWrap><img src={DocIcon} alt="" /></IconWrap>
+          <Title>Off-Board Details</Title>
+        </Heading>
+        <EditButton
+          type="button"
+          onClick={() => navigate("/admin/peopleHub/off-boarding/createEmployeeOffBoard")}
+        >
+          <img src={EditIcon} alt="" />
           Edit details
-        </EditBtn>
+        </EditButton>
       </HeaderRow>
+
       <CardDetails
-        title="Employee Information"
+        title="Employee Details"
         columns={3}
         items={[
-          { label: "Employee Name", value: "John Doe" },
           { label: "Employee ID", value: "EMP001" },
-          { label: "Designation", value: "Software Engineer" },
-          { label: "Department", value: "IT Department" },
-          { label: "Team", value: "Development Team" },
+          { label: "Employee", value: "Manoj Kumar" },
+          { label: "Date Of Joining", value: "20-09-2025" },
+          { label: "Department", value: "Senior UI/UX Designer" },
+          { label: "Designation", value: "Core UI / Design Systems" },
+          { label: "Team", value: "Design Team" },
           { label: "Reporting Manager", value: "Arun Kumar" },
-          { label: "Date Of Joining", value: "15-01-2023" },
           { label: "Work Experience", value: "3 Years 3 Months" },
         ]}
       />
+
       <CardDetails
         title="Exit Information Section"
         columns={3}
@@ -54,6 +97,7 @@ export const EmployeeOffboardDetails = () => {
           { label: "Approval Date", value: "20-09-2025" },
         ]}
       />
+
       <CardDetails
         title="Asset Management"
         columns={3}
@@ -61,178 +105,112 @@ export const EmployeeOffboardDetails = () => {
           { label: "Asset 1", value: "Laptop" },
           { label: "Condition", value: "Good" },
           { label: "Return Status", value: "Returned" },
-          { label: "Asset 1", value: "iPad" },
+          { label: "Asset 2", value: "iPad" },
           { label: "Condition", value: "Bad" },
           { label: "Return Status", value: "Pending" },
         ]}
       />
-      
-      <FnFSection>
-        <FnFTitle>Final Settlement (FnF) Details</FnFTitle>
-        
-        <FnFContent>
-          <CheckboxGroup
-            title="Earnings"
-            options={[
-              "Last Month Salary",
-              "Pending Salary",
-              "Leave Encashment",
-              "Bonus / Incentives",
-              "Reimbursements",
-            ]}
-            defaultChecked={[]}
-          />
-          
-          <CheckboxGroup
-            title="Deductions"
-            options={[
-              "Notice Pay",
-              "Asset Damage",
-              "Loan Recovery",
-              "Advance Salary",
-              "Tax Adjustments",
-            ]}
-            defaultChecked={[]}
-          />
-        </FnFContent>
-      </FnFSection>
 
-      <FnFSection>
-        <FnFTitle>Final Settlement (FnF) Details</FnFTitle>
-        
-        <FnFContent>
-                  
-          <CheckboxGroup
-            options={[
-              "10th Marksheet",
-              "12th Marksheet",
-            ]}
-          />
-        </FnFContent>
-      </FnFSection>
+      <Section>
+        <SectionTitle>Final Settlement (FnF) Details</SectionTitle>
+        <TintedPanel>
+          <CheckboxGroup title="Earnings" options={earnings} defaultChecked={["Pending Salary", "Leave Encashment", "Reimbursements"]} />
+          <CheckboxGroup title="Deductions" options={deductions} defaultChecked={deductions} />
+        </TintedPanel>
+      </Section>
 
-      <CardDetailsAlt
-        title="Documents"
-        columns={3}
-        onUpload={(file) => {
-          const name = file?.name || "";
-          const ext = name.split(".").pop()?.toLowerCase() || "";
-          const type =
-            ext === "pdf"
-              ? "PDF"
-              : ["jpg", "jpeg", "png", "gif", "bmp", "webp"].includes(ext)
-                ? "Image"
-                : ["doc", "docx"].includes(ext)
-                  ? "Word"
-                  : ["xls", "xlsx"].includes(ext)
-                    ? "Excel"
-                    : ["txt"].includes(ext)
-                      ? "Text"
-                      : ext
-                        ? ext.toUpperCase()
-                        : "File";
-          setDocFiles((prev) => [...prev, { label: type, fileName: name }]);
-        }}
-        accept="*"
-      >
-        {docFiles.map((doc, idx) => (
-          <FileUploadComponent
-            key={idx}
-            label={doc.label}
-            fileName={doc.fileName}
-          />
+      <Section>
+        <SectionTitle>Final Settlement (FnF) Details</SectionTitle>
+        <TintedPanel>
+          <CheckboxGroup title="Documents Return (Originals)" options={["10th Marksheet", "12th Marksheet"]} />
+        </TintedPanel>
+      </Section>
+
+      <CardDetailsAlt title="Documents" columns={3} onUpload={handleUpload} accept="*">
+        {docFiles.map((doc, index) => (
+          <FileUploadComponent key={`${doc.fileName}-${index}`} label={doc.label} fileName={doc.fileName} />
         ))}
       </CardDetailsAlt>
-    </Wrapper>
+    </PageCard>
   );
 };
 
-const Wrapper = styled.div`
+export default EmployeeOffboardDetails;
+
+const PageCard = styled.main`
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
-  border-radius: 12px;
+  gap: 1.5rem;
+  padding: 1.5rem 1.25rem;
+  border-radius: 10px;
   background: ${theme.colors.white};
-  border: 1px solid ${theme.colors.border};
-  padding: 1rem;
 `;
 
 const HeaderRow = styled.div`
-  width: 100%;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 1rem;
 `;
 
-const LeftHead = styled.div`
+const Heading = styled.div`
   display: flex;
   align-items: center;
   gap: 1.125rem;
 `;
 
-const IconWrap = styled.div`
+const IconWrap = styled.span`
+  width: 40px;
+  height: 40px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0.625rem;
   border-radius: 6px;
   background: ${theme.colors.secondaryPrimary};
+  img { width: 20px; height: 20px; }
 `;
 
-const Icon = styled.img`
-  width: 1.25rem;
-  height: 1.25rem;
-`;
-
-const Title = styled.h3`
-  font-size: 1.125rem;
-  font-weight: 600;
-  font-family: "Inter-SemiBold", sans-serif;
-  color: ${theme.colors.textColor};
-  line-height: 160%;
+const Title = styled.h1`
   margin: 0;
+  color: ${theme.colors.textColor};
+  font: 600 1.125rem/1.6 "Inter-SemiBold", sans-serif;
 `;
 
-const EditBtn = styled.button`
+const EditButton = styled.button`
+  width: 200px;
+  height: 40px;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.625rem;
-  height: 40px;
-  padding: 0 0.875rem;
+  border: 0;
+  border-radius: 8px;
   background: ${theme.colors.secondaryPrimary};
-  border: none;
-  border-radius: 0.5rem;
   color: ${theme.colors.primary};
-  font-size: 0.875rem;
-  font-weight: 600;
-  font-family: "Inter-SemiBold", sans-serif;
+  font: 600 0.875rem/1.6 "Inter-SemiBold", sans-serif;
   cursor: pointer;
+  img { width: 24px; height: 24px; }
 `;
 
-const FnFSection = styled.div`
-  width: 100%;
+const Section = styled.section`
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 1.25rem;
 `;
 
-const FnFTitle = styled.h3`
-  font-size: 1rem;
-  font-weight: 600;
-  font-family: "Inter-SemiBold", sans-serif;
-  color: ${theme.colors.primary};
+const SectionTitle = styled.h2`
   margin: 0;
+  color: ${theme.colors.primary};
+  font: 600 1rem/1.6 "Inter-SemiBold", sans-serif;
 `;
 
-const FnFContent = styled.div`
-  background: #EDF6F966;
-  border-radius: 8px;
-  border: 1px solid ${theme.colors.border};
-  padding: 1.25rem;
+const TintedPanel = styled.div`
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+  padding: 0.875rem 1.25rem;
+  border: 1px solid ${theme.colors.border};
+  border-radius: 10px;
+  background: rgba(237, 246, 249, 0.4);
 `;
-
-export default EmployeeOffboardDetails;

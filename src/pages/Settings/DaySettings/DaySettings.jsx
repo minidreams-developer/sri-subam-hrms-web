@@ -147,7 +147,7 @@ const DaySettings = () => {
 
   return (
     <Container>
-      <PageTitle>Day Settings</PageTitle>
+      {/* <PageTitle>Day Settings</PageTitle> */}
       <DaySettingsComponent
         onSave={handleSave}
         onCancel={handleCancel}

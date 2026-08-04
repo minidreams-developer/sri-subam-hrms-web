@@ -14,6 +14,7 @@ const CardDetails = ({
   showAdd = false,
   addText = "Add",
   uploadIcon,
+  onAdd,
 }) => {
 
   return (
@@ -26,7 +27,7 @@ const CardDetails = ({
           </TitleWrapper>
           <ButtonsRight>
             {showEdit && (
-              <EditBtn onClick={onEdit}>
+              <EditBtn type="button" onClick={onEdit}>
                 {editIcon && (
                   <img src={editIcon} alt="edit" width="16" height="16" />
                 )}
@@ -34,7 +35,7 @@ const CardDetails = ({
               </EditBtn>
             )}
             {showAdd && (
-              <AddButton>
+              <AddButton onClick={onAdd}>
                 {uploadIcon && (
                   <img src={uploadIcon} alt="add" width="16" height="16" />
                 )}

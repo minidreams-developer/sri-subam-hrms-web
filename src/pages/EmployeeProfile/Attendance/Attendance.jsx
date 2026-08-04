@@ -10,7 +10,7 @@ import TabSwitcher from "../../../components/TabSwitcher";
 import ListView from "../../../components/ListView";
 import CalendarView from "../../../components/CalendarView";
 
-export const Attendance = () => {
+export const Attendance = ({ employee }) => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("List View");
 
@@ -20,6 +20,20 @@ export const Attendance = () => {
 
   const handleEditDetails = () => {
     navigate("/admin/peopleHub/employees/attendance/edit");
+  };
+
+  const openLeaveForm = (mode) => {
+    const path = mode === "edit"
+      ? "/admin/time-hub/leaveAttendance/edit-Leave"
+      : "/admin/time-hub/leaveAttendance/add-LeaveOrPermissions";
+
+    navigate(path, {
+      state: {
+        employee,
+        returnTo: "/admin/peopleHub/employees/employeeProfile",
+        returnTab: "Attendance",
+      },
+    });
   };
 
   return (
@@ -64,11 +78,12 @@ export const Attendance = () => {
         columns={3}
         showEdit={true}
         editIcon={EditIcon}
-        editText="Edit Day"
-        onEdit={() => {}}
+        editText="Edit Leave"
+        onEdit={() => openLeaveForm("edit")}
         showAdd={true}
         uploadIcon={PlusIcon}
         addText="Add Leaves"
+        onAdd={() => openLeaveForm("add")}
         items={[
           {
             label: "Total Working Day",

@@ -1,8 +1,8 @@
 import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
+import { FiCheck } from "react-icons/fi";
 import theme from "../../theme/theme";
-import Stepper from "../../components/Stepper";
 import PersonalInfo from "./PersonalInfo/PersonalInfo";
 import AddWorkDetails from "./Work Details/AddWorkDetails";
 import Documents from "./Documents/Documents";
@@ -178,12 +178,31 @@ const CreateEmployee = () => {
 
   return (
     <Container>
-      <Stepper steps={steps} currentStep={currentStep} />
-      <div>
+      <Progress aria-label="Employee creation progress">
+        {steps.map((step, index) => {
+          const stepNumber = index + 1;
+          const isCompleted = stepNumber < currentStep;
+          const isActive = stepNumber === currentStep;
+
+          return (
+            <ProgressStep key={step}>
+              <StepContent aria-current={isActive ? "step" : undefined}>
+                <StepNumber $active={isActive} $completed={isCompleted}>
+                  {isCompleted ? <FiCheck aria-hidden="true" /> : stepNumber}
+                </StepNumber>
+                <StepLabel $active={isActive}>{step}</StepLabel>
+              </StepContent>
+              {index < steps.length - 1 && <StepLine />}
+            </ProgressStep>
+          );
+        })}
+      </Progress>
+
+      <FormContent>
         {currentStep === 1 && <PersonalInfo ref={personalInfoRef} />}
         {currentStep === 2 && <Documents ref={documentsRef} />}
         {currentStep === 3 && <AddWorkDetails ref={workDetailsRef} />}
-      </div>
+      </FormContent>
 
       <ButtonRow>
         <Button
@@ -232,7 +251,77 @@ const CreateEmployee = () => {
 
 const Container = styled.div`
   width: 100%;
-  padding: 1.5rem 0;
+  min-height: calc(100vh - 5.625rem);
+  padding: 1.5rem 0 1rem;
+`;
+
+const Progress = styled.div`
+  display: flex;
+  align-items: center;
+  width: 100%;
+  margin-bottom: 2rem;
+`;
+
+const ProgressStep = styled.div`
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  flex: 1;
+
+  &:last-child {
+    flex: 0 0 auto;
+  }
+`;
+
+const StepContent = styled.div`
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  gap: 0.75rem;
+`;
+
+const StepNumber = styled.span`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  flex: 0 0 2rem;
+  border-radius: 50%;
+  background: ${({ $active, $completed }) =>
+    $active || $completed ? theme.colors.primary : theme.colors.white};
+  color: ${({ $active, $completed }) =>
+    $active || $completed ? theme.colors.white : theme.colors.primaryGreen};
+  font-family: "Inter-SemiBold", sans-serif;
+  font-size: 0.875rem;
+  font-weight: 600;
+
+  svg {
+    width: 1.125rem;
+    height: 1.125rem;
+    stroke-width: 3;
+  }
+`;
+
+const StepLabel = styled.span`
+  color: ${({ $active }) =>
+    $active ? theme.colors.primary : theme.colors.primaryGreen};
+  font-family: "Inter_18pt-Medium", sans-serif;
+  font-size: 0.875rem;
+  font-weight: 500;
+  white-space: nowrap;
+`;
+
+const StepLine = styled.span`
+  height: 1px;
+  min-width: 2rem;
+  flex: 1;
+  margin: 0 1.5rem;
+  background: ${theme.colors.border};
+`;
+
+const FormContent = styled.div`
+  width: 100%;
 `;
 
 const ButtonRow = styled.div`
@@ -242,11 +331,27 @@ const ButtonRow = styled.div`
   padding-top: 1.5rem;
   border-top: 1px solid ${theme.colors.border};
   margin-top: 2rem;
+
+  @media (max-width: 640px) {
+    align-items: stretch;
+    flex-direction: column-reverse;
+    gap: 0.75rem;
+
+    > button,
+    > div,
+    > div > button {
+      width: 100%;
+    }
+  }
 `;
 
 const RightButtons = styled.div`
   display: flex;
   gap: 1rem;
+
+  @media (max-width: 640px) {
+    gap: 0.75rem;
+  }
 `;
 
 export default CreateEmployee;

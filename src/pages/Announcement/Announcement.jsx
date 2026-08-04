@@ -2,12 +2,17 @@ import { useState, useEffect } from "react";
 import styled from "styled-components";
 import axios from "axios";
 import { toast } from "react-toastify";
+import { FiPlus } from "react-icons/fi";
+import { useOutletContext } from "react-router-dom";
 import SearchInputComponent from "../../components/SearchInputComponent";
 import Button from "../../components/Button";
 import theme from "../../theme/theme";
 import megaphoneIcon from "../../assets/images/dashboardImages/megaphone_svgrepo.com.svg";
+import uploadIcon from "../../assets/images/Common/upload.svg";
+import Anncoment from "../../assets/Anncomnet.png"
 
 const Announcement = () => {
+  const { setHeaderTitle, setHeaderBackAction } = useOutletContext();
   const [searchQuery, setSearchQuery] = useState("");
   const [filter, setFilter] = useState("All");
   const [showNewAnnouncement, setShowNewAnnouncement] = useState(false);
@@ -22,6 +27,33 @@ const Announcement = () => {
   });
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const [isDragging, setIsDragging] = useState(false);
+  const [failedImages, setFailedImages] = useState({});
+
+  const fileToDataUrl = (file) =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => reject(new Error(`Unable to read ${file.name}`));
+      reader.readAsDataURL(file);
+    });
+
+  useEffect(() => {
+    setHeaderTitle(showNewAnnouncement ? "New Announcement" : "Announcement");
+    setHeaderBackAction(
+      showNewAnnouncement ? () => () => setShowNewAnnouncement(false) : null,
+    );
+
+    return () => {
+      setHeaderTitle("");
+      setHeaderBackAction(null);
+    };
+  }, [setHeaderBackAction, setHeaderTitle, showNewAnnouncement]);
+
+  const filteredAnnouncements = announcements.filter((announcement) =>
+    `${announcement.title} ${announcement.content}`
+      .toLowerCase()
+      .includes(searchQuery.trim().toLowerCase()),
+  );
 
   // Fetch announcements on component mount
   useEffect(() => {
@@ -149,11 +181,14 @@ const Announcement = () => {
     setIsSubmitting(true);
 
     try {
-      // Build images array from uploaded files
-      const images = uploadedFiles.map((file, index) => ({
-        imgName: file.name.split('.')[0] || `image-${index}`,
-        imgUrl: URL.createObjectURL(file.file) // In production, upload file and get URL from API
-      }));
+      // Blob URLs only live in the current browser session. Persist the file
+      // contents so announcements still render after a refresh.
+      const images = await Promise.all(
+        uploadedFiles.map(async (file, index) => ({
+          imgName: file.name.split('.')[0] || `image-${index}`,
+          imgUrl: await fileToDataUrl(file.file),
+        })),
+      );
 
       // Build payload according to API spec
       const payload = {
@@ -249,17 +284,12 @@ const Announcement = () => {
 
   if (showNewAnnouncement) {
     return (
-      <Container>
+      <NewAnnouncementPage>
         <PageHeader>
-          <Breadcrumb>
-            <Crumb onClick={() => setShowNewAnnouncement(false)} style={{cursor: 'pointer'}}>Announcement</Crumb>
-            <CrumbSeparator>›</CrumbSeparator>
-            <Crumb active>New Announcement</Crumb>
-          </Breadcrumb>
+          <FormHeading>Announcement</FormHeading>
         </PageHeader>
 
         <ContentWrapper>
-          {/* Form Sections */}
           <Section>
             <FormRow>
               <FormGroup>
@@ -278,7 +308,6 @@ const Announcement = () => {
                 <Label>Message</Label>
                 <TextArea
                   placeholder="Enter Message"
-                  rows={6}
                   value={formData.message}
                   onChange={(e) => setFormData({...formData, message: e.target.value})}
                 />
@@ -288,7 +317,6 @@ const Announcement = () => {
          
           </Section>
 
-          {/* Attachments Section */}
           <Section>
             <SectionHeader>
               <SectionTitle>Upload Files</SectionTitle>
@@ -309,9 +337,8 @@ const Announcement = () => {
                 onChange={handleFileSelect}
               />
               <DropZoneText>
-                <DropIcon>⬆️</DropIcon>
-                Click to upload or drag and drop<br />
-                Multiple files allowed
+                <DropIcon src={uploadIcon} alt="" />
+                <span>Upload Files</span>
               </DropZoneText>
             </DropZone>
 
@@ -327,39 +354,34 @@ const Announcement = () => {
             )}
           </Section>
 
-          {/* Buttons */}
           <Footer>
-            <ScheduleButton>
+            <ScheduleButton type="button">
               Schedule
             </ScheduleButton>
             <ButtonGroup>
-              <CancelButton onClick={() => setShowNewAnnouncement(false)} disabled={isSubmitting}>
+              <CancelButton type="button" onClick={() => setShowNewAnnouncement(false)} disabled={isSubmitting}>
                 Cancel
               </CancelButton>
-              <PublishButton onClick={handlePublish} disabled={isSubmitting}>
+              <PublishButton type="button" onClick={handlePublish} disabled={isSubmitting}>
                 {isSubmitting ? "Publishing..." : "Publish"}
               </PublishButton>
             </ButtonGroup>
           </Footer>
         </ContentWrapper>
-      </Container>
+      </NewAnnouncementPage>
     );
   }
 
   return (
     <Container>
-      <PageHeader>
-        <Title>Announcement</Title>
-      </PageHeader>
-
       <Toolbar>
         <SearchInputWrapper>
           <SearchInputComponent
             placeholder="Search Announcement"
             value={searchQuery}
             onSearchChange={setSearchQuery}
-            width="400px"
-            height="48px"
+            width="356px"
+            height="40px"
           />
         </SearchInputWrapper>
         <RightActions>
@@ -367,10 +389,12 @@ const Announcement = () => {
             <option value="All">All</option>
           </FilterSelect>
           <Button
-            text="+ New Announcement"
-            
+            text="New Announcement"
+            icon={<FiPlus />}
             color={theme.colors.white}
+            fontSize="14px"
             fontWeight="600"
+            radius="10px"
             onClick={() => setShowNewAnnouncement(true)}
           />
         </RightActions>
@@ -381,10 +405,10 @@ const Announcement = () => {
           <LoadingMessage>Loading announcements...</LoadingMessage>
         ) : announcementsError ? (
           <ErrorMessage>{announcementsError}</ErrorMessage>
-        ) : announcements.length === 0 ? (
+        ) : filteredAnnouncements.length === 0 ? (
           <EmptyMessage>No announcements found</EmptyMessage>
         ) : (
-          announcements.map((announcement) => (
+          filteredAnnouncements.map((announcement) => (
             <AnnouncementCard key={announcement.id}>
               <CardHeader>
                 <IconWrapper>
@@ -397,22 +421,37 @@ const Announcement = () => {
               {announcement.hasImage && announcement.images && announcement.images.length > 0 && (
                 <CardImages>
                   {announcement.images.map((image, idx) => {
-                    console.log("🖼️ Rendering image:", { imgName: image.imgName, imgUrl: image.imgUrl });
-                    return (
-                      <ImagePlaceholder 
-                        key={image._id || idx} 
-                        src={image.imgUrl}
-                        alt={image.imgName || `Image ${idx}`}
-                        title={image.imgName || `Image ${idx}`}
-                        onError={(e) => {
-                          console.error("❌ Image failed to load:", { src: image.imgUrl, error: e });
-                          e.target.style.display = 'none';
-                        }}
-                        onLoad={() => {
-                          console.log("✅ Image loaded successfully:", image.imgUrl);
-                        }}
+                    // const imageKey = image._id || `${announcement.id}-${idx}`;
+                    // const isExpiredBlob = image.imgUrl?.startsWith("blob:");
+                    // const hasFailed = failedImages[imageKey];
+
+                    return(
+                      <ImagePlaceholder
+                       src={Anncoment}
+                      
                       />
-                    );
+                    )
+
+                    // return (
+                    //   isExpiredBlob || hasFailed ? (
+                    //      <ImagePlaceholder
+                    //        src={}
+                    //      />
+                    //   ) : (
+                    //     <ImagePlaceholder
+                    //       key={imageKey}
+                    //       src={image.imgUrl}
+                    //       alt={image.imgName || `Announcement image ${idx + 1}`}
+                    //       title={image.imgName || `Announcement image ${idx + 1}`}
+                    //       onError={() =>
+                    //         setFailedImages((current) => ({
+                    //           ...current,
+                    //           [imageKey]: true,
+                    //         }))
+                    //       }
+                    //     />
+                    //   )
+                    // );
                   })}
                 </CardImages>
               )}
@@ -429,48 +468,33 @@ const Container = styled.div`
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1.25rem;
+`;
+
+const NewAnnouncementPage = styled.div`
+  min-height: calc(100vh - 110px);
+  margin: -20px;
+  display: flex;
+  flex-direction: column;
+  background: ${theme.colors.bgColor};
 `;
 
 const PageHeader = styled.div`
-  margin-bottom: 1.5rem;
+  min-height: 57px;
+  padding: 0 20px;
   display: flex;
-  justify-content: space-between;
   align-items: center;
-`;
 
-const Breadcrumb = styled.div`
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
-  font-size: 0.85rem;
-  color: #666;
-  font-family: "Inter", sans-serif;
-  font-weight: 500;
-`;
-
-const Crumb = styled.span`
-  color: ${props => props.active ? "#222" : "#666"};
-  font-family: "Inter", sans-serif;
-`;
-
-const CrumbSeparator = styled.span`
-  color: #666;
-`;
-
-const Title = styled.h2`
-  font-size: 1.75rem;
-  font-weight: 700;
-  color: #222;
-  margin: 0;
-  font-family: "Inter", sans-serif;
+  h2 {
+    margin: 0;
+  }
 `;
 
 const Toolbar = styled.div`
   display: flex;
   gap: 1rem;
   align-items: center;
-  margin-bottom: 1.5rem;
+  margin-bottom: 0;
   flex-wrap: wrap;
 
   @media (min-width: 769px) {
@@ -485,7 +509,7 @@ const Toolbar = styled.div`
 
 const SearchInputWrapper = styled.div`
   flex: 1;
-  max-width: 400px;
+  max-width: 356px;
 
   @media (max-width: 768px) {
     max-width: 100%;
@@ -494,7 +518,7 @@ const SearchInputWrapper = styled.div`
 
 const RightActions = styled.div`
   display: flex;
-  gap: 1rem;
+  gap: 1.25rem;
   align-items: center;
 
   @media (max-width: 768px) {
@@ -504,10 +528,11 @@ const RightActions = styled.div`
 `;
 
 const FilterSelect = styled.select`
-  padding: 0 1rem;
-  height: 48px;
+  width: 183px;
+  padding: 0 12px;
+  height: 40px;
   border: 1px solid ${theme.colors.border};
-  border-radius: 8px;
+  border-radius: 10px;
   font-size: 0.875rem;
   font-family: "Inter", sans-serif;
   background: white;
@@ -524,7 +549,11 @@ const FilterSelect = styled.select`
 const AnnouncementsList = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0;
+  min-height: 540px;
+  padding: 0 20px;
+  background: white;
+  border-radius: 10px;
 `;
 
 const LoadingMessage = styled.div`
@@ -552,23 +581,26 @@ const EmptyMessage = styled.div`
 
 const AnnouncementCard = styled.div`
   background: white;
-  border-radius: 8px;
-  padding: 1.25rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  padding: 20px 0 24px;
+  border-bottom: 1px solid #e0e3e6;
+
+  &:last-child {
+    border-bottom: 0;
+  }
 `;
 
 const CardHeader = styled.div`
   display: flex;
   gap: 1rem;
   align-items: flex-start;
-  margin-bottom: 0.75rem;
+  margin-bottom: 8px;
 `;
 
 const IconWrapper = styled.div`
-  width: 40px;
-  height: 40px;
-  background: #e0e7ff;
-  border-radius: 8px;
+  width: 52px;
+  height: 52px;
+  background: #edf6f9;
+  border-radius: 7px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -576,31 +608,34 @@ const IconWrapper = styled.div`
 `;
 
 const IconImage = styled.img`
-  width: 20px;
-  height: 20px;
+  width: 28px;
+  height: 28px;
 `;
 
 const CardTitle = styled.h3`
   flex: 1;
-  font-size: 0.95rem;
-  font-weight: 700;
-  color: #222;
+  font-size: 18px;
+  line-height: 1.6;
+  font-weight: 600;
+  color: #0c2427;
   margin: 0;
   font-family: "Inter", sans-serif;
 `;
 
 const CardDate = styled.span`
-  font-size: 0.8rem;
-  color: #666;
+  font-size: 16px;
+  line-height: 1.6;
+  color: #0c2427;
   font-family: "Inter", sans-serif;
   font-weight: 500;
   flex-shrink: 0;
 `;
 
 const CardContent = styled.p`
-  font-size: 0.85rem;
-  color: #555;
-  margin: 0 0 0 3.25rem;
+  font-size: 16px;
+  font-weight: 500;
+  color: #7a7a7a;
+  margin: -28px 150px 0 68px;
   line-height: 1.6;
   font-family: "Inter", sans-serif;
 `;
@@ -608,17 +643,17 @@ const CardContent = styled.p`
 const CardImages = styled.div`
   display: flex;
   gap: 0.75rem;
-  margin: 0.75rem 0 0 3.25rem;
+  margin: 16px 0 0 68px;
   flex-wrap: wrap;
 `;
 
 const ImagePlaceholder = styled.img`
-  width: 120px;
-  height: 80px;
+  width: 100px;
+  height: 100px;
   object-fit: cover;
   border-radius: 8px;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border: 1px solid #ddd;
+  border: 0;
   display: block;
   
   &:not([src]) {
@@ -626,25 +661,56 @@ const ImagePlaceholder = styled.img`
   }
 `;
 
+const UnavailableImage = styled.div`
+  width: 100px;
+  height: 100px;
+  padding: 8px;
+  box-sizing: border-box;
+  display: grid;
+  place-items: center;
+  border: 1px dashed #b1b1b1;
+  border-radius: 8px;
+  background: #f3f5f9;
+  color: #7a7a7a;
+  font-family: "Inter", sans-serif;
+  font-size: 12px;
+  line-height: 1.4;
+  text-align: center;
+`;
+
 // New Announcement Form Styles
 const ContentWrapper = styled.div`
-  background: white;
-  padding: 2rem;
-  border-radius: 8px;
+  flex: 1;
+  min-height: 0;
+  padding: 20px 20px 0;
+  display: flex;
+  flex-direction: column;
+  background: ${theme.colors.bgColor};
+`;
+
+const FormHeading = styled.h2`
+  margin: 0 0 25px;
+  color: ${theme.colors.primary};
+  font-family: "Inter", sans-serif;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.6;
 `;
 
 const Section = styled.div`
-  margin-bottom: 1.5rem;
+  width: min(820px, 100%);
+  margin-bottom: 16px;
 `;
 
 const SectionHeader = styled.div`
-  margin-bottom: 0.75rem;
+  margin-bottom: 10px;
 `;
 
 const SectionTitle = styled.h3`
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #222;
+  font-size: 14px;
+  line-height: 1.6;
+  font-weight: 500;
+  color: ${theme.colors.textColor};
   margin: 0;
   font-family: "Inter", sans-serif;
 `;
@@ -652,28 +718,36 @@ const SectionTitle = styled.h3`
 const FormRow = styled.div`
   display: grid;
   grid-template-columns: 1fr;
-  gap: 1.5rem;
-  margin-bottom: 1rem;
+  gap: 0;
+  margin-bottom: 16px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
 `;
 
 const FormGroup = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 10px;
 `;
 
 const Label = styled.label`
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: #222;
+  font-size: 14px;
+  line-height: 1.6;
+  font-weight: 500;
+  color: ${theme.colors.textColor};
   font-family: "Inter", sans-serif;
 `;
 
 const Input = styled.input`
-  padding: 0.75rem;
-  border: 1px solid ${theme.colors.border};
-  border-radius: 6px;
-  font-size: 0.9rem;
+  height: 48px;
+  padding: 9px 16px;
+  border: 1px solid #e0e3e6;
+  border-radius: 10px;
+  font-size: 14px;
+  line-height: 1.6;
+  font-weight: 500;
   font-family: "Inter", sans-serif;
   transition: all 0.2s;
   background: white;
@@ -692,16 +766,19 @@ const Input = styled.input`
 `;
 
 const TextArea = styled.textarea`
-  padding: 0.75rem;
-  border: 1px solid ${theme.colors.border};
-  border-radius: 6px;
-  font-size: 0.9rem;
+  height: 200px;
+  padding: 9px 16px;
+  border: 1px solid #e0e3e6;
+  border-radius: 10px;
+  font-size: 14px;
+  line-height: 1.6;
+  font-weight: 500;
   font-family: "Inter", sans-serif;
   transition: all 0.2s;
   background: white;
   width: 100%;
   box-sizing: border-box;
-  resize: vertical;
+  resize: none;
 
   &:focus {
     outline: none;
@@ -714,29 +791,38 @@ const TextArea = styled.textarea`
 `;
 
 const DropZone = styled.div`
-  border: 2px dashed ${(props) => props.$isDragging ? '#0047AB' : theme.colors.border};
-  border-radius: 8px;
-  padding: 2rem;
-  text-align: center;
+  height: 110px;
+  box-sizing: border-box;
+  border: 1px dashed ${theme.colors.primary};
+  border-radius: 10px;
+  padding: 9px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
   transition: all 0.2s;
-  background: ${(props) => props.$isDragging ? '#F0F5FF' : '#F3F4F6'};
+  background: rgba(6, 108, 120, ${(props) => props.$isDragging ? 0.16 : 0.1});
 
   &:hover {
-    border-color: #0047AB;
-    background: #F0F5FF;
+    background: rgba(6, 108, 120, 0.16);
   }
 `;
 
 const DropZoneText = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
   font-family: "Inter", sans-serif;
-  font-size: 0.85rem;
-  color: #666;
+  font-size: 14px;
+  line-height: 1.6;
+  font-weight: 500;
+  color: ${theme.colors.primary};
 `;
 
-const DropIcon = styled.div`
-  font-size: 1.5rem;
-  margin-bottom: 0.25rem;
+const DropIcon = styled.img`
+  width: 40px;
+  height: 40px;
 `;
 
 const UploadedFilesList = styled.div`
@@ -777,26 +863,31 @@ const RemoveButton = styled.button`
 `;
 
 const Footer = styled.div`
+  min-height: 80px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 2rem;
+  margin: auto -20px 0;
+  padding: 0 20px;
+  border-top: 1px solid #e0e3e6;
 `;
 
 const ButtonGroup = styled.div`
   display: flex;
-  gap: 1rem;
+  gap: 20px;
 `;
 
 const ScheduleButton = styled.button`
-  padding: 0.75rem 2rem;
-  border: 1px solid ${theme.colors.border};
+  width: 200px;
+  height: 40px;
+  padding: 10px 16px;
+  border: 1px solid ${theme.colors.primary};
   border-radius: 8px;
   background: white;
-  color: #222;
+  color: ${theme.colors.primary};
   font-family: "Inter", sans-serif;
   font-weight: 600;
-  font-size: 0.9rem;
+  font-size: 14px;
   cursor: pointer;
   transition: all 0.2s;
 
@@ -806,14 +897,16 @@ const ScheduleButton = styled.button`
 `;
 
 const CancelButton = styled.button`
-  padding: 0.75rem 2rem;
-  border: 1px solid ${theme.colors.border};
+  width: 200px;
+  height: 40px;
+  padding: 10px 16px;
+  border: 1px solid ${theme.colors.primary};
   border-radius: 8px;
   background: white;
-  color: #222;
+  color: ${theme.colors.primary};
   font-family: "Inter", sans-serif;
   font-weight: 600;
-  font-size: 0.9rem;
+  font-size: 14px;
   cursor: pointer;
   transition: all 0.2s;
 
@@ -828,19 +921,21 @@ const CancelButton = styled.button`
 `;
 
 const PublishButton = styled.button`
-  padding: 0.75rem 2rem;
+  width: 200px;
+  height: 40px;
+  padding: 10px 16px;
   border: none;
   border-radius: 8px;
-  background: #0047AB;
+  background: ${theme.colors.primary};
   color: white;
   font-family: "Inter", sans-serif;
   font-weight: 700;
-  font-size: 0.9rem;
+  font-size: 14px;
   cursor: pointer;
   transition: all 0.2s;
 
   &:hover:not(:disabled) {
-    background: #003580;
+    background: #055b65;
   }
 
   &:disabled {

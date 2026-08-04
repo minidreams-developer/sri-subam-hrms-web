@@ -3,19 +3,20 @@ import styled from "styled-components";
 import { MdClose } from "react-icons/md";
 import theme from "../theme/theme";
 
-const DetailsSidebar = ({ open, onClose, data, title = "Details", children }) => {
+const DetailsSidebar = ({ open, onClose, data, title = "Details", children, variant }) => {
+  const compact = variant === "stop-payroll";
   return (
     <>
-      <Overlay $open={open} onClick={onClose} />
+      <Overlay $open={open} $compact={compact} onClick={onClose} />
       <Container $open={open}>
-        <Header>
+        <Header $compact={compact}>
           <Title>{title}</Title>
           <CloseBtn onClick={onClose}>
             <MdClose size={24} color={theme.colors.textColor} />
           </CloseBtn>
         </Header>
 
-        <ScrollContent>
+        <ScrollContent $compact={compact}>
           {children}
         </ScrollContent>
       </Container>
@@ -31,7 +32,7 @@ const Overlay = styled.div`
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: rgba(0, 0, 0, 0.3);
+  background: ${({ $compact }) => $compact ? "rgba(0, 0, 0, 0.7)" : "rgba(0, 0, 0, 0.3)"};
   z-index: 998;
   display: ${({ $open }) => ($open ? "block" : "none")};
 `;
@@ -56,7 +57,8 @@ const Container = styled.div`
 `;
 
 const Header = styled.div`
-  padding: 1.5rem;
+  min-height: ${({ $compact }) => $compact ? "74px" : "auto"};
+  padding: ${({ $compact }) => $compact ? "20px" : "1.5rem"};
   border-bottom: 1px solid ${theme.colors.border};
   display: flex;
   align-items: center;
@@ -85,11 +87,11 @@ const ScrollContent = styled.div`
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 1.5rem;
-  padding-bottom: 2rem;
+  padding: ${({ $compact }) => $compact ? "16px 20px 20px" : "1.5rem"};
+  padding-bottom: ${({ $compact }) => $compact ? "20px" : "2rem"};
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: ${({ $compact }) => $compact ? "16px" : "1.5rem"};
 
   /* Custom Scrollbar */
   &::-webkit-scrollbar {
