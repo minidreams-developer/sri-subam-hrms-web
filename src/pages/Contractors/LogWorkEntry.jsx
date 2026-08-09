@@ -382,7 +382,7 @@ const Input = styled.input`
 
   &:focus {
     outline: none;
-    border-color: #0047AB;
+    border-color: #066C78;
   }
 
   &::placeholder {
@@ -404,7 +404,7 @@ const Select = styled.select`
 
   &:focus {
     outline: none;
-    border-color: #0047AB;
+    border-color: #066C78;
   }
 `;
 
@@ -495,10 +495,10 @@ const DeleteIcon = styled.img`
 const AddRowButton = styled.button`
   width: 100%;
   padding: 0.75rem;
-  border: 1px dashed #0047AB;
+  border: 1px dashed #066C78;
   border-radius: 6px;
   background: transparent;
-  color: #0047AB;
+  color: #066C78;
   font-family: "Inter", sans-serif;
   font-weight: 600;
   font-size: 0.85rem;
@@ -506,7 +506,7 @@ const AddRowButton = styled.button`
   transition: all 0.2s;
 
   &:hover {
-    background: #F0F5FF;
+    background: #EDF6F9;
   }
 `;
 
@@ -517,11 +517,11 @@ const DropZone = styled.div`
   text-align: center;
   cursor: pointer;
   transition: all 0.2s;
-  background: ${(props) => props.$isDragging ? '#F0F5FF' : 'white'};
+  background: ${(props) => props.$isDragging ? '#EDF6F9' : 'white'};
 
   &:hover {
     border-color: ${theme.colors.primary};
-    background: #F0F5FF;
+    background: #EDF6F9;
   }
 `;
 

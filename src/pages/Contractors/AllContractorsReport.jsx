@@ -518,7 +518,7 @@ const PDFHeader = styled.div`
 
 const CompanyLogo = styled.div`
   font-size: 2.5rem;
-  color: #0047ab;
+  color: #066C78;
   font-weight: 700;
   flex-shrink: 0;
 `;

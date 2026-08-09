@@ -1057,7 +1057,7 @@ const StepNumber = styled.div`
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: ${props => props.$active ? '#0047AB' : '#E5E7EB'};
+  background: ${props => props.$active ? '#066C78' : '#E5E7EB'};
   color: ${props => props.$active ? 'white' : '#666'};
   display: flex;
   align-items: center;
@@ -1076,7 +1076,7 @@ const StepLabel = styled.span`
 const StepConnector = styled.div`
   width: 100px;
   height: 2px;
-  background: ${props => props.$completed ? '#0047AB' : '#E5E7EB'};
+  background: ${props => props.$completed ? '#066C78' : '#E5E7EB'};
 `;
 
 const FormContainer = styled.form`
@@ -1196,7 +1196,7 @@ const UploadLabel = styled.label`
   transition: all 0.2s;
 
   &:hover {
-    background: #F0F5FF;
+    background: #EDF6F9;
   }
 `;
 
@@ -1245,8 +1245,8 @@ const Input = styled.input`
 
   &:focus {
     outline: none;
-    border-color: #0047AB;
-    box-shadow: 0 0 0 3px rgba(0, 71, 171, 0.1);
+    border-color: #066C78;
+    box-shadow: 0 0 0 3px rgba(6, 108, 120, 0.1);
   }
 
   &::placeholder {
@@ -1269,8 +1269,8 @@ const Select = styled.select`
 
   &:focus {
     outline: none;
-    border-color: #0047AB;
-    box-shadow: 0 0 0 3px rgba(0, 71, 171, 0.1);
+    border-color: #066C78;
+    box-shadow: 0 0 0 3px rgba(6, 108, 120, 0.1);
   }
 
   option {
@@ -1345,8 +1345,8 @@ const CompactUploadButton = styled.label`
   margin-top: 0.5rem;
 
   &:hover {
-    background: #F0F5FF;
-    border-color: #0047AB;
+    background: #EDF6F9;
+    border-color: #066C78;
   }
 
   &:active {
@@ -1446,7 +1446,7 @@ const IconButton = styled.button`
 const AddJobButton = styled.button`
   height: 36px;
   padding: 0 14px;
-  background: #0047AB;
+  background: #066C78;
   color: white;
   border: none;
   border-radius: 6px;
@@ -1457,7 +1457,7 @@ const AddJobButton = styled.button`
   transition: all 0.2s;
 
   &:hover {
-    background: #003580;
+    background: #055B65;
   }
 `;
 
@@ -1499,7 +1499,7 @@ const CancelButton = styled.button`
 const NextButton = styled.button`
   height: 40px;
   padding: 0 24px;
-  background: #0047AB;
+  background: #066C78;
   color: white;
   border: none;
   border-radius: 6px;
@@ -1510,7 +1510,7 @@ const NextButton = styled.button`
   transition: all 0.2s;
 
   &:hover {
-    background: #003580;
+    background: #055B65;
   }
 
   &:active {
@@ -1526,7 +1526,7 @@ const NextButton = styled.button`
 const SubmitButton = styled.button`
   height: 40px;
   padding: 0 24px;
-  background: #0047AB;
+  background: #066C78;
   color: white;
   border: none;
   border-radius: 6px;
@@ -1537,7 +1537,7 @@ const SubmitButton = styled.button`
   transition: all 0.2s;
 
   &:hover:not(:disabled) {
-    background: #003580;
+    background: #055B65;
   }
 
   &:active:not(:disabled) {

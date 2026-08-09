@@ -10,7 +10,7 @@ const StyledButton = styled.button`
   gap: 0.625rem;
   padding: 0.5rem 0.875rem;
   background-color: ${(props) => props.$bg || theme.colors.primary};
-  color: ${(props) => props.$color || theme.colors.secondary};
+  color: ${(props) => props.$color || theme.colors.white};
   font-size: ${(props) => props.$fontSize || "0.75rem"};
   font-weight: ${(props) => props.$fontWeight || 500};
   font-family: ${(props) => props.$fontFamily || '"Inter", sans-serif'};
@@ -21,6 +21,21 @@ const StyledButton = styled.button`
   cursor: pointer;
   transition: all 0.3s ease;
   white-space: nowrap;
+
+  &:hover:not(:disabled) {
+    background-color: ${(props) => props.$hoverBg || theme.colors.primary};
+    filter: ${(props) => (props.$hoverBg ? "none" : "brightness(0.9)")};
+  }
+
+  &:focus-visible {
+    outline: 3px solid ${theme.colors.secondaryPrimary};
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.65;
+  }
 
   &:active {
     transform: scale(0.98);

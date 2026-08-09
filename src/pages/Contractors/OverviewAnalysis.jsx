@@ -16,7 +16,7 @@ import theme from "../../theme/theme";
 
 // Colors
 const COLORS = {
-  primary: "#0047AB",
+  primary: "#066C78",
   secondary: "#066C78",
   tertiary: "#007DAB",
 };
@@ -647,7 +647,7 @@ const Tab = styled.button`
   border: none;
   border-radius: 6px;
   background-color: ${(props) => (props.$active ? theme.colors.white : "transparent")};
-  color: ${(props) => (props.$active ? "#0047AB" : theme.colors.textColor)};
+  color: ${(props) => (props.$active ? "#066C78" : theme.colors.textColor)};
   cursor: pointer;
   transition: all 0.2s ease;
   box-shadow: ${(props) => (props.$active ? "0 1px 3px rgba(0,0,0,0.1)" : "none")};

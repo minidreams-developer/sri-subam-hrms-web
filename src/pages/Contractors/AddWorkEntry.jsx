@@ -557,7 +557,7 @@ const Input = styled.input`
 
   &:focus {
     outline: none;
-    border-color: #0047AB;
+    border-color: #066C78;
   }
 
   &::placeholder {
@@ -586,7 +586,7 @@ const TextArea = styled.textarea`
 
   &:focus {
     outline: none;
-    border-color: #0047AB;
+    border-color: #066C78;
   }
 
   &::placeholder {
@@ -608,13 +608,13 @@ const Select = styled.select`
 
   &:focus {
     outline: none;
-    border-color: #0047AB;
+    border-color: #066C78;
   }
 `;
 
 const AddJobButton = styled.button`
   padding: 0.5rem 1rem;
-  background: #0047AB;
+  background: #066C78;
   color: white;
   border: none;
   border-radius: 6px;
@@ -625,7 +625,7 @@ const AddJobButton = styled.button`
   transition: all 0.2s;
 
   &:hover {
-    background: #003580;
+    background: #055B65;
   }
 `;
 
@@ -680,7 +680,7 @@ const CellInput = styled.input`
 
   &:focus {
     outline: none;
-    border-color: #0047AB;
+    border-color: #066C78;
   }
 `;
 
@@ -715,11 +715,11 @@ const DeleteButton = styled.button`
 `;
 
 const AttachmentArea = styled.div`
-  border: 2px dashed ${props => props.$isDragging ? "#0047AB" : "#D1D5DB"};
+  border: 2px dashed ${props => props.$isDragging ? "#066C78" : "#D1D5DB"};
   border-radius: 8px;
   padding: 2rem;
   text-align: center;
-  background: ${props => props.$isDragging ? "#F0F5FF" : "white"};
+  background: ${props => props.$isDragging ? "#EDF6F9" : "white"};
   transition: all 0.2s;
   cursor: pointer;
 `;
@@ -749,7 +749,7 @@ const FileInput = styled.input``;
 const UploadLabel = styled.label`
   display: inline-block;
   padding: 0.6rem 1.25rem;
-  background: #0047AB;
+  background: #066C78;
   color: white;
   border: none;
   border-radius: 6px;
@@ -761,7 +761,7 @@ const UploadLabel = styled.label`
   transition: all 0.2s;
 
   &:hover {
-    background: #003580;
+    background: #055B65;
   }
 `;
 
@@ -847,7 +847,7 @@ const SaveButton = styled.button`
   padding: 0.75rem 2rem;
   border: none;
   border-radius: 8px;
-  background: #0047AB;
+  background: #066C78;
   color: white;
   font-family: "Inter", sans-serif;
   font-weight: 600;
@@ -856,7 +856,7 @@ const SaveButton = styled.button`
   transition: all 0.2s;
 
   &:hover:not(:disabled) {
-    background: #003580;
+    background: #055B65;
   }
 
   &:active:not(:disabled) {

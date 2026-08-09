@@ -420,7 +420,7 @@ const PageSubtitle = styled.p`
 
 const ReportsButton = styled.button`
   padding: 0.7rem 1.5rem;
-  background: #0047ab;
+  background: #066C78;
   color: white;
   border: none;
   border-radius: 6px;
@@ -434,7 +434,7 @@ const ReportsButton = styled.button`
   transition: all 0.2s;
 
   &:hover {
-    background: #003580;
+    background: #055B65;
   }
 `;
 
@@ -499,13 +499,13 @@ const DropdownButton = styled.button`
 
   &:hover {
     background: #f0f0f0;
-    border-color: #0047ab;
+    border-color: #066C78;
   }
 
   &:focus {
     outline: none;
-    border-color: #0047ab;
-    box-shadow: 0 0 0 3px rgba(0, 71, 171, 0.1);
+    border-color: #066C78;
+    box-shadow: 0 0 0 3px rgba(6, 108, 120, 0.1);
   }
 `;
 
@@ -532,7 +532,7 @@ const DropdownItem = styled.div`
 
   &:hover {
     background: #f5f5f5;
-    color: #0047ab;
+    color: #066C78;
   }
 
   &:first-child {
@@ -649,7 +649,7 @@ const TableHeaderCell = styled.th`
 const TableCell = styled.td`
   padding: 1rem;
   text-align: left;
-  color: ${(props) => (props.$highlight ? "#0047ab" : "#333")};
+  color: ${(props) => (props.$highlight ? "#066C78" : "#333")};
   font-weight: ${(props) => (props.$highlight ? "600" : "500")};
 `;
 
@@ -751,13 +751,13 @@ const FormSelect = styled.select`
   transition: all 0.2s;
 
   &:hover {
-    border-color: #0047ab;
+    border-color: #066C78;
   }
 
   &:focus {
     outline: none;
-    border-color: #0047ab;
-    box-shadow: 0 0 0 3px rgba(0, 71, 171, 0.1);
+    border-color: #066C78;
+    box-shadow: 0 0 0 3px rgba(6, 108, 120, 0.1);
   }
 `;
 
@@ -783,8 +783,8 @@ const DateInput = styled.input`
 
   &:focus {
     outline: none;
-    border-color: #0047ab;
-    box-shadow: 0 0 0 3px rgba(0, 71, 171, 0.1);
+    border-color: #066C78;
+    box-shadow: 0 0 0 3px rgba(6, 108, 120, 0.1);
   }
 `;
 
@@ -803,19 +803,19 @@ const FormatButtonGroup = styled.div`
 
 const FormatButton = styled.button`
   padding: 1rem;
-  border: 2px solid ${(props) => (props.$active ? "#0047ab" : "#d0d0d0")};
-  background: ${(props) => (props.$active ? "#f0f5ff" : "white")};
+  border: 2px solid ${(props) => (props.$active ? "#066C78" : "#d0d0d0")};
+  background: ${(props) => (props.$active ? "#EDF6F9" : "white")};
   border-radius: 8px;
   font-size: 0.95rem;
   font-weight: 600;
-  color: ${(props) => (props.$active ? "#0047ab" : "#333")};
+  color: ${(props) => (props.$active ? "#066C78" : "#333")};
   cursor: pointer;
   font-family: "Inter", sans-serif;
   transition: all 0.2s;
 
   &:hover {
-    border-color: #0047ab;
-    background: #f0f5ff;
+    border-color: #066C78;
+    background: #EDF6F9;
   }
 `;
 
@@ -829,7 +829,7 @@ const Checkbox = styled.input`
   width: 20px;
   height: 20px;
   cursor: pointer;
-  accent-color: #0047ab;
+  accent-color: #066C78;
 `;
 
 const CheckboxLabel = styled.label`
@@ -868,7 +868,7 @@ const CancelButton = styled.button`
 
 const ViewReportButton = styled.button`
   padding: 0.75rem 1.5rem;
-  background: #0047ab;
+  background: #066C78;
   color: white;
   border: none;
   border-radius: 8px;
@@ -879,7 +879,7 @@ const ViewReportButton = styled.button`
   transition: all 0.2s;
 
   &:hover {
-    background: #003580;
+    background: #055B65;
   }
 
   &:active {

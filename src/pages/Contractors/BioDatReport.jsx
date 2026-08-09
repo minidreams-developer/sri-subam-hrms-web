@@ -495,7 +495,7 @@ const CenteredHeader = styled.div`
 
 const CompanyLogo = styled.div`
   font-size: 2.5rem;
-  color: #0047ab;
+  color: #066C78;
   margin-bottom: 0.5rem;
   font-weight: 700;
 `;

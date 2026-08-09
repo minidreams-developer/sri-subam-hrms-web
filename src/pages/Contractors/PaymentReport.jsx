@@ -474,7 +474,7 @@ const DetailValue = styled.p`
 
 const PaymentGroup = styled.div`
   background: white;
-  border-left: 4px solid #0047ab;
+  border-left: 4px solid #066C78;
   border-radius: 8px;
   overflow: hidden;
   margin-bottom: 2rem;
@@ -524,7 +524,7 @@ const StatusBadge = styled.span`
 const PaymentTotal = styled.span`
   font-size: 1.1rem;
   font-weight: 700;
-  color: #0047ab;
+  color: #066C78;
   font-family: "Inter", sans-serif;
 `;
 

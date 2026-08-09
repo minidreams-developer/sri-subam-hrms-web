@@ -5,7 +5,6 @@ import theme from "../../theme/theme";
 import ReusableTable from "../../components/ReusableTable";
 import TableToolbar from "../../components/TableToolbar";
 import DotIcon from "../../assets/images/Overtime/actionDot.svg";
-import TabSwitcher from "../../components/TabSwitcher";
 import Button from "../../components/Button";
 import Filter from "../../components/filter";
 import { get } from "../../helpers/api_helper";
@@ -17,7 +16,7 @@ const Payroll = () => {
   const [search, setSearch] = useState("");
   const [department, setDepartment] = useState("All Department");
   const [shift, setShift] = useState("All Shifts");
-  const [activeTopTab, setActiveTopTab] = useState("Payroll");
+  const [activeTopTab, setActiveTopTab] = useState("Abstract");
   const [activeInnerTab, setActiveInnerTab] = useState("Employees");
   const [selectedYear, setSelectedYear] = useState("2025");
   const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
@@ -68,6 +67,11 @@ const Payroll = () => {
         designation: item.designation,
         department: item.department,
         fullDay: item.fullDays || 0,
+        overTimeHours: `${item.overtimeHours || 0} hrs`,
+        addition: item.additionName || "Travel allowance",
+        deduction: item.deductionName || "Travel allowance",
+        cash: item.cashDisbursement || 0,
+        bank: item.bankDisbursement || item.takeHome || 0,
         halfDay: item.halfDays || 0,
         offDays: item.offDays || 0,
         paidLeaves: item.paidLeaves || 0,
@@ -212,6 +216,11 @@ const Payroll = () => {
         designation: item.designation,
         department: item.department,
         fullDay: item.fullDays || 0,
+        overTimeHours: `${item.overtimeHours || 0} hrs`,
+        addition: item.additionName || "Travel allowance",
+        deduction: item.deductionName || "Travel allowance",
+        cash: item.cashDisbursement || 0,
+        bank: item.bankDisbursement || item.takeHome || 0,
         halfDay: item.halfDays || 0,
         offDays: item.offDays || 0,
         paidLeaves: item.paidLeaves || 0,
@@ -244,6 +253,25 @@ const Payroll = () => {
     { header: "S. No.", accessor: "serialNo" },
     { header: "Employee ID", accessor: "employeeId" },
     { header: "Name", accessor: "name" },
+    { header: "Basic pay", accessor: "dailyWages" },
+    { header: "Department", accessor: "department" },
+    { header: "Position", accessor: "designation" },
+    { header: "Work Days", accessor: "fullDay" },
+    { header: "OT Hrs", accessor: "overTimeHours" },
+    { header: "OT Pay", accessor: "overTime" },
+    { header: "Gross salary", accessor: "grossWages" },
+    { header: "Addition", accessor: "addition" },
+    { header: "Total Salary", accessor: "grossEarnings" },
+    { header: "Deduction", accessor: "deduction" },
+    { header: "Payable Salary", accessor: "takeHome" },
+    { header: "Disbursement type (Cash)", accessor: "cash" },
+    { header: "Disbursement type (Bank)", accessor: "bank" },
+  ];
+
+  const payrollColumns = [
+    { header: "S. No.", accessor: "serialNo" },
+    { header: "Employee ID", accessor: "employeeId" },
+    { header: "Name", accessor: "name" },
     { header: "Designation", accessor: "designation" },
     { header: "Dept.", accessor: "department" },
     { header: "Full Day", accessor: "fullDay" },
@@ -272,6 +300,11 @@ const Payroll = () => {
       designation: "Software Engineer",
       department: "IT",
       fullDay: 22,
+      overTimeHours: "1.5 hrs",
+      addition: "Travel allowance  ₹1,000",
+      deduction: "Travel allowance  ₹1,000",
+      cash: "₹2,000",
+      bank: "₹2,000",
       halfDay: 2,
       offDays: 4,
       paidLeaves: 2,
@@ -295,6 +328,11 @@ const Payroll = () => {
       designation: "HR Manager",
       department: "HR",
       fullDay: 24,
+      overTimeHours: "1.5 hrs",
+      addition: "Travel allowance  ₹1,000",
+      deduction: "Travel allowance  ₹1,000",
+      cash: "₹2,000",
+      bank: "₹2,000",
       halfDay: 1,
       offDays: 4,
       paidLeaves: 1,
@@ -318,6 +356,11 @@ const Payroll = () => {
       designation: "Sales Executive",
       department: "Sales",
       fullDay: 20,
+      overTimeHours: "1.5 hrs",
+      addition: "Travel allowance  ₹1,000",
+      deduction: "Travel allowance  ₹1,000",
+      cash: "₹2,000",
+      bank: "₹2,000",
       halfDay: 3,
       offDays: 4,
       paidLeaves: 3,
@@ -341,6 +384,11 @@ const Payroll = () => {
       designation: "Marketing Manager",
       department: "Marketing",
       fullDay: 23,
+      overTimeHours: "1.5 hrs",
+      addition: "Travel allowance  ₹1,000",
+      deduction: "Travel allowance  ₹1,000",
+      cash: "₹2,000",
+      bank: "₹2,000",
       halfDay: 1,
       offDays: 4,
       paidLeaves: 2,
@@ -364,6 +412,11 @@ const Payroll = () => {
       designation: "Finance Analyst",
       department: "Finance",
       fullDay: 25,
+      overTimeHours: "1.5 hrs",
+      addition: "Travel allowance  ₹1,000",
+      deduction: "Travel allowance  ₹1,000",
+      cash: "₹2,000",
+      bank: "₹2,000",
       halfDay: 0,
       offDays: 4,
       paidLeaves: 1,
@@ -417,18 +470,17 @@ const Payroll = () => {
   ];
 
   const renderTopTabContent = () => {
-    if (activeTopTab === "Payroll") {
+    if (activeTopTab === "Abstract" || activeTopTab === "Payroll") {
       return (
         <>
           <PayrollControls>
-            <TabSwitcher
-              tabs={[
-                { label: "Employees", value: "Employees" },
-                { label: "Staffs", value: "Staffs" }
-              ]}
-              active={activeInnerTab}
-              onChange={setActiveInnerTab}
-            />
+            <RoleTabs>
+              {(activeTopTab === "Payroll" ? ["Employees", "Staffs"] : ["Employees", "Staff", "Contractors", "Agents"]).map((tab) => (
+                <RoleTab key={tab} $active={activeInnerTab === tab} onClick={() => setActiveInnerTab(tab)}>
+                  {tab}
+                </RoleTab>
+              ))}
+            </RoleTabs>
             <TableToolbar
               searchPlaceholder="Search Employee"
               searchValue={search}
@@ -450,7 +502,7 @@ const Payroll = () => {
           </PayrollControls>
           <TableContainer>
             <ReusableTable 
-              columns={columns} 
+              columns={activeTopTab === "Payroll" ? payrollColumns : columns}
               data={(payrollData.length > 0 ? payrollData : data)
                 .filter((row) => !search || `${row.employeeId} ${row.name}`.toLowerCase().includes(search.toLowerCase()))
                 .map((row, index) => ({ ...row, serialNo: String(index + 1).padStart(2, "0") }))}
@@ -463,10 +515,13 @@ const Payroll = () => {
               isLoading={loading}
             />
           </TableContainer>
+          {activeTopTab === "Abstract" && (
+            <FinalizeRow>
+              <FinalizeButton type="button">Finalize Payroll</FinalizeButton>
+            </FinalizeRow>
+          )}
         </>
       );
-    } else if (activeTopTab === "Abstract") {
-      return <PlaceholderContent>Abstract content coming soon...</PlaceholderContent>;
     } else if (activeTopTab === "Finalized Payroll") {
       return (
         <FinalizedPayrollContainer>
@@ -569,6 +624,9 @@ const Payroll = () => {
         >
           Finalized Payroll
         </TopTab>
+        {activeTopTab === "Abstract" && (
+          <ExportButton type="button" onClick={() => window.print()}>Export Data</ExportButton>
+        )}
       </TopTabsContainer>
       {renderTopTabContent()}
 
@@ -682,29 +740,59 @@ const Container = styled.div`
 `;
 
 const TopTabsContainer = styled.div`
-  width: max-content;
+  width: 100%;
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 1.5rem;
-  padding: 0.5rem;
-  margin-bottom: 2rem;
-  border-radius: 1rem;
-  background: rgba(6, 108, 120, 0.05);
+  gap: 0.25rem;
+  padding: 0;
+  margin-bottom: 1.5rem;
+  background: transparent;
 `;
 
 const TopTab = styled.button`
   padding: 0.5rem 1rem;
-  font-size: 1rem;
+  min-height: 40px;
+  font-size: 14px;
   line-height: 1.6;
   font-weight: 600;
   font-family: "Inter", sans-serif;
   background: ${props => props.$active ? theme.colors.primary : "transparent"};
   color: ${props => props.$active ? theme.colors.white : theme.colors.textColor};
   border: none;
-  border-radius: 0.5rem;
+  border-radius: 6px;
   cursor: pointer;
   transition: all 0.2s ease;
+`;
+
+const ExportButton = styled.button`
+  margin-left: auto;
+  width: 154px;
+  height: 40px;
+  border: 1px solid ${theme.colors.primary};
+  border-radius: 10px;
+  background: transparent;
+  color: ${theme.colors.primary};
+  font: 600 14px/1.6 "Inter", sans-serif;
+  cursor: pointer;
+`;
+
+const RoleTabs = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  min-height: 40px;
+  border-bottom: 1px solid #e0e3e6;
+`;
+
+const RoleTab = styled.button`
+  align-self: stretch;
+  padding: 0 4px;
+  border: 0;
+  border-bottom: 2px solid ${(props) => props.$active ? theme.colors.primary : "transparent"};
+  background: transparent;
+  color: ${(props) => props.$active ? theme.colors.primary : theme.colors.textColor};
+  font: 600 14px/1.6 "Inter", sans-serif;
+  cursor: pointer;
 `;
 
 const PayrollControls = styled.div`
@@ -770,6 +858,24 @@ const TableContainer = styled.div`
     padding-bottom: 0.75rem;
     white-space: nowrap;
   }
+`;
+
+const FinalizeRow = styled.div`
+  display: flex;
+  justify-content: center;
+  padding-top: 20px;
+`;
+
+const FinalizeButton = styled.button`
+  min-width: 212px;
+  height: 40px;
+  padding: 8px 16px;
+  border: 0;
+  border-radius: 8px;
+  background: ${theme.colors.primary};
+  color: #edf6f9;
+  font: 600 16px/1.5 "Inter", sans-serif;
+  cursor: pointer;
 `;
 
 const PlaceholderContent = styled.div`

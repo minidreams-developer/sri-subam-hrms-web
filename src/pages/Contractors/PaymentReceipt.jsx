@@ -263,7 +263,7 @@ const Breadcrumb = styled.div`
 `;
 
 const BreadcrumbItem = styled.span`
-  color: ${(props) => (props.active ? "#222" : "#0047ab")};
+  color: ${(props) => (props.active ? "#222" : "#066C78")};
   cursor: ${(props) => (props.active ? "default" : "pointer")};
   font-weight: ${(props) => (props.active ? "600" : "500")};
   font-family: "Inter", sans-serif;
@@ -471,7 +471,7 @@ const DateText = styled.span`
 const DayTotal = styled.span`
   font-size: 0.85rem;
   font-weight: 600;
-  color: #0047ab;
+  color: #066C78;
 `;
 
 const JobTable = styled.table`
@@ -562,7 +562,7 @@ const TotalLabel = styled.span`
 
 const TotalValue = styled.span`
   font-size: 1rem;
-  color: #0047ab;
+  color: #066C78;
   font-weight: 700;
 `;
 
@@ -607,7 +607,7 @@ const FooterButtonContainer = styled.div`
 
 const DoneButton = styled.button`
   padding: 0.75rem 3rem;
-  background: #0066ff;
+  background: #066C78;
   color: white;
   border: none;
   border-radius: 8px;
@@ -620,7 +620,7 @@ const DoneButton = styled.button`
   max-width: 600px;
 
   &:hover {
-    background: #0052cc;
+    background: #055B65;
   }
 
   &:active {

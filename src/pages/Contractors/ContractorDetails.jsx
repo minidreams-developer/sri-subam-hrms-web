@@ -115,7 +115,7 @@ const ContractorDetails = () => {
 
       <Stats>
         <Stat $color="#08af67"><small>Total Earned</small><b>${raw.totalEarned || "1,450.00"}</b></Stat>
-        <Stat $color="#0758bd"><small>Pay Out</small><b>${raw.payOut || "1,000.00"}</b></Stat>
+        <Stat $color="#066C78"><small>Pay Out</small><b>${raw.payOut || "1,000.00"}</b></Stat>
         <Stat $color="#ef3d45"><small>Outstanding</small><b>${raw.outstanding || "450.00"}</b></Stat>
       </Stats>
 
@@ -171,15 +171,15 @@ const Actions = styled.div`display:flex; gap:12px;`;
 const buttonBase = `height:40px; border-radius:7px; padding:0 20px; display:inline-flex; align-items:center; justify-content:center; gap:9px; font:500 14px Inter,sans-serif; cursor:pointer;`;
 const OutlineButton = styled.button`${buttonBase} background:#fff; border:1px solid #cfd5de; color:#111827;`;
 const SoftButton = styled.button`${buttonBase} background:#fff0f1; border:0; color:#ff3e46;`;
-const BlueButton = styled.button`${buttonBase} background:#0758bd; border:1px solid #0758bd; color:#fff;`;
-const OutlineBlue = styled.button`${buttonBase} background:#fff; border:1px solid #0758bd; color:#0758bd;`;
+const BlueButton = styled.button`${buttonBase} background:#066C78; border:1px solid #066C78; color:#fff;`;
+const OutlineBlue = styled.button`${buttonBase} background:#fff; border:1px solid #066C78; color:#066C78;`;
 const Profile = styled.div`display:flex; gap:32px; padding-top:24px; align-items:center; @media(max-width:900px){align-items:flex-start;flex-direction:column;}`;
 const Avatar = styled.div`width:120px; height:120px; flex:0 0 120px; border-radius:12px; background:linear-gradient(145deg,#bed3c6,#78998b); display:grid; place-items:center; color:white; font-size:42px; font-weight:700;`;
 const DetailsGrid = styled.div`display:grid; grid-template-columns:repeat(3,minmax(150px,1fr)); gap:26px 48px; flex:1; width:100%; @media(max-width:900px){grid-template-columns:repeat(2,1fr);}`;
 const Info = styled.div`display:flex; flex-direction:column; gap:5px; min-width:0; span{color:#737373;font-size:12px} strong{font-size:14px;font-weight:600;color:#111827}`;
 const Badge = styled.em`font-style:normal; font-size:11px; padding:4px 11px; border-radius:14px; color:#7c35dc; background:#f0ddff;`;
-const PrintWrap = styled.div`display:flex;align-items:center;gap:10px;button{border:0;background:none;color:#0758bd;font-weight:600;cursor:pointer}`;
-const BlueIcon = styled.button`width:32px;height:32px;padding:0;border:0;border-radius:6px;background:#0758bd;color:#fff;display:grid;place-items:center;cursor:pointer;`;
+const PrintWrap = styled.div`display:flex;align-items:center;gap:10px;button{border:0;background:none;color:#066C78;font-weight:600;cursor:pointer}`;
+const BlueIcon = styled.button`width:32px;height:32px;padding:0;border:0;border-radius:6px;background:#066C78;color:#fff;display:grid;place-items:center;cursor:pointer;`;
 const TableShell = styled.div`border:1px solid #dfe3e8; border-radius:8px; overflow-x:auto; table{width:100%;border-collapse:collapse;min-width:740px} th{height:41px;background:#eef1f3;color:#6b6f75;font-size:12px;font-weight:500;text-align:left;padding:0 16px;white-space:nowrap} td{height:60px;padding:0 16px;border-top:1px solid #e7e9ed;font-size:13px;white-space:nowrap}.muted{color:#858585}.file{color:#1769e0;font-size:18px}.expanded td{height:auto;background:#f8f9fb;padding:16px 24px}`;
 const RowActions = styled.div`display:flex;align-items:center;justify-content:center;gap:20px;color:#ff4b37;svg{cursor:pointer}svg:last-child{color:#6b7280}`;
 const UpdateGrid = styled.div`display:grid;grid-template-columns:repeat(6,1fr);gap:16px;`;
@@ -194,11 +194,11 @@ const Stats = styled.div`display:grid;grid-template-columns:repeat(3,1fr);gap:24
 const Stat = styled.div`position:relative;background:#fff;border:1px solid #e1e5eb;border-radius:10px;padding:24px;display:flex;flex-direction:column;gap:8px;overflow:hidden;&:before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:${p=>p.$color}}small{color:#737373;font-size:13px}b{font-size:26px}`;
 const Footer = styled.footer`height:82px;margin:48px -16px 0;padding:0 24px;background:#fff;border-top:1px solid #e4e7eb;display:flex;align-items:center;justify-content:space-between;`;
 const State = styled.div`height:70vh;display:flex;align-items:center;justify-content:center;gap:12px;color:#64748b;`;
-const Spinner = styled.div`width:24px;height:24px;border:3px solid #dbe3ee;border-top-color:#0758bd;border-radius:50%;animation:spin .8s linear infinite;@keyframes spin{to{transform:rotate(360deg)}}`;
+const Spinner = styled.div`width:24px;height:24px;border:3px solid #dbe3ee;border-top-color:#066C78;border-radius:50%;animation:spin .8s linear infinite;@keyframes spin{to{transform:rotate(360deg)}}`;
 const ModalOverlay = styled.div`position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:1000;display:grid;place-items:center;padding:20px;`;
 const ReportModal = styled.div`width:min(420px,100%);background:#fff;border-radius:12px;box-shadow:0 24px 80px rgba(0,0,0,.3);padding:28px 24px 0;`;
 const ModalTitle = styled.h2`font-size:19px;margin:0 0 20px;`;
-const Field = styled.div`display:flex;flex-direction:column;gap:8px;margin-bottom:16px;label{font-weight:600}select,input{height:40px;border:1px solid #ccd3dc;border-radius:6px;background:#fff;padding:0 12px;color:#1f2937;font:14px Inter,sans-serif;outline:none}select:focus,input:focus{border-color:#0758bd}`;
+const Field = styled.div`display:flex;flex-direction:column;gap:8px;margin-bottom:16px;label{font-weight:600}select,input{height:40px;border:1px solid #ccd3dc;border-radius:6px;background:#fff;padding:0 12px;color:#1f2937;font:14px Inter,sans-serif;outline:none}select:focus,input:focus{border-color:#066C78}`;
 const DateFields = styled.div`display:grid;grid-template-columns:1fr 1fr;gap:16px;`;
 const ModalFooter = styled.div`margin:8px -24px 0;padding:16px 24px;border-top:1px solid #e2e5e9;background:#fafbfc;border-radius:0 0 12px 12px;display:flex;justify-content:space-between;`;
 

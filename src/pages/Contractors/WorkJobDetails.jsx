@@ -357,7 +357,7 @@ const Description = styled.p`
 
 const AddJobButton = styled.button`
   padding: 0.5rem 1rem;
-  background: #0047AB;
+  background: #066C78;
   color: white;
   border: none;
   border-radius: 6px;
@@ -368,7 +368,7 @@ const AddJobButton = styled.button`
   transition: all 0.2s;
 
   &:hover {
-    background: #003580;
+    background: #055B65;
   }
 `;
 
@@ -412,7 +412,7 @@ const Input = styled.input`
 
   &:focus {
     outline: none;
-    border-color: #0047AB;
+    border-color: #066C78;
   }
 
   &::placeholder {
@@ -434,7 +434,7 @@ const Select = styled.select`
 
   &:focus {
     outline: none;
-    border-color: #0047AB;
+    border-color: #066C78;
   }
 `;
 
@@ -594,7 +594,7 @@ const SaveButton = styled.button`
   padding: 0.75rem 2rem;
   border: none;
   border-radius: 8px;
-  background: #0047AB;
+  background: #066C78;
   color: white;
   font-family: "Inter", sans-serif;
   font-weight: 600;
@@ -603,7 +603,7 @@ const SaveButton = styled.button`
   transition: all 0.2s;
 
   &:hover {
-    background: #003580;
+    background: #055B65;
   }
 `;
 

@@ -541,8 +541,8 @@ const FilterSelect = styled.select`
 
   &:focus {
     outline: none;
-    border-color: #0047ab;
-    box-shadow: 0 0 0 3px rgba(0, 71, 171, 0.1);
+    border-color: #066C78;
+    box-shadow: 0 0 0 3px rgba(6, 108, 120, 0.1);
   }
 `;
 
@@ -757,7 +757,7 @@ const Input = styled.input`
 
   &:focus {
     outline: none;
-    border-color: #0047AB;
+    border-color: #066C78;
   }
 
   &::placeholder {
@@ -782,7 +782,7 @@ const TextArea = styled.textarea`
 
   &:focus {
     outline: none;
-    border-color: #0047AB;
+    border-color: #066C78;
   }
 
   &::placeholder {

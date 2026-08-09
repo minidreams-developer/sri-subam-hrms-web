@@ -525,7 +525,7 @@ const WorkLogDate = styled.span`
 const WorkLogTotal = styled.span`
   font-size: 0.85rem;
   font-weight: 700;
-  color: #0047AB;
+  color: #066C78;
 `;
 
 const WorkLogTable = styled.table`
@@ -562,7 +562,7 @@ const WorkLogTd = styled.td`
   font-size: 0.85rem;
   color: #333;
   font-weight: ${(props) => (props.$highlight ? "700" : "500")};
-  color: ${(props) => (props.$highlight ? "#0047AB" : "#333")};
+  color: ${(props) => (props.$highlight ? "#066C78" : "#333")};
 `;
 
 const BankDetailsSection = styled.div`

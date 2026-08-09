@@ -678,8 +678,8 @@ const UploadLabel = styled.label`
   display: inline-block;
   padding: 0.5rem 1rem;
   background: white;
-  color: #0047AB;
-  border: 2px solid #0047AB;
+  color: #066C78;
+  border: 2px solid #066C78;
   border-radius: 6px;
   font-weight: 600;
   font-size: 0.8rem;
@@ -689,7 +689,7 @@ const UploadLabel = styled.label`
   transition: all 0.2s;
 
   &:hover {
-    background: #F0F5FF;
+    background: #EDF6F9;
   }
 `;
 
@@ -731,8 +731,8 @@ const Input = styled.input`
 
   &:focus {
     outline: none;
-    border-color: #0047AB;
-    box-shadow: 0 0 0 3px rgba(0, 71, 171, 0.1);
+    border-color: #066C78;
+    box-shadow: 0 0 0 3px rgba(6, 108, 120, 0.1);
   }
 
   &::placeholder {
@@ -752,8 +752,8 @@ const Select = styled.select`
 
   &:focus {
     outline: none;
-    border-color: #0047AB;
-    box-shadow: 0 0 0 3px rgba(0, 71, 171, 0.1);
+    border-color: #066C78;
+    box-shadow: 0 0 0 3px rgba(6, 108, 120, 0.1);
   }
 
   option {
@@ -764,7 +764,7 @@ const Select = styled.select`
 const UploadButton = styled.button`
   padding: 0.6rem 1rem;
   background: white;
-  color: #0047AB;
+  color: #066C78;
   border: 1px solid #D1D5DB;
   border-radius: 6px;
   font-weight: 600;
@@ -780,8 +780,8 @@ const UploadButton = styled.button`
   margin-top: 0.5rem;
 
   &:hover {
-    background: #F0F5FF;
-    border-color: #0047AB;
+    background: #EDF6F9;
+    border-color: #066C78;
   }
 
   &:active {
@@ -818,7 +818,7 @@ const DocumentsGrid = styled.div`
 const CompactUploadButton = styled.label`
   padding: 0.6rem 0.8rem;
   background: white;
-  color: #0047AB;
+  color: #066C78;
   border: 1px solid #D1D5DB;
   border-radius: 6px;
   font-weight: 600;
@@ -834,8 +834,8 @@ const CompactUploadButton = styled.label`
   margin-top: 0.5rem;
 
   &:hover {
-    background: #F0F5FF;
-    border-color: #0047AB;
+    background: #EDF6F9;
+    border-color: #066C78;
   }
 
   &:active {
@@ -888,7 +888,7 @@ const CancelButton = styled.button`
 
 const SubmitButton = styled.button`
   padding: 0.8rem 2rem;
-  background: #0047AB;
+  background: #066C78;
   color: white;
   border: none;
   border-radius: 8px;
@@ -899,7 +899,7 @@ const SubmitButton = styled.button`
   transition: all 0.2s;
 
   &:hover {
-    background: #003580;
+    background: #055B65;
   }
 
   &:active {

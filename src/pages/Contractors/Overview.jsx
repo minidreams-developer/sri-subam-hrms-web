@@ -18,7 +18,7 @@ import theme from "../../theme/theme";
 
 // Colors
 const COLORS = {
-  primary: "#0047AB",
+  primary: "#066C78",
   secondary: "#066C78",
   tertiary: "#007DAB",
 };
@@ -518,7 +518,7 @@ const PeriodDropdown = styled.select`
 
   &:focus {
     outline: none;
-    border-color: #0047AB;
+    border-color: #066C78;
     background-color: ${theme.colors.white};
   }
 

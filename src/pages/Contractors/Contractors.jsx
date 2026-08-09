@@ -72,13 +72,13 @@ const Contractors = () => {
               specialty || "General",
               "Active"
             ],
-            specialColors: ["#0047AB", "#16A34A"],
+            specialColors: ["#066C78", "#16A34A"],
             date: dateStr,
             todayPay: "$0.00",
             earnedPay: "$0.00",
             advanceReceived: "$0.00",
             avatarBg: "#E0E7FF",
-            avatarTextColor: "#0047AB",
+            avatarTextColor: "#066C78",
             // Store original contractor data for details view
             _originalData: contractor
           };
@@ -198,11 +198,11 @@ const Contractors = () => {
 
               <PaymentSection>
                 <PaymentItem>
-                  <PaymentLabel $color="#0047AB">
+                  <PaymentLabel $color="#066C78">
                     <PaymentIcon src={clockIcon} alt="clock" />
-                    <PaymentText $color="#0047AB">Today's Pay</PaymentText>
+                    <PaymentText $color="#066C78">Today's Pay</PaymentText>
                   </PaymentLabel>
-                  <PaymentAmount $color="#0047AB">{contractor.todayPay}</PaymentAmount>
+                  <PaymentAmount $color="#066C78">{contractor.todayPay}</PaymentAmount>
                 </PaymentItem>
                 <PaymentItem>
                   <PaymentLabel $color="#16A34A">
@@ -382,7 +382,7 @@ const LoadingSpinner = styled.div`
   width: 40px;
   height: 40px;
   border: 4px solid #E5E7EB;
-  border-top: 4px solid #0047AB;
+  border-top: 4px solid #066C78;
   border-radius: 50%;
   animation: spin 1s linear infinite;
 
@@ -427,7 +427,7 @@ const ErrorText = styled.p`
 
 const RetryButton = styled.button`
   padding: 0.75rem 1.5rem;
-  background: #0047AB;
+  background: #066C78;
   color: white;
   border: none;
   border-radius: 6px;
@@ -438,7 +438,7 @@ const RetryButton = styled.button`
   transition: all 0.25s ease;
 
   &:hover {
-    background: #003580;
+    background: #055B65;
   }
 
   &:active {
@@ -529,9 +529,9 @@ const HeaderRight = styled.div`
 
 const ReportsButton = styled.button`
   padding: 0.7rem 1.25rem;
-  border: 1px solid #0047AB;
-  background: #F0F5FF;
-  color: #0047AB;
+  border: 1px solid #066C78;
+  background: #EDF6F9;
+  color: #066C78;
   border-radius: 8px;
   font-weight: 600;
   font-size: 0.85rem;
@@ -543,7 +543,7 @@ const ReportsButton = styled.button`
   gap: 0.5rem;
 
   &:hover {
-    background: #F0F5FF;
+    background: #EDF6F9;
   }
 `;
 
@@ -554,7 +554,7 @@ const ButtonIcon = styled.img`
 
 const AddButton = styled.button`
   padding: 0.7rem 1.5rem;
-  background: #0047AB;
+  background: #066C78;
   color: white;
   border: none;
   border-radius: 8px;
@@ -565,7 +565,7 @@ const AddButton = styled.button`
   transition: all 0.25s ease;
 
   &:hover {
-    background: #003580;
+    background: #055B65;
   }
 `;
 
@@ -597,7 +597,7 @@ const Card = styled.div`
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   transition: all 0.3s ease;
   position: relative;
-  border-top: 3px solid #0047AB;
+  border-top: 3px solid #066C78;
 
   &:hover {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
@@ -763,7 +763,7 @@ const ActionButtons = styled.div`
 const LogButton = styled.button`
   flex: 1;
   padding: 0.5rem 0.6rem;
-  background: #0047AB;
+  background: #066C78;
   color: white;
   border: none;
   border-radius: 6px;
@@ -778,7 +778,7 @@ const LogButton = styled.button`
   gap: 0.3rem;
 
   &:hover {
-    background: #003580;
+    background: #055B65;
   }
 
   &:active {
@@ -796,8 +796,8 @@ const PayButton = styled.button`
   flex: 1;
   padding: 0.5rem 0.6rem;
   background: white;
-  color: #0047AB;
-  border: 2px solid #0047AB;
+  color: #066C78;
+  border: 2px solid #066C78;
   border-radius: 6px;
   font-weight: 600;
   font-size: 0.75rem;
@@ -810,8 +810,8 @@ const PayButton = styled.button`
   gap: 0.3rem;
 
   &:hover {
-    background: #F0F5FF;
-    border-color: #003580;
+    background: #EDF6F9;
+    border-color: #055B65;
   }
 
   &:active {
@@ -876,8 +876,8 @@ const Select = styled.select`
 
   &:focus {
     outline: none;
-    border-color: #0047AB;
-    box-shadow: 0 0 0 3px rgba(0, 71, 171, 0.1);
+    border-color: #066C78;
+    box-shadow: 0 0 0 3px rgba(6, 108, 120, 0.1);
   }
 
   option {
@@ -895,8 +895,8 @@ const Input = styled.input`
 
   &:focus {
     outline: none;
-    border-color: #0047AB;
-    box-shadow: 0 0 0 3px rgba(0, 71, 171, 0.1);
+    border-color: #066C78;
+    box-shadow: 0 0 0 3px rgba(6, 108, 120, 0.1);
   }
 
   &::placeholder {
@@ -931,7 +931,7 @@ const CancelModalButton = styled.button`
 
 const ProceedButton = styled.button`
   padding: 0.75rem 1.5rem;
-  background: #0047ab;
+  background: #066C78;
   color: white;
   border: none;
   border-radius: 6px;
@@ -942,7 +942,7 @@ const ProceedButton = styled.button`
   transition: all 0.2s;
 
   &:hover {
-    background: #003580;
+    background: #055B65;
   }
 
   &:active {
@@ -1006,7 +1006,7 @@ const LogWorkModalButtons = styled.div`
 
 const EnterWorkLogButton = styled.button`
   padding: 0.75rem 2rem;
-  background: #0047ab;
+  background: #066C78;
   color: white;
   border: none;
   border-radius: 8px;
@@ -1017,7 +1017,7 @@ const EnterWorkLogButton = styled.button`
   transition: all 0.2s;
 
   &:hover {
-    background: #003580;
+    background: #055B65;
   }
 
   &:active {
