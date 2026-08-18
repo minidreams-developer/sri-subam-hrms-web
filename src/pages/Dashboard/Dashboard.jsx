@@ -2,13 +2,27 @@ import { useState, useEffect } from "react";
 import styled from "styled-components";
 import { useNavigate } from "react-router-dom";
 import theme from "../../theme/theme";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 import { FiTrendingUp, FiTrendingDown } from "react-icons/fi";
 import SearchInputComponent from "../../components/SearchInputComponent";
 import FilterIcon from "../../assets/images/DashboardImages/filtericon.svg";
 import Filter from "../../components/filter";
 import { get } from "../../helpers/api_helper";
-import { GET_DASHBOARD, GET_EMPLOYEES_BY_ROLE, GET_STAFF_BY_ROLE, DEPARTMENTS, GET_SHIFTS } from "../../helpers/url_helper";
+import {
+  GET_DASHBOARD,
+  GET_EMPLOYEES_BY_ROLE,
+  GET_STAFF_BY_ROLE,
+  DEPARTMENTS,
+  GET_SHIFTS,
+} from "../../helpers/url_helper";
 import { toast } from "react-toastify";
 
 const Dashboard = () => {
@@ -53,7 +67,9 @@ const Dashboard = () => {
   const fetchEmployeesAndStaff = async () => {
     try {
       // Fetch employees
-      const empResponse = await get(`${GET_EMPLOYEES_BY_ROLE}?role=employee&limit=10`);
+      const empResponse = await get(
+        `${GET_EMPLOYEES_BY_ROLE}?role=employee&limit=10`,
+      );
       let empList = [];
       if (empResponse && Array.isArray(empResponse)) {
         empList = empResponse;
@@ -80,11 +96,16 @@ const Dashboard = () => {
       setEmployeesData(transformedEmployees);
 
       // Fetch staff
-      const staffResponse = await get(`/v1/users?role=staff&page=1&limit=10&sortBy=createdAt:desc`);
+      const staffResponse = await get(
+        `/v1/users?role=staff&page=1&limit=10&sortBy=createdAt:desc`,
+      );
       let staffList = [];
       if (staffResponse && Array.isArray(staffResponse)) {
         staffList = staffResponse;
-      } else if (staffResponse?.results && Array.isArray(staffResponse.results)) {
+      } else if (
+        staffResponse?.results &&
+        Array.isArray(staffResponse.results)
+      ) {
         staffList = staffResponse.results;
       } else if (staffResponse?.data && Array.isArray(staffResponse.data)) {
         staffList = staffResponse.data;
@@ -95,13 +116,15 @@ const Dashboard = () => {
         id: staff.id || staff._id,
         employeeId: staff.employeeId || "N/A",
         name: staff.name || staff.employeeName || "N/A",
-        position: staff.workInformation?.designation || staff.designation || "Manager",
+        position:
+          staff.workInformation?.designation || staff.designation || "Manager",
         shift: staff.workInformation?.shift || staff.shift || "Morning",
         checkIn: "08:00 AM",
         checkOut: "05:00 PM",
         working: "9 hrs",
         status: "-",
-        department: staff.workInformation?.department || staff.department || "Operations",
+        department:
+          staff.workInformation?.department || staff.department || "Operations",
         type: "staff",
       }));
       setStaffDataList(transformedStaff);
@@ -118,16 +141,17 @@ const Dashboard = () => {
     try {
       const deptResponse = await get(DEPARTMENTS);
       console.log("Departments response:", deptResponse);
-      
+
       // Handle different response structures
-      const deptList = deptResponse?.results || deptResponse?.data || deptResponse || [];
-      
+      const deptList =
+        deptResponse?.results || deptResponse?.data || deptResponse || [];
+
       // Transform to dropdown options
       const deptOptions = deptList.map((dept) => ({
         value: dept.departmentName || dept.name || "N/A",
         label: dept.departmentName || dept.name || "N/A",
       }));
-      
+
       setDepartmentOptions(deptOptions);
       console.log("Department options:", deptOptions);
     } catch (error) {
@@ -142,16 +166,17 @@ const Dashboard = () => {
     try {
       const shiftResponse = await get(GET_SHIFTS);
       console.log("Shifts response:", shiftResponse);
-      
+
       // Handle different response structures
-      const shiftList = shiftResponse?.results || shiftResponse?.data || shiftResponse || [];
-      
+      const shiftList =
+        shiftResponse?.results || shiftResponse?.data || shiftResponse || [];
+
       // Transform to dropdown options
       const shiftOpts = shiftList.map((shift) => ({
         value: shift.shiftName || shift.name || "N/A",
         label: shift.shiftName || shift.name || "N/A",
       }));
-      
+
       setShiftOptions(shiftOpts);
       console.log("Shift options:", shiftOpts);
     } catch (error) {
@@ -174,44 +199,48 @@ const Dashboard = () => {
   };
 
   // Build quick stats from API data
-  const quickStats = dashboardData?.quickStats ? [
-    { 
-      label: "Total Employees", 
-      value: dashboardData.quickStats.totalEmployees?.count?.toString() || "0", 
-      change: `${dashboardData.quickStats.totalEmployees?.percentageChange || 0}%`, 
-      positive: dashboardData.quickStats.totalEmployees?.trend === "up" 
-    },
-    { 
-      label: "Present Today", 
-      value: dashboardData.quickStats.presentToday?.count?.toString() || "0", 
-      change: `${dashboardData.quickStats.presentToday?.percentageChange || 0}%`, 
-      positive: dashboardData.quickStats.presentToday?.trend === "up" 
-    },
-    { 
-      label: "On Leave", 
-      value: dashboardData.quickStats.onLeave?.count?.toString() || "0", 
-      change: `${dashboardData.quickStats.onLeave?.percentageChange || 0}%`, 
-      positive: dashboardData.quickStats.onLeave?.trend === "up" 
-    },
-    { 
-      label: "OT Employees", 
-      value: dashboardData.quickStats.otEmployees?.count?.toString() || "0", 
-      change: `${dashboardData.quickStats.otEmployees?.percentageChange || 0}%`, 
-      positive: dashboardData.quickStats.otEmployees?.trend === "up" 
-    },
-    { 
-      label: "Payroll", 
-      value: `₹${(dashboardData.quickStats.payroll?.amount || 0).toLocaleString('en-IN')}`, 
-      change: `${dashboardData.quickStats.payroll?.percentageChange || 0}%`, 
-      positive: dashboardData.quickStats.payroll?.trend === "up" 
-    }
-  ] : [
-    { label: "Total Employees", value: "0", change: "0%", positive: true },
-    { label: "Present Today", value: "0", change: "0%", positive: true },
-    { label: "On Leave", value: "0", change: "0%", positive: true },
-    { label: "OT Employees", value: "0", change: "0%", positive: false },
-    { label: "Payroll", value: "₹0", change: "0%", positive: true }
-  ];
+  const quickStats = dashboardData?.quickStats
+    ? [
+        {
+          label: "Total Employees",
+          value:
+            dashboardData.quickStats.totalEmployees?.count?.toString() || "0",
+          change: `${dashboardData.quickStats.totalEmployees?.percentageChange || 0}%`,
+          positive: dashboardData.quickStats.totalEmployees?.trend === "up",
+        },
+        {
+          label: "Present Today",
+          value:
+            dashboardData.quickStats.presentToday?.count?.toString() || "0",
+          change: `${dashboardData.quickStats.presentToday?.percentageChange || 0}%`,
+          positive: dashboardData.quickStats.presentToday?.trend === "up",
+        },
+        {
+          label: "On Leave",
+          value: dashboardData.quickStats.onLeave?.count?.toString() || "0",
+          change: `${dashboardData.quickStats.onLeave?.percentageChange || 0}%`,
+          positive: dashboardData.quickStats.onLeave?.trend === "up",
+        },
+        {
+          label: "OT Employees",
+          value: dashboardData.quickStats.otEmployees?.count?.toString() || "0",
+          change: `${dashboardData.quickStats.otEmployees?.percentageChange || 0}%`,
+          positive: dashboardData.quickStats.otEmployees?.trend === "up",
+        },
+        {
+          label: "Payroll",
+          value: `₹${(dashboardData.quickStats.payroll?.amount || 0).toLocaleString("en-IN")}`,
+          change: `${dashboardData.quickStats.payroll?.percentageChange || 0}%`,
+          positive: dashboardData.quickStats.payroll?.trend === "up",
+        },
+      ]
+    : [
+        { label: "Total Employees", value: "0", change: "0%", positive: true },
+        { label: "Present Today", value: "0", change: "0%", positive: true },
+        { label: "On Leave", value: "0", change: "0%", positive: true },
+        { label: "OT Employees", value: "0", change: "0%", positive: false },
+        { label: "Payroll", value: "₹0", change: "0%", positive: true },
+      ];
 
   // Handle department filter dropdown - only updates UI state
   const handleDepartmentChange = (value) => {
@@ -230,7 +259,7 @@ const Dashboard = () => {
     console.log("Applied filter query params:", queryParams);
     // Build the API URL with query parameters
     let url = `${GET_EMPLOYEES_BY_ROLE}?role=employee`;
-    
+
     // Add all filter parameters
     if (queryParams.departmentId) {
       url += `&departmentId=${queryParams.departmentId}`;
@@ -253,13 +282,13 @@ const Dashboard = () => {
     if (queryParams.sortBy) {
       url += `&sortBy=${queryParams.sortBy}`;
     }
-    
+
     // Add pagination
     url += `&page=${queryParams.page || 1}&limit=${queryParams.limit || 10}`;
-    
+
     setAppliedFilters(queryParams);
     setShowFilter(false);
-    
+
     // Fetch employees with applied filters
     fetchEmployeesAndStaffWithFilters(url);
   };
@@ -268,7 +297,7 @@ const Dashboard = () => {
     try {
       const empResponse = await get(url);
       console.log("Filtered employees data:", empResponse);
-      
+
       let empList = [];
       if (empResponse && Array.isArray(empResponse)) {
         empList = empResponse;
@@ -300,94 +329,181 @@ const Dashboard = () => {
   };
 
   // Build attendance data from API
-  const attendanceData = dashboardData?.attendanceOverview?.dailyData?.map(item => ({
-    date: item.label,
-    present: item.present,
-    onLeave: item.onLeave,
-    late: item.late
-  })) || [
+  const attendanceData = dashboardData?.attendanceOverview?.dailyData?.map(
+    (item) => ({
+      date: item.label,
+      present: item.present,
+      onLeave: item.onLeave,
+      late: item.late,
+    }),
+  ) || [
     { date: "14-07", present: 200, onLeave: 100, late: 20 },
     { date: "15-07", present: 220, onLeave: 80, late: 25 },
     { date: "16-07", present: 210, onLeave: 95, late: 18 },
     { date: "17-07", present: 240, onLeave: 60, late: 22 },
     { date: "18-07", present: 195, onLeave: 110, late: 28 },
     { date: "19-07", present: 230, onLeave: 75, late: 20 },
-    { date: "20-07", present: 250, onLeave: 50, late: 15 }
+    { date: "20-07", present: 250, onLeave: 50, late: 15 },
   ];
 
   // Build payroll breakdown from API
-  const payrollData = dashboardData?.payrollBreakdown?.categories ? [
-    { 
-      name: "Salary", 
-      value: dashboardData.payrollBreakdown.categories.salary?.percentage || 0, 
-      percentage: `₹ ${dashboardData.payrollBreakdown.categories.salary?.amount?.toLocaleString('en-IN') || 0}`, 
-      color: "#0B7A75" 
-    },
-    { 
-      name: "Allowances", 
-      value: dashboardData.payrollBreakdown.categories.allowances?.percentage || 0, 
-      percentage: `₹ ${dashboardData.payrollBreakdown.categories.allowances?.amount?.toLocaleString('en-IN') || 0}`, 
-      color: "#FDB750" 
-    },
-    { 
-      name: "Deduction", 
-      value: dashboardData.payrollBreakdown.categories.deductions?.percentage || 0, 
-      percentage: `₹ ${dashboardData.payrollBreakdown.categories.deductions?.amount?.toLocaleString('en-IN') || 0}`, 
-      color: "#E0E3E6" 
-    },
-    { 
-      name: "Incentives", 
-      value: dashboardData.payrollBreakdown.categories.incentives?.percentage || 0, 
-      percentage: `₹ ${dashboardData.payrollBreakdown.categories.incentives?.amount?.toLocaleString('en-IN') || 0}`, 
-      color: "#0B7A75" 
-    },
-    { 
-      name: "Overtimes", 
-      value: dashboardData.payrollBreakdown.categories.overtime?.percentage || 0, 
-      percentage: `₹ ${dashboardData.payrollBreakdown.categories.overtime?.amount?.toLocaleString('en-IN') || 0}`, 
-      color: "#2C2C2C" 
-    }
-  ] : [
-    { name: "Salary", value: 88.3, percentage: "₹ 0", color: "#0B7A75" },
-    { name: "Allowances", value: 8.3, percentage: "₹ 0", color: "#FDB750" },
-    { name: "Deduction", value: 2.1, percentage: "₹ 0", color: "#E0E3E6" },
-    { name: "Incentives", value: 0.5, percentage: "₹ 0", color: "#0B7A75" },
-    { name: "Overtimes", value: 0.8, percentage: "₹ 0", color: "#2C2C2C" }
-  ];
+  const payrollData = dashboardData?.payrollBreakdown?.categories
+    ? [
+        {
+          name: "Salary",
+          value:
+            dashboardData.payrollBreakdown.categories.salary?.percentage || 0,
+          percentage: `₹ ${dashboardData.payrollBreakdown.categories.salary?.amount?.toLocaleString("en-IN") || 0}`,
+          color: "#0B7A75",
+        },
+        {
+          name: "Allowances",
+          value:
+            dashboardData.payrollBreakdown.categories.allowances?.percentage ||
+            0,
+          percentage: `₹ ${dashboardData.payrollBreakdown.categories.allowances?.amount?.toLocaleString("en-IN") || 0}`,
+          color: "#FDB750",
+        },
+        {
+          name: "Deduction",
+          value:
+            dashboardData.payrollBreakdown.categories.deductions?.percentage ||
+            0,
+          percentage: `₹ ${dashboardData.payrollBreakdown.categories.deductions?.amount?.toLocaleString("en-IN") || 0}`,
+          color: "#E0E3E6",
+        },
+        {
+          name: "Incentives",
+          value:
+            dashboardData.payrollBreakdown.categories.incentives?.percentage ||
+            0,
+          percentage: `₹ ${dashboardData.payrollBreakdown.categories.incentives?.amount?.toLocaleString("en-IN") || 0}`,
+          color: "#0B7A75",
+        },
+        {
+          name: "Overtimes",
+          value:
+            dashboardData.payrollBreakdown.categories.overtime?.percentage || 0,
+          percentage: `₹ ${dashboardData.payrollBreakdown.categories.overtime?.amount?.toLocaleString("en-IN") || 0}`,
+          color: "#2C2C2C",
+        },
+      ]
+    : [
+        { name: "Salary", value: 88.3, percentage: "₹ 0", color: "#0B7A75" },
+        { name: "Allowances", value: 8.3, percentage: "₹ 0", color: "#FDB750" },
+        { name: "Deduction", value: 2.1, percentage: "₹ 0", color: "#E0E3E6" },
+        { name: "Incentives", value: 0.5, percentage: "₹ 0", color: "#0B7A75" },
+        { name: "Overtimes", value: 0.8, percentage: "₹ 0", color: "#2C2C2C" },
+      ];
 
-  const employees = employeesData.length > 0 ? employeesData : [
-    { id: 1, employeeId: "EMP001", name: "Marlyn Pines", position: "UI/UX Designer", shift: "Morning", checkIn: "08:50 AM", checkOut: "06:45 PM", working: "8.36 hrs", status: "-", department: "Design", type: "employee" },
-    { id: 2, employeeId: "EMP002", name: "Arjun Stanton", position: "Developer", shift: "Afternoon", checkIn: "09:00 AM", checkOut: "06:45 PM", working: "8.36 hrs", status: "-", department: "Engineering", type: "employee" },
-    { id: 3, employeeId: "EMP003", name: "Marlyn Pines", position: "UI/UX Designer", shift: "Night", checkIn: "08:50 AM", checkOut: "06:45 PM", working: "8.36 hrs", status: "-", department: "Design", type: "employee" }
-  ];
+  const employees =
+    employeesData.length > 0
+      ? employeesData
+      : [
+          {
+            id: 1,
+            employeeId: "EMP001",
+            name: "Marlyn Pines",
+            position: "UI/UX Designer",
+            shift: "Morning",
+            checkIn: "08:50 AM",
+            checkOut: "06:45 PM",
+            working: "8.36 hrs",
+            status: "-",
+            department: "Design",
+            type: "employee",
+          },
+          {
+            id: 2,
+            employeeId: "EMP002",
+            name: "Arjun Stanton",
+            position: "Developer",
+            shift: "Afternoon",
+            checkIn: "09:00 AM",
+            checkOut: "06:45 PM",
+            working: "8.36 hrs",
+            status: "-",
+            department: "Engineering",
+            type: "employee",
+          },
+          {
+            id: 3,
+            employeeId: "EMP003",
+            name: "Marlyn Pines",
+            position: "UI/UX Designer",
+            shift: "Night",
+            checkIn: "08:50 AM",
+            checkOut: "06:45 PM",
+            working: "8.36 hrs",
+            status: "-",
+            department: "Design",
+            type: "employee",
+          },
+        ];
 
-  const staffData = staffDataList.length > 0 ? staffDataList : [
-    { id: 4, employeeId: "STF001", name: "John Smith", position: "Manager", shift: "Morning", checkIn: "08:00 AM", checkOut: "05:00 PM", working: "9 hrs", status: "-", department: "Management", type: "staff" },
-    { id: 5, employeeId: "STF002", name: "Sarah Johnson", position: "Supervisor", shift: "Afternoon", checkIn: "09:30 AM", checkOut: "06:30 PM", working: "9 hrs", status: "-", department: "Operations", type: "staff" }
-  ];
+  const staffData =
+    staffDataList.length > 0
+      ? staffDataList
+      : [
+          {
+            id: 4,
+            employeeId: "STF001",
+            name: "John Smith",
+            position: "Manager",
+            shift: "Morning",
+            checkIn: "08:00 AM",
+            checkOut: "05:00 PM",
+            working: "9 hrs",
+            status: "-",
+            department: "Management",
+            type: "staff",
+          },
+          {
+            id: 5,
+            employeeId: "STF002",
+            name: "Sarah Johnson",
+            position: "Supervisor",
+            shift: "Afternoon",
+            checkIn: "09:30 AM",
+            checkOut: "06:30 PM",
+            working: "9 hrs",
+            status: "-",
+            department: "Operations",
+            type: "staff",
+          },
+        ];
 
   // Filter employees based on search and filter criteria
-  const filteredEmployees = employees.filter(emp => {
-    const matchesSearch = emp.name.toLowerCase().includes(searchValue.toLowerCase()) ||
-                         emp.position.toLowerCase().includes(searchValue.toLowerCase());
-    const matchesDepartment = departmentFilter === "All Department" || emp.department === departmentFilter;
-    const matchesShift = shiftFilter === "All Shifts" || emp.shift === shiftFilter;
-    
+  const filteredEmployees = employees.filter((emp) => {
+    const matchesSearch =
+      emp.name.toLowerCase().includes(searchValue.toLowerCase()) ||
+      emp.position.toLowerCase().includes(searchValue.toLowerCase());
+    const matchesDepartment =
+      departmentFilter === "All Department" ||
+      emp.department === departmentFilter;
+    const matchesShift =
+      shiftFilter === "All Shifts" || emp.shift === shiftFilter;
+
     return matchesSearch && matchesDepartment && matchesShift;
   });
 
   // Filter staff based on search and filter criteria
-  const filteredStaff = staffData.filter(staff => {
-    const matchesSearch = staff.name.toLowerCase().includes(searchValue.toLowerCase()) ||
-                         staff.position.toLowerCase().includes(searchValue.toLowerCase());
-    const matchesDepartment = departmentFilter === "All Department" || staff.department === departmentFilter;
-    const matchesShift = shiftFilter === "All Shifts" || staff.shift === shiftFilter;
-    
+  const filteredStaff = staffData.filter((staff) => {
+    const matchesSearch =
+      staff.name.toLowerCase().includes(searchValue.toLowerCase()) ||
+      staff.position.toLowerCase().includes(searchValue.toLowerCase());
+    const matchesDepartment =
+      departmentFilter === "All Department" ||
+      staff.department === departmentFilter;
+    const matchesShift =
+      shiftFilter === "All Shifts" || staff.shift === shiftFilter;
+
     return matchesSearch && matchesDepartment && matchesShift;
   });
 
   // Use appropriate data based on active tab
-  const tableData = activeTab === "employees" ? filteredEmployees : filteredStaff;
+  const tableData =
+    activeTab === "employees" ? filteredEmployees : filteredStaff;
 
   return (
     <Container>
@@ -396,7 +512,10 @@ const Dashboard = () => {
         <SectionHeader>
           <SectionTitle>Quick Stats</SectionTitle>
           <HeaderRight>
-            <DateSelect value={dateRange} onChange={(e) => setDateRange(e.target.value)}>
+            <DateSelect
+              value={dateRange}
+              onChange={(e) => setDateRange(e.target.value)}
+            >
               <option>Today</option>
               <option>This Week</option>
               <option>This Month</option>
@@ -423,7 +542,9 @@ const Dashboard = () => {
       </QuickStatsSection>
 
       {/* Charts Section */}
-      <SectionTitle style={{ marginTop: "1.5rem" }}>Attendance & Payroll</SectionTitle>
+      <SectionTitle style={{ marginTop: "1.5rem" }}>
+        Attendance & Payroll
+      </SectionTitle>
       <ChartsSection>
         <AttendanceCard>
           <ChartHeader>
@@ -446,7 +567,10 @@ const Dashboard = () => {
               </LegendItem>
             </Legend>
             <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={attendanceData} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
+              <BarChart
+                data={attendanceData}
+                margin={{ top: 20, right: 30, left: 0, bottom: 0 }}
+              >
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                 <XAxis dataKey="date" tick={{ fontSize: 12 }} />
                 <YAxis tick={{ fontSize: 12 }} />
@@ -469,7 +593,12 @@ const Dashboard = () => {
           </ChartHeader>
           <PayrollContent>
             <PayrollMain>
-              <PayrollAmount>₹{(dashboardData?.payrollBreakdown?.totalPayThisMonth || 0).toLocaleString('en-IN')}</PayrollAmount>
+              <PayrollAmount>
+                ₹
+                {(
+                  dashboardData?.payrollBreakdown?.totalPayThisMonth || 0
+                ).toLocaleString("en-IN")}
+              </PayrollAmount>
               <PayrollLabel>Total Pay This Month</PayrollLabel>
             </PayrollMain>
             <BreakdownBars>
@@ -480,10 +609,10 @@ const Dashboard = () => {
                     idx < 20
                       ? "#0B7A75"
                       : idx < 35
-                      ? "#FDB750"
-                      : idx < 45
-                      ? "#E0E3E6"
-                      : "#2C2C2C"
+                        ? "#FDB750"
+                        : idx < 45
+                          ? "#E0E3E6"
+                          : "#2C2C2C"
                   }
                 />
               ))}
@@ -493,7 +622,9 @@ const Dashboard = () => {
                 <PayrollLegendItem key={idx}>
                   <PayrollLegendBox color={item.color} />
                   <PayrollLegendText>
-                    <PayrollLegendName>{item.name} · {item.value}%</PayrollLegendName>
+                    <PayrollLegendName>
+                      {item.name} · {item.value}%
+                    </PayrollLegendName>
                     <PayrollLegendValue>{item.percentage}</PayrollLegendValue>
                   </PayrollLegendText>
                 </PayrollLegendItem>
@@ -507,10 +638,16 @@ const Dashboard = () => {
       <EmployeesSection>
         <TabsAndButtonSection>
           <TabsSection>
-            <Tab $active={activeTab === "employees"} onClick={() => setActiveTab("employees")}>
+            <Tab
+              $active={activeTab === "employees"}
+              onClick={() => setActiveTab("employees")}
+            >
               Employees
             </Tab>
-            <Tab $active={activeTab === "staffs"} onClick={() => setActiveTab("staffs")}>
+            <Tab
+              $active={activeTab === "staffs"}
+              onClick={() => setActiveTab("staffs")}
+            >
               Staffs
             </Tab>
           </TabsSection>
@@ -518,7 +655,9 @@ const Dashboard = () => {
         <AttendanceHeading>
           <RightControls>
             <DateText>Today (18 Aug 2025)</DateText>
-            <AddEmployeeButton onClick={() => navigate("/admin/time-hub/attendance/add")}>
+            <AddEmployeeButton
+              onClick={() => navigate("/admin/time-hub/attendance/add")}
+            >
               <span aria-hidden="true">＋</span> Add Manually
             </AddEmployeeButton>
           </RightControls>
@@ -608,7 +747,10 @@ const Dashboard = () => {
               ))
             ) : (
               <TableRow>
-                <Td colSpan="9" style={{ textAlign: "center", padding: "2rem" }}>
+                <Td
+                  colSpan="9"
+                  style={{ textAlign: "center", padding: "2rem" }}
+                >
                   No {activeTab === "employees" ? "employees" : "staff"} found
                 </Td>
               </TableRow>
@@ -977,7 +1119,8 @@ const Tab = styled.button`
     left: 0;
     right: 0;
     height: 2px;
-    background: ${(props) => (props.$active ? theme.colors.primary : "transparent")};
+    background: ${(props) =>
+      props.$active ? theme.colors.primary : "transparent"};
     transition: all 0.2s ease;
   }
 
@@ -1042,7 +1185,9 @@ const SelectWrap = styled.div`
     background: white;
     cursor: pointer;
     outline: none;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    transition:
+      border-color 0.2s ease,
+      box-shadow 0.2s ease;
     -webkit-appearance: none;
     -moz-appearance: none;
     appearance: none;

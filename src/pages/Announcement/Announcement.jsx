@@ -9,7 +9,6 @@ import Button from "../../components/Button";
 import theme from "../../theme/theme";
 import megaphoneIcon from "../../assets/images/dashboardImages/megaphone_svgrepo.com.svg";
 import uploadIcon from "../../assets/images/Common/upload.svg";
-import Anncoment from "../../assets/Anncomnet.png"
 
 const Announcement = () => {
   const { setHeaderTitle, setHeaderBackAction } = useOutletContext();
@@ -421,37 +420,28 @@ const Announcement = () => {
               {announcement.hasImage && announcement.images && announcement.images.length > 0 && (
                 <CardImages>
                   {announcement.images.map((image, idx) => {
-                    // const imageKey = image._id || `${announcement.id}-${idx}`;
-                    // const isExpiredBlob = image.imgUrl?.startsWith("blob:");
-                    // const hasFailed = failedImages[imageKey];
+                    const imageKey = image._id || `${announcement.id}-${idx}`;
+                    const isExpiredBlob = image.imgUrl?.startsWith("blob:");
+                    const hasFailed = failedImages[imageKey];
 
-                    return(
+                    return isExpiredBlob || !image.imgUrl || hasFailed ? (
+                      <UnavailableImage key={imageKey}>
+                        Image unavailable
+                      </UnavailableImage>
+                    ) : (
                       <ImagePlaceholder
-                       src={Anncoment}
-                      
+                        key={imageKey}
+                        src={image.imgUrl}
+                        alt={image.imgName || `Announcement image ${idx + 1}`}
+                        title={image.imgName || `Announcement image ${idx + 1}`}
+                        onError={() =>
+                          setFailedImages((current) => ({
+                            ...current,
+                            [imageKey]: true,
+                          }))
+                        }
                       />
-                    )
-
-                    // return (
-                    //   isExpiredBlob || hasFailed ? (
-                    //      <ImagePlaceholder
-                    //        src={}
-                    //      />
-                    //   ) : (
-                    //     <ImagePlaceholder
-                    //       key={imageKey}
-                    //       src={image.imgUrl}
-                    //       alt={image.imgName || `Announcement image ${idx + 1}`}
-                    //       title={image.imgName || `Announcement image ${idx + 1}`}
-                    //       onError={() =>
-                    //         setFailedImages((current) => ({
-                    //           ...current,
-                    //           [imageKey]: true,
-                    //         }))
-                    //       }
-                    //     />
-                    //   )
-                    // );
+                    );
                   })}
                 </CardImages>
               )}

@@ -7,7 +7,7 @@ import PayrollIcon from "./Frame 1000009178 - Copy.svg";
 import { patch } from "../helpers/api_helper";
 import { toast } from "react-toastify";
 
-const money = (value) => value === "" || value == null ? "-" : Number(value).toLocaleString("en-IN");
+const money = (value) => value === "" || value == null ? "N/A" : Number(value).toLocaleString("en-IN");
 
 const PayrollComponent = ({ employee, onEmployeeUpdated }) => {
   const [expandedYear, setExpandedYear] = useState("2026");
@@ -100,7 +100,7 @@ const PayrollComponent = ({ employee, onEmployeeUpdated }) => {
           },
           {
             label: "Effective From",
-            value: salaryDetails.effectiveFrom || "Every Month 1 day",
+            value: salaryDetails.effectiveFrom || "N/A",
           },
           {
             label: "Basic Salary",
@@ -147,7 +147,7 @@ const PayrollComponent = ({ employee, onEmployeeUpdated }) => {
           },
           {
             label: "Deductions",
-            value: money(currentSalary.deductions ?? 0),
+            value: money(currentSalary.deductions),
           },
           {
             label: "Total Payable Amount",

@@ -17,17 +17,6 @@ const employmentStats = [
   { title: "New Employees", value: "03", percent: "20.5 %", type: "up" },
 ];
 
-const employmentTableColumns = [
-  { header: "Employee ID", accessor: "employeeId" },
-  { header: "Name", accessor: "name" },
-  { header: "Designation", accessor: "designation" },
-  { header: "Dept.", accessor: "department" },
-  { header: "Shift", accessor: "shift" },
-  { header: "Joined Date", accessor: "joinedDate" },
-  { header: "Status", accessor: "status" },
-  { header: "Action", accessor: "action" },
-];
-
 const employmentTableData = [
   {
     employeeId: "EMP001",
@@ -37,7 +26,6 @@ const employmentTableData = [
     shift: "Shift 1",
     joinedDate: "12-12-2025",
     status: "Active",
-    action: "...",
   },
   {
     employeeId: "EMP002",
@@ -47,7 +35,6 @@ const employmentTableData = [
     shift: "Shift 3",
     joinedDate: "12-12-2025",
     status: "In-Active",
-    action: "...",
   },
   {
     employeeId: "EMP003",
@@ -57,7 +44,6 @@ const employmentTableData = [
     shift: "Shift 4",
     joinedDate: "12-12-2025",
     status: "Relieved",
-    action: "...",
   },
   {
     employeeId: "EMP004",
@@ -67,7 +53,6 @@ const employmentTableData = [
     shift: "Shift 1",
     joinedDate: "12-12-2025",
     status: "Active",
-    action: "...",
   },
   {
     employeeId: "EMP005",
@@ -77,7 +62,6 @@ const employmentTableData = [
     shift: "Shift 1",
     joinedDate: "12-12-2025",
     status: "In-Active",
-    action: "...",
   },
   {
     employeeId: "EMP006",
@@ -87,7 +71,6 @@ const employmentTableData = [
     shift: "Shift 2",
     joinedDate: "12-12-2025",
     status: "In-Active",
-    action: "...",
   },
   {
     employeeId: "EMP007",
@@ -97,7 +80,6 @@ const employmentTableData = [
     shift: "Shift 3",
     joinedDate: "12-12-2025",
     status: "Active",
-    action: "...",
   },
 ];
 
@@ -109,6 +91,47 @@ const EmploymentList = () => {
   const [employeeDept, setEmployeeDept] = useState("All Department");
   const [employeeShift, setEmployeeShift] = useState("All Shifts");
   const [showFilter, setShowFilter] = useState(false);
+  const [employees, setEmployees] = useState(employmentTableData);
+
+  const handleViewEmployee = (employee) => {
+    navigate("/admin/peopleHub/employees/employeeProfile", {
+      state: { employeeId: employee.id || employee.employeeId },
+    });
+  };
+
+  const handleDeleteEmployee = (employee) => {
+    const shouldDelete = window.confirm(
+      `Are you sure you want to delete ${employee.name}?`,
+    );
+
+    if (shouldDelete) {
+      setEmployees((currentEmployees) =>
+        currentEmployees.filter(
+          (item) => item.employeeId !== employee.employeeId,
+        ),
+      );
+    }
+  };
+
+  const handleEditEmployee = (employee) => {
+    navigate("/admin/peopleHub/employees/create", {
+      state: {
+        employeeId: employee.id || employee.employeeId,
+        mode: "edit",
+      },
+    });
+  };
+
+  const employmentTableColumns = [
+    { header: "Employee ID", accessor: "employeeId" },
+    { header: "Name", accessor: "name" },
+    { header: "Designation", accessor: "designation" },
+    { header: "Dept.", accessor: "department" },
+    { header: "Shift", accessor: "shift" },
+    { header: "Joined Date", accessor: "joinedDate" },
+    { header: "Status", accessor: "status" },
+    { header: "Action", accessor: "action" },
+  ];
 
   const handleFilterOpen = () => {
     setShowFilter(true);
@@ -133,7 +156,7 @@ const EmploymentList = () => {
     navigate("/admin/peopleHub/employees/create");
   };
 
-  const filteredEmploymentData = employmentTableData.filter((row) => {
+  const filteredEmploymentData = employees.filter((row) => {
     const m1 = employeeDept === "All Department" || row.department === employeeDept;
     const m2 = employeeShift === "All Shifts" || row.shift === employeeShift;
     const m3 = !employeeSearch || row.name.toLowerCase().includes(employeeSearch.toLowerCase());
@@ -217,6 +240,9 @@ const EmploymentList = () => {
         data={filteredEmploymentData}
         rowsPerPage={7}
         totalResults={filteredEmploymentData.length}
+        onView={handleViewEmployee}
+        onEdit={handleEditEmployee}
+        onDelete={handleDeleteEmployee}
       />
     </Container>
   );

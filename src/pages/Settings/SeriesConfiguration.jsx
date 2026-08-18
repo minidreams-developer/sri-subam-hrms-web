@@ -68,6 +68,7 @@ const SeriesConfiguration = () => {
     {
       label: "Actions",
       key: "actions",
+      useDefaultActionMenu: true,
       render: () => <ActionDots>⋯</ActionDots>,
       align: "right",
     },

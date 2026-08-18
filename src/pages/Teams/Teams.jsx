@@ -59,11 +59,7 @@ const Teams = () => {
       key: "actions",
       header: "Action",
       align: "right",
-      render: () => (
-        <RowAction type="button" aria-label="Member actions">
-          <FiMoreHorizontal />
-        </RowAction>
-      ),
+      useDefaultActionMenu: true,
     },
   ];
 

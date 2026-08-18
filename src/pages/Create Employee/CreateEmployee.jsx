@@ -7,7 +7,7 @@ import PersonalInfo from "./PersonalInfo/PersonalInfo";
 import AddWorkDetails from "./Work Details/AddWorkDetails";
 import Documents from "./Documents/Documents";
 import Button from "../../components/Button";
-import { post } from "../../helpers/api_helper";
+import { postFormData } from "../../helpers/api_helper";
 import { EMPLOYEE_REGISTRATION } from "../../helpers/url_helper";
 import { toast } from "react-toastify";
 
@@ -97,7 +97,7 @@ const CreateEmployee = () => {
           panNo: personalData.panNo,
         },
 
-        addresses: [
+        address: [
           {
             addressLine1: personalData.address,
             addressLine2: personalData.addressLine2 || "",
@@ -107,14 +107,14 @@ const CreateEmployee = () => {
           },
         ],
 
-        emergencyContacts: (personalData.emergencyContacts || []).map((contact) => ({
+        emergencyContact: (personalData.emergencyContacts || []).map((contact) => ({
           contactName: contact.emergencyContactName,
           phone: Number(contact.emergencyContact),
-          relattionship: contact.relationship?.value, // API typo preserved
-          mobileNumber: Number(contact.emergencyContact),
+          relationship: contact.relationship?.value,
         })),
 
         workInformation: {
+          designation: workData.designation?.value,
           joinedDate: workData.dateOfJoining,
           experienceType: workData.experienceType?.value,
           department: workData.department?.value,
@@ -125,41 +125,68 @@ const CreateEmployee = () => {
           AttendanceType: workData.attendanceType?.value,
           shiftId: workData.shift?.value,
           userRemarks: workData.remarks,
-        },
-
-        salaryDetails: {
-          basicSalary: Number(workData.basicSalary),
-          annualCTC: Number(workData.ctcAnnual),
-          monthlyCTC: Number(workData.monthlyCTC),
-          houseRentAllowance: Number(workData.hra),
-          conveyanceAllowance: Number(workData.conveyanceAllowance),
-          specialAllowance: Number(workData.specialAllowance),
-          otherFixedAllowance: Number(workData.otherFixedAllowances) || 0,
-        },
-
-        bankDetails: [
-          {
-            accountHolderName: workData.accHolderName,
-            bankName: workData.bank,
-            accountNumber: Number(workData.accNumber),
-            ifscCode: workData.ifscCode,
-            branch: workData.bankBranch,
-            esiAndPf: {
-              esiNumber: Number(workData.esiNumber),
-              pfNumber: Number(workData.pfNumber),
-            },
+          totalExperience: workData.totalYearsOfExperience,
+          lastCompanyName: workData.lastCompanyName,
+          lastCompanyExperience: workData.experience,
+          location: workData.location,
+          attendancePermission: workData.attendancePermission?.value,
+          SalaryDetails: {
+            basicSalary: Number(workData.basicSalary),
+            annualCTC: Number(workData.ctcAnnual),
+            monthlyCTC: Number(workData.monthlyCTC),
+            houseRentAllowance: Number(workData.hra),
+            conveyanceAllowance: Number(workData.conveyanceAllowance),
+            specialAllowance: Number(workData.specialAllowance),
+            otherFixedAllowance: Number(workData.otherFixedAllowances) || 0,
           },
-        ],
-
-        documents: {
-          governmentDocuments: documentsData.governmentDocuments || [],
-          personalDocuments: documentsData.personalDocuments || [],
+          bankDetails: [
+            {
+              accountHolderName: workData.accHolderName,
+              bankName: workData.bank,
+              accountNumber: workData.accNumber ? Number(workData.accNumber) : null,
+              ifscCode: workData.ifscCode,
+              branch: workData.bankBranch,
+              esiAndPf: {
+                esiNumber: workData.esiNumber ? Number(workData.esiNumber) : null,
+                pfNumber: workData.pfNumber ? Number(workData.pfNumber) : null,
+              },
+            },
+          ],
         },
       };
 
       console.log("Payload:", payload);
 
-      const response = await post(EMPLOYEE_REGISTRATION, payload);
+      const multipartData = new FormData();
+      multipartData.append("payload", JSON.stringify(payload));
+      // Keep the regular body fields available to APIs that read multipart
+      // fields directly instead of parsing the consolidated `payload` field.
+      Object.entries(payload).forEach(([key, value]) => {
+        multipartData.append(key, typeof value === "object" ? JSON.stringify(value) : String(value ?? ""));
+      });
+
+      const documentMetadata = [];
+      const appendDocuments = (documents, category, fieldName) => {
+        (documents || []).forEach((document) => {
+          if (!(document.file instanceof File)) return;
+          multipartData.append(fieldName, document.file, document.file.name);
+          documentMetadata.push({
+            category,
+            label: document.label,
+            fileName: document.file.name,
+            keepOriginal: Boolean(document.keepOriginal),
+          });
+        });
+      };
+
+      appendDocuments(documentsData.governmentDocuments, "government", "governmentDocuments");
+      appendDocuments(documentsData.personalDocuments, "personal", "personalDocuments");
+      if (personalData.aadhaarImage instanceof File) {
+        multipartData.append("aadhaarImage", personalData.aadhaarImage, personalData.aadhaarImage.name);
+      }
+      multipartData.append("documentMetadata", JSON.stringify(documentMetadata));
+
+      const response = await postFormData(EMPLOYEE_REGISTRATION, multipartData);
       console.log("Response:", response);
 
       toast.success("Employee created successfully!");
@@ -199,9 +226,15 @@ const CreateEmployee = () => {
       </Progress>
 
       <FormContent>
-        {currentStep === 1 && <PersonalInfo ref={personalInfoRef} />}
-        {currentStep === 2 && <Documents ref={documentsRef} />}
-        {currentStep === 3 && <AddWorkDetails ref={workDetailsRef} />}
+        <StepPanel $active={currentStep === 1} aria-hidden={currentStep !== 1}>
+          <PersonalInfo ref={personalInfoRef} />
+        </StepPanel>
+        <StepPanel $active={currentStep === 2} aria-hidden={currentStep !== 2}>
+          <Documents ref={documentsRef} />
+        </StepPanel>
+        <StepPanel $active={currentStep === 3} aria-hidden={currentStep !== 3}>
+          <AddWorkDetails ref={workDetailsRef} />
+        </StepPanel>
       </FormContent>
 
       <ButtonRow>
@@ -322,6 +355,12 @@ const StepLine = styled.span`
 
 const FormContent = styled.div`
   width: 100%;
+`;
+
+// Keep every step mounted so typed values and selected File objects survive
+// moving forward and backward through the form.
+const StepPanel = styled.div`
+  display: ${({ $active }) => ($active ? "block" : "none")};
 `;
 
 const ButtonRow = styled.div`

@@ -1,7 +1,9 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import styled from "styled-components";
 import theme from "../theme/theme";
 import CustomButton from "./Button";
+import { FiEdit2, FiEye, FiMoreVertical, FiTrash2 } from "react-icons/fi";
 
 // ---------------- Reusable Table Component ----------------
 const ReusableTable = ({
@@ -24,11 +26,72 @@ const ReusableTable = ({
   onPageChange,
   alwaysShowPagination = false,
   actionType = "default",
+  onView,
+  onEdit,
+  onDelete,
   onApprove,
   onReject,
 }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedRows, setSelectedRows] = useState([]);
+  const [openActionRow, setOpenActionRow] = useState(null);
+  const [actionMenuPosition, setActionMenuPosition] = useState({ top: 0, left: 0 });
+  const actionMenuRef = useRef(null);
+
+  useEffect(() => {
+    const closeActionMenu = (event) => {
+      if (actionMenuRef.current && !actionMenuRef.current.contains(event.target)) {
+        setOpenActionRow(null);
+      }
+    };
+    const closePositionedMenu = () => setOpenActionRow(null);
+
+    document.addEventListener("mousedown", closeActionMenu);
+    window.addEventListener("resize", closePositionedMenu);
+    window.addEventListener("scroll", closePositionedMenu, true);
+    return () => {
+      document.removeEventListener("mousedown", closeActionMenu);
+      window.removeEventListener("resize", closePositionedMenu);
+      window.removeEventListener("scroll", closePositionedMenu, true);
+    };
+  }, []);
+
+  const runRowAction = (action, row) => {
+    const handlers = { view: onView || onRowClick, edit: onEdit, delete: onDelete };
+    const handler = handlers[action];
+
+    if (handler) {
+      handler(row);
+    } else if (actionBtnClicked) {
+      actionBtnClicked(row, action);
+    }
+    setOpenActionRow(null);
+  };
+
+  const toggleActionMenu = (event, actionRowKey) => {
+    event.stopPropagation();
+
+    if (openActionRow === actionRowKey) {
+      setOpenActionRow(null);
+      return;
+    }
+
+    const rect = event.currentTarget.getBoundingClientRect();
+    const menuWidth = 136;
+    const menuHeight = 132;
+    const viewportPadding = 8;
+    const left = Math.min(
+      window.innerWidth - menuWidth - viewportPadding,
+      Math.max(viewportPadding, rect.right - menuWidth),
+    );
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const top = spaceBelow >= menuHeight + viewportPadding
+      ? rect.bottom + 4
+      : Math.max(viewportPadding, rect.top - menuHeight - 4);
+
+    setActionMenuPosition({ top, left });
+    setOpenActionRow(actionRowKey);
+  };
 
   // Use server or local pagination values
   const page = server ? serverPage : currentPage;
@@ -145,7 +208,14 @@ const ReusableTable = ({
                 {columns.map((col, colIndex) => {
                   const value = row[col.key] || row[col.accessor];
 
-                  if (col.render) {
+                  const isActionColumn =
+                    col?.key === "actions" ||
+                    col?.header === "Actions" ||
+                    col?.header === "Action" ||
+                    col?.label === "Actions" ||
+                    col?.label === "Action";
+
+                  if (col.render && !col.useDefaultActionMenu) {
                     return (
                       <TableCell key={colIndex} $align={col?.align}>
                         {col.render(row)}
@@ -154,9 +224,7 @@ const ReusableTable = ({
                   }
 
                   if (
-                    col?.key === "actions" ||
-                    col?.header === "Actions" ||
-                    col?.header === "Action"
+                    isActionColumn
                   ) {
                     if (actionType === "buttons") {
                       return (
@@ -196,16 +264,40 @@ const ReusableTable = ({
                         </TableCell>
                       );
                     }
+                    const actionRowKey = `${page}-${rowIndex}`;
                     return (
-                      <ActionCell
-                        key={colIndex}
-                        $align={col?.align}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          actionBtnClicked && actionBtnClicked(row);
-                        }}
-                      >
-                        {value}
+                      <ActionCell key={colIndex} $align={col?.align}>
+                        <ActionMenuContainer>
+                          <MoreButton
+                            type="button"
+                            aria-label="Open row actions"
+                            aria-expanded={openActionRow === actionRowKey}
+                            onMouseDown={(e) => e.stopPropagation()}
+                            onClick={(e) => toggleActionMenu(e, actionRowKey)}
+                          >
+                            <FiMoreVertical size={18} />
+                          </MoreButton>
+                          {openActionRow === actionRowKey && typeof document !== "undefined" && createPortal(
+                            <ActionMenu
+                              ref={actionMenuRef}
+                              $top={actionMenuPosition.top}
+                              $left={actionMenuPosition.left}
+                              onMouseDown={(e) => e.stopPropagation()}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <ActionMenuButton type="button" onClick={() => runRowAction("view", row)}>
+                                <FiEye size={16} /> View
+                              </ActionMenuButton>
+                              <ActionMenuButton type="button" onClick={() => runRowAction("edit", row)}>
+                                <FiEdit2 size={16} /> Edit
+                              </ActionMenuButton>
+                              <ActionMenuButton type="button" $delete onClick={() => runRowAction("delete", row)}>
+                                <FiTrash2 size={16} /> Delete
+                              </ActionMenuButton>
+                            </ActionMenu>,
+                            document.body,
+                          )}
+                        </ActionMenuContainer>
                       </ActionCell>
                     );
                   } else if (
@@ -400,6 +492,64 @@ const ActionCell = styled.td`
 
   &:hover {
     color: ${theme.colors.primary};
+  }
+`;
+
+const ActionMenuContainer = styled.div`
+  position: relative;
+  display: inline-flex;
+`;
+
+const MoreButton = styled.button`
+  width: 2rem;
+  height: 2rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-radius: 0.375rem;
+  color: ${theme.colors.textColor};
+  background: transparent;
+  cursor: pointer;
+
+  &:hover,
+  &[aria-expanded="true"] {
+    color: ${theme.colors.primary};
+    background: ${theme.colors.secondaryWhite};
+  }
+`;
+
+const ActionMenu = styled.div`
+  position: fixed;
+  z-index: 9999;
+  top: ${({ $top }) => `${$top}px`};
+  left: ${({ $left }) => `${$left}px`};
+  width: 8.5rem;
+  padding: 0.375rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  background: #ffffff;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.14);
+`;
+
+const ActionMenuButton = styled.button`
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.625rem 0.75rem;
+  border: 0;
+  border-radius: 0.375rem;
+  color: ${({ $delete }) => ($delete ? "#dc2626" : theme.colors.textColor)};
+  background: transparent;
+  font-family: "Inter", sans-serif;
+  font-size: 0.813rem;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover {
+    background: ${({ $delete }) => ($delete ? "#fef2f2" : "#f3f4f6")};
   }
 `;
 

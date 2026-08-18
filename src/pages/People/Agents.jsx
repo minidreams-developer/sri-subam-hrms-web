@@ -9,7 +9,6 @@ import TableToolbar from "../../components/TableToolbar";
 import PlusIcon from "../../assets/images/DashboardImages/plus-large_svgrepo.com.svg";
 import Filter from "../../components/filter";
 import ReusableTable from "../../components/ReusableTable";
-import DotIcon from "../../assets/images/Overtime/actionDot.svg";
 import { get } from "../../helpers/api_helper";
 import { GET_AGENTS } from "../../helpers/url_helper";
 import { toast } from "react-toastify";
@@ -21,7 +20,7 @@ const agentsTableColumns = [
   { header: "Total Labours Count", accessor: "laboursCount" },
   { header: "Joined Date", accessor: "joinedDate" },
   { header: "Status", accessor: "status" },
-  { header: "Action", accessor: "action", render: () => <img src={DotIcon} alt="action" width="20" height="20" /> },
+  { header: "Action", accessor: "action" },
 ];
 
 // Helper function to format date

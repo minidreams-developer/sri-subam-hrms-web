@@ -110,7 +110,7 @@ const CreateStaff = () => {
         emergencyContacts: (personalData.emergencyContacts || []).map((contact) => ({
           contactName: contact.emergencyContactName,
           phone: Number(contact.emergencyContact),
-          relattionship: contact.relationship?.value, // API typo preserved
+          relationship: contact.relationship?.value,
           mobileNumber: Number(contact.emergencyContact),
         })),
 
@@ -180,9 +180,15 @@ const CreateStaff = () => {
     <Container>
       <Stepper steps={steps} currentStep={currentStep} />
       <div>
-        {currentStep === 1 && <PersonalInfo ref={personalInfoRef} />}
-        {currentStep === 2 && <Documents ref={documentsRef} />}
-        {currentStep === 3 && <AddWorkDetails ref={workDetailsRef} />}
+        <StepPanel $active={currentStep === 1} aria-hidden={currentStep !== 1}>
+          <PersonalInfo ref={personalInfoRef} />
+        </StepPanel>
+        <StepPanel $active={currentStep === 2} aria-hidden={currentStep !== 2}>
+          <Documents ref={documentsRef} />
+        </StepPanel>
+        <StepPanel $active={currentStep === 3} aria-hidden={currentStep !== 3}>
+          <AddWorkDetails ref={workDetailsRef} />
+        </StepPanel>
       </div>
 
       <ButtonRow>
@@ -233,6 +239,12 @@ const CreateStaff = () => {
 const Container = styled.div`
   width: 100%;
   padding: 1.5rem 0;
+`;
+
+// Keep every step mounted so typed values and selected File objects survive
+// moving forward and backward through the form.
+const StepPanel = styled.div`
+  display: ${({ $active }) => ($active ? "block" : "none")};
 `;
 
 const ButtonRow = styled.div`

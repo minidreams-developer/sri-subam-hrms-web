@@ -82,7 +82,7 @@ const EmployeeProfile = () => {
           {active === "Personal Details" && (
             <PersonalDetails employee={selectedEmployee} onEmployeeUpdated={setSelectedEmployee} />
           )}
-          {active === "Work Details" && <WorkDetails employee={selectedEmployee} />}
+          {active === "Work Details" && <WorkDetails employee={selectedEmployee} onEmployeeUpdated={setSelectedEmployee} />}
           {active === "Attendance" && <Attendance employee={selectedEmployee} />}
           {active === "Payroll" && <PayrollComponent employee={selectedEmployee} onEmployeeUpdated={setSelectedEmployee} />}
           {active === "Assets" && <Assets employee={selectedEmployee} />}

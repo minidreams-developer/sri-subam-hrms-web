@@ -10,19 +10,21 @@ import SampleProfile from "../../../assets/images/employee/sampleProfile.jpg";
 import { patch } from "../../../helpers/api_helper";
 import { toast } from "react-toastify";
 
-const fallback = {
-  fullName: "Manoj Kumar", employeeId: "", employeeType: "Full Time",
-  gender: "Male", dob: "20-09-1999", age: "31 Years",
-  contact: "+91 9500827645", email: "designedbymanoj@gmail.com",
-  maritalStatus: "Married", motherTongue: "Tamil",
-  identificationMark: "Small mole on right cheek", address1: "8/569",
-  address2: "Andal Building, Gandhinagar 2nd street", city: "Tirupur",
-  state: "Tamil Nadu", zipCode: "641666", profilePic: SampleProfile,
+const NOT_AVAILABLE = "N/A";
+
+const read = (employee, keys, defaultValue = NOT_AVAILABLE) => {
+  for (const key of keys) {
+    const value = employee?.[key];
+    if (value !== undefined && value !== null && value !== "") return value;
+  }
+  return defaultValue;
 };
 
-const read = (employee, keys, defaultValue) => {
-  for (const key of keys) if (employee?.[key]) return employee[key];
-  return defaultValue;
+const display = (value) => value === undefined || value === null || value === "" ? NOT_AVAILABLE : value;
+const formatDate = (value) => {
+  if (!value) return NOT_AVAILABLE;
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime()) ? NOT_AVAILABLE : date.toLocaleDateString("en-GB");
 };
 
 export const PersonalDetails = ({ employee, onEmployeeUpdated }) => {
@@ -32,27 +34,25 @@ export const PersonalDetails = ({ employee, onEmployeeUpdated }) => {
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({});
-  const [documents, setDocuments] = useState(Array(5).fill("File Name"));
-  const dobValue = read(employee, ["dateOfBirth", "dob"], fallback.dob);
-  const primaryAddress = employee?.addresses?.[0] || {};
+  const [uploadedDocuments, setUploadedDocuments] = useState([]);
+  const primaryAddress = employee?.address?.[0] || employee?.addresses?.[0] || {};
+  const emergencyContacts = employee?.emergencyContact || employee?.emergencyContacts || [];
+  const documents = [...(employee?.userDocuments || employee?.documents || []), ...uploadedDocuments];
   const details = {
-    fullName: read(employee, ["name", "employeeName", "fullName"], fallback.fullName),
-    employeeId: read(employee, ["employeeId", "employee_id"], fallback.employeeId),
-    employeeType: read(employee, ["employeeType", "employmentType"], fallback.employeeType),
-    gender: read(employee, ["gender"], fallback.gender),
-    dob: dobValue instanceof Date ? dobValue.toLocaleDateString("en-GB") : String(dobValue).slice(0, 10).split("-").reverse().join("-"),
-    age: employee?.age ? `${employee.age} Years` : fallback.age,
-    contact: read(employee, ["phone", "contact", "mobileNumber"], fallback.contact),
-    email: read(employee, ["email"], fallback.email),
-    maritalStatus: read(employee, ["maritalStatus", "martialStatus"], fallback.maritalStatus),
-    motherTongue: read(employee, ["motherTongue"], fallback.motherTongue),
-    identificationMark: read(employee, ["identificationMark"], fallback.identificationMark),
-    address1: read(employee, ["address1", "addressLine1"], primaryAddress.addressLine1 || fallback.address1),
-    address2: read(employee, ["address2", "addressLine2"], primaryAddress.addressLine2 || fallback.address2),
-    city: read(employee, ["city"], primaryAddress.city || fallback.city),
-    state: read(employee, ["state"], primaryAddress.state || fallback.state),
-    zipCode: read(employee, ["zipCode", "pincode"], primaryAddress.pincode || fallback.zipCode),
-    profilePic: read(employee, ["profilePic", "profileImage", "avatar"], fallback.profilePic),
+    fullName: read(employee, ["name", "employeeName", "fullName"]),
+    employeeId: read(employee, ["employeeId", "employee_id"]),
+    employeeType: read(employee, ["employeeType", "employmentType"]),
+    gender: read(employee, ["gender"]),
+    dob: formatDate(read(employee, ["dateOfBirth", "dob"], null)),
+    age: employee?.age === 0 || employee?.age ? `${employee.age} Years` : NOT_AVAILABLE,
+    contact: read(employee, ["phone", "contact", "mobileNumber"]), email: read(employee, ["email"]),
+    maritalStatus: read(employee, ["maritalStatus", "martialStatus"]), motherTongue: read(employee, ["motherTongue"]),
+    identificationMark: read(employee, ["identificationMark"]),
+    address1: display(primaryAddress.addressLine1 || employee?.address1 || employee?.addressLine1),
+    address2: display(primaryAddress.addressLine2 || employee?.address2 || employee?.addressLine2),
+    city: display(primaryAddress.city || employee?.city), state: display(primaryAddress.state || employee?.state),
+    zipCode: display(primaryAddress.pincode || employee?.zipCode || employee?.pincode),
+    profilePic: read(employee, ["profilePic", "profileImage", "avatar"], SampleProfile),
   };
   useEffect(() => setActive(employee?.isActive !== false), [employee?.isActive]);
 
@@ -132,7 +132,7 @@ export const PersonalDetails = ({ employee, onEmployeeUpdated }) => {
   ];
   const upload = (event) => {
     const file = event.target.files?.[0];
-    if (file) setDocuments((items) => [...items, file.name]);
+    if (file) setUploadedDocuments((items) => [...items, file.name]);
     event.target.value = "";
   };
 
@@ -150,11 +150,11 @@ export const PersonalDetails = ({ employee, onEmployeeUpdated }) => {
       </PersonalCard>
 
       <Section title="Address Information" items={[["Address 1", details.address1], ["Address 2", details.address2], ["City", details.city], ["State", details.state], ["ZIP Code", details.zipCode]]} />
-      <Section title="Emergency Contact" items={[["Emergency Contact Name", "Deepak Kumar"], ["Relationship", "Brother"], ["Mobile Number", "+91 9756778265"]]} />
-      <Section title="" items={[["Emergency Contact Name", "Manoj Kumar"], ["Relationship", "Brother"], ["Mobile Number", "+91 4569856325"]]} />
+      <Section title="Emergency Contact" items={[["Emergency Contact Name", display(emergencyContacts[0]?.contactName || emergencyContacts[0]?.name)], ["Relationship", display(emergencyContacts[0]?.relationship)], ["Mobile Number", display(emergencyContacts[0]?.phone || emergencyContacts[0]?.mobileNumber)]]} />
+      {emergencyContacts.slice(1).map((contact, index) => <Section key={contact.id || contact._id || index} title="" items={[["Emergency Contact Name", display(contact.contactName || contact.name)], ["Relationship", display(contact.relationship)], ["Mobile Number", display(contact.phone || contact.mobileNumber)]]} />)}
 
       <DocumentsHeader><SectionTitle>Documents</SectionTitle><UploadButton onClick={() => inputRef.current?.click()}><img src={UploadIcon} alt="" />Upload</UploadButton><input ref={inputRef} type="file" hidden onChange={upload} /></DocumentsHeader>
-      <DocumentsPanel>{documents.map((name, index) => <Document key={`${name}-${index}`}><DocLabel>Aadhaar</DocLabel><FileBox><span><img src={DocumentIcon} alt="" />{name}</span><img src={EyeIcon} alt="View" /></FileBox></Document>)}</DocumentsPanel>
+      <DocumentsPanel>{documents.length ? documents.map((document, index) => { const name = typeof document === "string" ? document : document.fileName || document.name || document.documentName || NOT_AVAILABLE; return <Document key={document.id || document._id || `${name}-${index}`}><DocLabel>{display(document.documentType || document.type || "Document")}</DocLabel><FileBox><span><img src={DocumentIcon} alt="" />{name}</span><img src={EyeIcon} alt="View" /></FileBox></Document>; }) : <Document><DocLabel>Documents</DocLabel><FileBox><span>{NOT_AVAILABLE}</span></FileBox></Document>}</DocumentsPanel>
       {editing && <ModalBackdrop onMouseDown={(e) => e.target === e.currentTarget && setEditing(false)}><Modal role="dialog" aria-modal="true" aria-labelledby="edit-personal-title"><ModalTitle id="edit-personal-title">Edit Personal Details</ModalTitle><EditForm onSubmit={save}>
         <Field><label>Full Name</label><input name="name" value={form.name || ""} onChange={change} required /></Field>
         <Field><label>Employee ID</label><input name="employeeId" value={form.employeeId || ""} onChange={change} /></Field>

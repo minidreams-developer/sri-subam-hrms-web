@@ -4,45 +4,72 @@ import theme from "../../../theme/theme";
 import DocIcon from "../../../assets/images/employee/document.svg";
 import EditIcon from "../../../assets/images/employee/editIcon.svg";
 import CardDetails from "../../../components/CardDetails";
+import { patch } from "../../../helpers/api_helper";
+import { toast } from "react-toastify";
 
 const fields = [
-  ["designation", "Designation", "Senior UI/UX Designer"],
-  ["team", "Team", "Core UI / Design Systems"],
-  ["department", "Department", "IT Department"],
-  ["dateOfJoining", "Date Of Joining", "20-09-2025"],
-  ["experienceType", "Experience Type", "Fresher"],
-  ["workExperience", "Work Experience", "8 Months"],
-  ["shift", "Shift", "Morning"],
-  ["terminationDate", "Termination Date", "-"],
-  ["exitDate", "Exit Date", "-"],
-  ["reportingPerson", "Reporting Person", "Arun Kumar"],
-  ["reference", "Reference", "Ruban Kumar"],
-  ["contractAgent", "Contract Agent", "Deepak Kumar"],
-  ["totalExperience", "Total Years of Experience", "Senior UI/UX Designer"],
-  ["lastCompanyName", "Last Company Name", "Core UI / Design Systems"],
-  ["lastCompanyExperience", "Last Company Experience", "IT Department"],
-  ["relievedDate", "Relieved Date", "20-09-2025"],
-  ["location", "Location", "Tirupur"],
-  ["attendancePermission", "Attendance Permission", "Auto"],
-  ["accountHolderName", "Acc Holder Name", "Manoj Kumar"],
-  ["bank", "Bank", "State bank of india"],
-  ["accountNumber", "Acc Number", "1234 5678 9012 3456"],
-  ["ifscCode", "IFSC Code", "SBI15669"],
-  ["branch", "Branch", "Tirupur"],
-  ["esiNumber", "ESI Number", "Manoj Kumar"],
-  ["pfNumber", "PF Number", "designedbymanoj@gmail.com"],
-  ["email", "Email", "designedbymanoj@gmail.com"],
-  ["password", "Password", "Manoj Kumar"],
+  ["designation", "Designation"], ["team", "Team"], ["department", "Department"],
+  ["dateOfJoining", "Date Of Joining"], ["experienceType", "Experience Type"], ["workExperience", "Work Experience"],
+  ["shift", "Shift"], ["terminationDate", "Termination Date"], ["exitDate", "Exit Date"],
+  ["reportingPerson", "Reporting Person"], ["reference", "Reference"], ["contractAgent", "Contract Agent"],
+  ["totalExperience", "Total Years of Experience"], ["lastCompanyName", "Last Company Name"],
+  ["lastCompanyExperience", "Last Company Experience"], ["relievedDate", "Relieved Date"],
+  ["location", "Location"], ["attendancePermission", "Attendance Permission"],
+  ["accountHolderName", "Acc Holder Name"], ["bank", "Bank"], ["accountNumber", "Acc Number"],
+  ["ifscCode", "IFSC Code"], ["branch", "Branch"], ["esiNumber", "ESI Number"],
+  ["pfNumber", "PF Number"], ["email", "Email"], ["password", "Password"],
 ];
 
-const makeDetails = (employee) => Object.fromEntries(
-  fields.map(([key, , fallback]) => [key, employee?.[key] ?? fallback]),
-);
+const valueOf = (value, keys = []) => {
+  if (value === undefined || value === null || value === "") return "N/A";
+  if (typeof value !== "object") return value;
+  return keys.map((key) => value?.[key]).find((item) => item !== undefined && item !== null && item !== "") ?? "N/A";
+};
+const dateOf = (value) => {
+  if (!value) return "N/A";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "N/A" : date.toLocaleDateString("en-GB");
+};
+const makeDetails = (employee) => {
+  const work = employee?.workInformation || {};
+  const bank = work.bankDetails?.[0] || {};
+  const esiAndPf = bank.esiAndPf || {};
+  return {
+    designation: valueOf(work.designation || employee?.designation, ["name", "designationName"]),
+    team: valueOf(work.team || employee?.team, ["teamName", "name"]),
+    department: valueOf(work.department || employee?.department, ["departmentName", "name"]),
+    dateOfJoining: dateOf(work.joinedDate || work.dateOfJoining || employee?.dateOfJoining),
+    experienceType: valueOf(work.experienceType), workExperience: valueOf(work.workExperience),
+    shift: valueOf(work.shift || work.shiftId || employee?.shift, ["shiftName", "name"]),
+    terminationDate: dateOf(work.terminationDate || employee?.terminationDate), exitDate: dateOf(work.exitDate || employee?.exitDate),
+    reportingPerson: valueOf(work.reportingPerson, ["name", "employeeName"]), reference: valueOf(work.reference, ["name", "employeeName"]),
+    contractAgent: valueOf(work.contractAgent, ["name"]), totalExperience: valueOf(work.totalExperience),
+    lastCompanyName: valueOf(work.lastCompanyName), lastCompanyExperience: valueOf(work.lastCompanyExperience),
+    relievedDate: dateOf(work.relievedDate), location: valueOf(work.location || work.branch, ["branchName", "name", "city"]),
+    attendancePermission: valueOf(work.attendancePermission || work.AttendanceType), accountHolderName: valueOf(bank.accountHolderName),
+    bank: valueOf(bank.bankName || bank.bank), accountNumber: valueOf(bank.accountNumber), ifscCode: valueOf(bank.ifscCode),
+    branch: valueOf(bank.branch), esiNumber: valueOf(esiAndPf.esiNumber), pfNumber: valueOf(esiAndPf.pfNumber),
+    email: valueOf(employee?.email), password: "N/A",
+  };
+};
 
-export const WorkDetails = ({ employee }) => {
+const apiValue = (value) => value === "N/A" ? "" : value;
+const objectIdOrValue = (draftValue, original, displayKeys) => {
+  if (!original || typeof original !== "object") return apiValue(draftValue);
+  const originalDisplay = valueOf(original, displayKeys);
+  return String(draftValue) === String(originalDisplay) ? original.id || original._id || draftValue : apiValue(draftValue);
+};
+const apiDate = (value) => {
+  if (!value || value === "N/A") return "";
+  const parts = String(value).split("/");
+  return parts.length === 3 ? `${parts[2]}-${parts[1]}-${parts[0]}` : value;
+};
+
+export const WorkDetails = ({ employee, onEmployeeUpdated }) => {
   const [details, setDetails] = useState(() => makeDetails(employee));
   const [draft, setDraft] = useState(details);
   const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     const nextDetails = makeDetails(employee);
@@ -55,15 +82,56 @@ export const WorkDetails = ({ employee }) => {
     setEditing(true);
   };
 
-  const saveDetails = (event) => {
+  const saveDetails = async (event) => {
     event.preventDefault();
-    setDetails(draft);
-    setEditing(false);
+    const employeeId = employee?.id || employee?._id;
+    if (!employeeId) return toast.error("Employee ID is missing");
+
+    const work = employee?.workInformation || {};
+    const currentBank = work.bankDetails?.[0] || {};
+    const currentEsiAndPf = currentBank.esiAndPf || {};
+    const workInformation = {
+      ...work,
+      designation: apiValue(draft.designation),
+      team: objectIdOrValue(draft.team, work.team || employee?.team, ["teamName", "name"]),
+      department: objectIdOrValue(draft.department, work.department || employee?.department, ["departmentName", "name"]),
+      joinedDate: apiDate(draft.dateOfJoining), experienceType: apiValue(draft.experienceType),
+      workExperience: apiValue(draft.workExperience),
+      shiftId: objectIdOrValue(draft.shift, work.shiftId || work.shift || employee?.shift, ["shiftName", "name"]),
+      terminationDate: apiDate(draft.terminationDate), exitDate: apiDate(draft.exitDate),
+      reportingPerson: objectIdOrValue(draft.reportingPerson, work.reportingPerson, ["name", "employeeName"]),
+      reference: objectIdOrValue(draft.reference, work.reference, ["name", "employeeName"]),
+      contractAgent: objectIdOrValue(draft.contractAgent, work.contractAgent, ["name"]),
+      totalExperience: apiValue(draft.totalExperience), lastCompanyName: apiValue(draft.lastCompanyName),
+      lastCompanyExperience: apiValue(draft.lastCompanyExperience), relievedDate: apiDate(draft.relievedDate),
+      location: apiValue(draft.location), AttendanceType: apiValue(draft.attendancePermission),
+      bankDetails: [{
+        ...currentBank, accountHolderName: apiValue(draft.accountHolderName), bankName: apiValue(draft.bank),
+        accountNumber: apiValue(draft.accountNumber), ifscCode: apiValue(draft.ifscCode), branch: apiValue(draft.branch),
+        esiAndPf: { ...currentEsiAndPf, esiNumber: apiValue(draft.esiNumber), pfNumber: apiValue(draft.pfNumber) },
+      }],
+    };
+    const payload = { workInformation, email: apiValue(draft.email) };
+
+    setSaving(true);
+    try {
+      const response = await patch(`/v1/users/${employeeId}`, payload);
+      const responseEmployee = response?.data || response?.user || response;
+      const updatedEmployee = { ...employee, ...payload, ...(responseEmployee || {}) };
+      setDetails(makeDetails(updatedEmployee));
+      onEmployeeUpdated?.(updatedEmployee);
+      setEditing(false);
+      toast.success("Work details updated successfully");
+    } catch (error) {
+      toast.error(error.response?.data?.message || error.message || "Failed to update work details");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const items = (keys) => keys.map((key) => {
     const field = fields.find(([fieldKey]) => fieldKey === key);
-    return { label: field[1], value: details[key] || "-" };
+    return { label: field[1], value: details[key] || "N/A" };
   });
 
   return (
@@ -116,7 +184,7 @@ export const WorkDetails = ({ employee }) => {
             <DialogHeader><DialogTitle id="work-details-title">Edit Work Details</DialogTitle><CloseButton type="button" onClick={() => setEditing(false)} aria-label="Close">×</CloseButton></DialogHeader>
             <Form onSubmit={saveDetails}>
               <FormGrid>{fields.map(([key, label]) => <Field key={key}><label htmlFor={`work-${key}`}>{label}</label><input id={`work-${key}`} value={draft[key] ?? ""} onChange={(event) => setDraft((current) => ({ ...current, [key]: event.target.value }))} /></Field>)}</FormGrid>
-              <Actions><CancelButton type="button" onClick={() => setEditing(false)}>Cancel</CancelButton><SaveButton type="submit">Save changes</SaveButton></Actions>
+              <Actions><CancelButton type="button" onClick={() => setEditing(false)} disabled={saving}>Cancel</CancelButton><SaveButton type="submit" disabled={saving}>{saving ? "Saving..." : "Save changes"}</SaveButton></Actions>
             </Form>
           </Dialog>
         </Backdrop>
