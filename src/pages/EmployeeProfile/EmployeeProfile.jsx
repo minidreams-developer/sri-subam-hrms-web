@@ -8,53 +8,35 @@ import { Attendance } from "./Attendance/Attendance";
 import PayrollComponent from "../../components/payroll";
 import Assets from "../../components/assets";
 import { get } from "../../helpers/api_helper";
-import { GET_EMPLOYEES_BY_ROLE } from "../../helpers/url_helper";
 import { toast } from "react-toastify";
 import { useLocation } from "react-router-dom";
 
 const EmployeeProfile = () => {
   const location = useLocation();
   const [active, setActive] = useState(location.state?.activeTab || "Personal Details");
-  const [employees, setEmployees] = useState([]);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [loading, setLoading] = useState(false);
+  const userId = location.state?.employeeId;
 
-  // Fetch employees on component mount
   useEffect(() => {
-    fetchEmployees();
-  }, []);
+    if (!userId) {
+      setSelectedEmployee(null);
+      return;
+    }
+    fetchEmployee(userId);
+  }, [userId]);
 
-  const fetchEmployees = async () => {
+  const fetchEmployee = async (employeeUserId) => {
     setLoading(true);
     try {
-      const response = await get(`${GET_EMPLOYEES_BY_ROLE}?role=employee&limit=100`);
-      console.log("Employees API Response:", response);
-      
-      let employeeList = [];
-      if (response && Array.isArray(response)) {
-        employeeList = response;
-      } else if (response?.results && Array.isArray(response.results)) {
-        employeeList = response.results;
-      } else if (response?.data && Array.isArray(response.data)) {
-        employeeList = response.data;
-      } else if (response?.users && Array.isArray(response.users)) {
-        employeeList = response.users;
-      }
-      
-      setEmployees(employeeList);
-      
-      // Open the employee selected in the table (fall back to the first result
-      // for direct links/bookmarks).
-      if (employeeList.length > 0) {
-        const requestedId = location.state?.employeeId;
-        setSelectedEmployee(
-          employeeList.find((item) => (item.id || item._id) === requestedId) || employeeList[0]
-        );
-      }
+      const response = await get(`/v1/users/${employeeUserId}`);
+      const employee = response?.data?.user || response?.data || response?.user || response?.result || response;
+      setSelectedEmployee(employee && !Array.isArray(employee) ? employee : null);
     } catch (error) {
-      const errorMessage = error.response?.data?.message || error.message || "Failed to fetch employees";
+      setSelectedEmployee(null);
+      const errorMessage = error.response?.data?.message || error.message || "Failed to fetch employee profile";
       toast.error(errorMessage);
-      console.error("Fetch employees error:", error);
+      console.error("Fetch employee profile error:", error);
     } finally {
       setLoading(false);
     }

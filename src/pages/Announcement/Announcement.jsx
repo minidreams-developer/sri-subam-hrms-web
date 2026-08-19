@@ -2,20 +2,27 @@ import { useState, useEffect } from "react";
 import styled from "styled-components";
 import axios from "axios";
 import { toast } from "react-toastify";
-import { FiPlus } from "react-icons/fi";
+import { FiEdit2, FiPlus, FiTrash2 } from "react-icons/fi";
 import { useOutletContext } from "react-router-dom";
 import SearchInputComponent from "../../components/SearchInputComponent";
 import Button from "../../components/Button";
+import CalenderInput from "../../components/CalenderInput";
+import TimeInputComponent from "../../components/TimeInputComponent";
+import { getStoredAuthUser } from "../../helpers/auth_helper";
 import theme from "../../theme/theme";
 import megaphoneIcon from "../../assets/images/dashboardImages/megaphone_svgrepo.com.svg";
 import uploadIcon from "../../assets/images/Common/upload.svg";
 
 const Announcement = () => {
   const { setHeaderTitle, setHeaderBackAction } = useOutletContext();
+  const isAdmin = getStoredAuthUser()?.user?.role?.toLowerCase() === "admin";
   const [searchQuery, setSearchQuery] = useState("");
-  const [filter, setFilter] = useState("All");
+  const [filter, setFilter] = useState("Published");
   const [showNewAnnouncement, setShowNewAnnouncement] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [editingAnnouncement, setEditingAnnouncement] = useState(null);
+  const [deletingId, setDeletingId] = useState(null);
+  const [showSchedulePicker, setShowSchedulePicker] = useState(false);
   const [announcements, setAnnouncements] = useState([]);
   const [announcementsLoading, setAnnouncementsLoading] = useState(true);
   const [announcementsError, setAnnouncementsError] = useState(null);
@@ -28,6 +35,39 @@ const Announcement = () => {
   const [isDragging, setIsDragging] = useState(false);
   const [failedImages, setFailedImages] = useState({});
 
+  const closeForm = () => {
+    setShowNewAnnouncement(false);
+    setEditingAnnouncement(null);
+    setFormData({ title: "", message: "", scheduleDateAndTime: "" });
+    setUploadedFiles([]);
+    setShowSchedulePicker(false);
+  };
+
+  const updateScheduledDate = (selectedDate) => {
+    if (!selectedDate) return;
+    const current = formData.scheduleDateAndTime
+      ? new Date(formData.scheduleDateAndTime)
+      : new Date();
+    const combined = new Date(selectedDate);
+    combined.setHours(current.getHours(), current.getMinutes(), 0, 0);
+    setFormData((previous) => ({
+      ...previous,
+      scheduleDateAndTime: combined.toISOString(),
+    }));
+  };
+
+  const updateScheduledTime = (selectedTime) => {
+    if (!selectedTime) return;
+    const combined = formData.scheduleDateAndTime
+      ? new Date(formData.scheduleDateAndTime)
+      : new Date();
+    combined.setHours(selectedTime.getHours(), selectedTime.getMinutes(), 0, 0);
+    setFormData((previous) => ({
+      ...previous,
+      scheduleDateAndTime: combined.toISOString(),
+    }));
+  };
+
   const fileToDataUrl = (file) =>
     new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -37,16 +77,16 @@ const Announcement = () => {
     });
 
   useEffect(() => {
-    setHeaderTitle(showNewAnnouncement ? "New Announcement" : "Announcement");
+    setHeaderTitle(showNewAnnouncement ? (editingAnnouncement ? "Edit Announcement" : "New Announcement") : "Announcement");
     setHeaderBackAction(
-      showNewAnnouncement ? () => () => setShowNewAnnouncement(false) : null,
+      showNewAnnouncement ? () => closeForm : null,
     );
 
     return () => {
       setHeaderTitle("");
       setHeaderBackAction(null);
     };
-  }, [setHeaderBackAction, setHeaderTitle, showNewAnnouncement]);
+  }, [editingAnnouncement, setHeaderBackAction, setHeaderTitle, showNewAnnouncement]);
 
   const filteredAnnouncements = announcements.filter((announcement) =>
     `${announcement.title} ${announcement.content}`
@@ -61,7 +101,8 @@ const Announcement = () => {
         setAnnouncementsLoading(true);
         setAnnouncementsError(null);
         
-        const apiUrl = `${import.meta.env.VITE_API_BASE_URL}/v1/announcements`;
+        const baseUrl = `${import.meta.env.VITE_API_BASE_URL}/v1/announcements`;
+        const apiUrl = `${baseUrl}?status=${encodeURIComponent(filter.toLowerCase())}`;
         console.log("🔗 Fetching announcements from:", apiUrl);
         
         const response = await axios.get(apiUrl, {
@@ -94,6 +135,7 @@ const Announcement = () => {
             id: announcement._id || announcement.id,
             title: announcement.title || "Untitled",
             content: announcement.content || announcement.description || "",
+            scheduleDateAndTime: announcement.scheduleDateAndTime || announcement.createdAt,
             date: new Date(announcement.scheduleDateAndTime || announcement.createdAt).toLocaleDateString('en-US', {
               year: 'numeric',
               month: 'short',
@@ -127,7 +169,7 @@ const Announcement = () => {
     };
 
     fetchAnnouncements();
-  }, []);
+  }, [filter]);
 
   const handleFileSelect = (e) => {
     const files = Array.from(e.target.files);
@@ -184,8 +226,9 @@ const Announcement = () => {
       // contents so announcements still render after a refresh.
       const images = await Promise.all(
         uploadedFiles.map(async (file, index) => ({
-          imgName: file.name.split('.')[0] || `image-${index}`,
-          imgUrl: await fileToDataUrl(file.file),
+          ...(file._id ? { _id: file._id } : {}),
+          imgName: file.name?.split('.')[0] || `image-${index}`,
+          imgUrl: file.file ? await fileToDataUrl(file.file) : file.imgUrl,
         })),
       );
 
@@ -202,14 +245,16 @@ const Announcement = () => {
       const apiUrl = `${import.meta.env.VITE_API_BASE_URL}/v1/announcements`;
       console.log("🔗 API URL:", apiUrl);
 
-      const response = await axios.post(apiUrl, payload, {
-        headers: {
-          "Content-Type": "application/json"
-        }
-      });
+      const response = editingAnnouncement
+        ? await axios.patch(`${apiUrl}/${editingAnnouncement.id}`, payload, {
+            headers: { "Content-Type": "application/json" }
+          })
+        : await axios.post(apiUrl, payload, {
+            headers: { "Content-Type": "application/json" }
+          });
 
       console.log("✅ Announcement published successfully:", response.data);
-      toast.success("Announcement published successfully!");
+      toast.success(editingAnnouncement ? "Announcement updated successfully!" : "Announcement published successfully!");
       
       // Reset form
       setFormData({
@@ -219,11 +264,13 @@ const Announcement = () => {
       });
       setUploadedFiles([]);
       setShowNewAnnouncement(false);
+      setEditingAnnouncement(null);
 
       // Refresh announcements list
       const fetchAnnouncements = async () => {
         try {
-          const apiUrl = `${import.meta.env.VITE_API_BASE_URL}/v1/announcements`;
+          const baseUrl = `${import.meta.env.VITE_API_BASE_URL}/v1/announcements`;
+          const apiUrl = `${baseUrl}?status=${encodeURIComponent(filter.toLowerCase())}`;
           const response = await axios.get(apiUrl, {
             headers: {
               "Content-Type": "application/json"
@@ -236,6 +283,7 @@ const Announcement = () => {
               id: announcement._id || announcement.id,
               title: announcement.title || "Untitled",
               content: announcement.content || announcement.description || "",
+              scheduleDateAndTime: announcement.scheduleDateAndTime || announcement.createdAt,
               date: new Date(announcement.scheduleDateAndTime || announcement.createdAt).toLocaleDateString('en-US', {
                 year: 'numeric',
                 month: 'short',
@@ -274,10 +322,42 @@ const Announcement = () => {
       const errorMessage = error.response?.data?.message || 
                           error.response?.data?.error || 
                           error.message || 
-                          "Failed to publish announcement";
+                          `Failed to ${editingAnnouncement ? "update" : "publish"} announcement`;
       toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleEdit = (announcement) => {
+    setEditingAnnouncement(announcement);
+    setFormData({
+      title: announcement.title,
+      message: announcement.content,
+      scheduleDateAndTime: announcement.scheduleDateAndTime || "",
+    });
+    setUploadedFiles((announcement.images || []).map((image, index) => ({
+      id: image._id || `existing-${index}`,
+      _id: image._id,
+      name: image.imgName || `image-${index + 1}`,
+      imgUrl: image.imgUrl,
+    })));
+    setShowSchedulePicker(false);
+    setShowNewAnnouncement(true);
+  };
+
+  const handleDelete = async (announcement) => {
+    if (!window.confirm(`Delete “${announcement.title}”?`)) return;
+
+    setDeletingId(announcement.id);
+    try {
+      await axios.delete(`${import.meta.env.VITE_API_BASE_URL}/v1/announcements/${announcement.id}`);
+      setAnnouncements((current) => current.filter((item) => item.id !== announcement.id));
+      toast.success("Announcement deleted successfully!");
+    } catch (error) {
+      toast.error(error.response?.data?.message || error.response?.data?.error || error.message || "Failed to delete announcement");
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -285,7 +365,7 @@ const Announcement = () => {
     return (
       <NewAnnouncementPage>
         <PageHeader>
-          <FormHeading>Announcement</FormHeading>
+          <FormHeading>{editingAnnouncement ? "Edit Announcement" : "Announcement"}</FormHeading>
         </PageHeader>
 
         <ContentWrapper>
@@ -353,16 +433,42 @@ const Announcement = () => {
             )}
           </Section>
 
+          {showSchedulePicker && (
+            <SchedulePanel>
+              <ScheduleHeading>Schedule announcement</ScheduleHeading>
+              <ScheduleFields>
+                <CalenderInput
+                  label="Date"
+                  labelMargin="0 0 0.625rem 0"
+                  initialDate={formData.scheduleDateAndTime || undefined}
+                  onDateSelect={updateScheduledDate}
+                />
+                <TimeInputComponent
+                  label="Time"
+                  initialTime={formData.scheduleDateAndTime || undefined}
+                  onTimeSelect={updateScheduledTime}
+                />
+              </ScheduleFields>
+              {formData.scheduleDateAndTime && (
+                <ScheduledValue>
+                  Scheduled for {new Date(formData.scheduleDateAndTime).toLocaleString()}
+                </ScheduledValue>
+              )}
+            </SchedulePanel>
+          )}
+
           <Footer>
-            <ScheduleButton type="button">
-              Schedule
+            <ScheduleButton type="button" onClick={() => setShowSchedulePicker((current) => !current)}>
+              {formData.scheduleDateAndTime
+                ? `Scheduled: ${new Date(formData.scheduleDateAndTime).toLocaleString()}`
+                : "Schedule"}
             </ScheduleButton>
             <ButtonGroup>
-              <CancelButton type="button" onClick={() => setShowNewAnnouncement(false)} disabled={isSubmitting}>
+              <CancelButton type="button" onClick={closeForm} disabled={isSubmitting}>
                 Cancel
               </CancelButton>
               <PublishButton type="button" onClick={handlePublish} disabled={isSubmitting}>
-                {isSubmitting ? "Publishing..." : "Publish"}
+                {isSubmitting ? (editingAnnouncement ? "Updating..." : "Publishing...") : (editingAnnouncement ? "Update" : "Publish")}
               </PublishButton>
             </ButtonGroup>
           </Footer>
@@ -384,9 +490,12 @@ const Announcement = () => {
           />
         </SearchInputWrapper>
         <RightActions>
-          <FilterSelect value={filter} onChange={(e) => setFilter(e.target.value)}>
-            <option value="All">All</option>
-          </FilterSelect>
+          {isAdmin && (
+            <FilterSelect value={filter} onChange={(e) => setFilter(e.target.value)}>
+              <option value="Published">Published</option>
+              <option value="Scheduled">Scheduled</option>
+            </FilterSelect>
+          )}
           <Button
             text="New Announcement"
             icon={<FiPlus />}
@@ -394,7 +503,13 @@ const Announcement = () => {
             fontSize="14px"
             fontWeight="600"
             radius="10px"
-            onClick={() => setShowNewAnnouncement(true)}
+            onClick={() => {
+              setEditingAnnouncement(null);
+              setFormData({ title: "", message: "", scheduleDateAndTime: "" });
+              setUploadedFiles([]);
+              setShowSchedulePicker(false);
+              setShowNewAnnouncement(true);
+            }}
           />
         </RightActions>
       </Toolbar>
@@ -415,6 +530,14 @@ const Announcement = () => {
                 </IconWrapper>
                 <CardTitle>{announcement.title}</CardTitle>
                 <CardDate>{announcement.date}</CardDate>
+                <CardActions>
+                  <ActionButton type="button" onClick={() => handleEdit(announcement)} aria-label={`Edit ${announcement.title}`} title="Edit">
+                    <FiEdit2 />
+                  </ActionButton>
+                  <ActionButton type="button" $danger onClick={() => handleDelete(announcement)} disabled={deletingId === announcement.id} aria-label={`Delete ${announcement.title}`} title="Delete">
+                    <FiTrash2 />
+                  </ActionButton>
+                </CardActions>
               </CardHeader>
               {announcement.content && <CardContent>{announcement.content}</CardContent>}
               {announcement.hasImage && announcement.images && announcement.images.length > 0 && (
@@ -619,6 +742,33 @@ const CardDate = styled.span`
   font-family: "Inter", sans-serif;
   font-weight: 500;
   flex-shrink: 0;
+`;
+
+const CardActions = styled.div`
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+`;
+
+const ActionButton = styled.button`
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 1px solid ${(props) => props.$danger ? "#dc2626" : theme.colors.primary};
+  border-radius: 7px;
+  background: white;
+  color: ${(props) => props.$danger ? "#dc2626" : theme.colors.primary};
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background: ${(props) => props.$danger ? "#fee2e2" : "#edf6f9"};
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
 `;
 
 const CardContent = styled.p`
@@ -832,6 +982,42 @@ const UploadedFile = styled.div`
   border-radius: 6px;
 `;
 
+const SchedulePanel = styled.div`
+  width: min(820px, 100%);
+  box-sizing: border-box;
+  margin-bottom: 16px;
+  padding: 16px;
+  border: 1px solid ${theme.colors.border};
+  border-radius: 10px;
+  background: white;
+`;
+
+const ScheduleHeading = styled.h3`
+  margin: 0 0 12px;
+  color: ${theme.colors.textColor};
+  font-family: "Inter", sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+`;
+
+const ScheduleFields = styled.div`
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+
+  @media (max-width: 600px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const ScheduledValue = styled.p`
+  margin: 12px 0 0;
+  color: ${theme.colors.primary};
+  font-family: "Inter", sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+`;
+
 const FileName = styled.span`
   font-size: 0.85rem;
   color: ${theme.colors.textColor};
@@ -868,7 +1054,8 @@ const ButtonGroup = styled.div`
 `;
 
 const ScheduleButton = styled.button`
-  width: 200px;
+  min-width: 200px;
+  max-width: 420px;
   height: 40px;
   padding: 10px 16px;
   border: 1px solid ${theme.colors.primary};

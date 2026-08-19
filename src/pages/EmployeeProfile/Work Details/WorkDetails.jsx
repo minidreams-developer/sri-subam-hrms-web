@@ -64,6 +64,12 @@ const apiDate = (value) => {
   const parts = String(value).split("/");
   return parts.length === 3 ? `${parts[2]}-${parts[1]}-${parts[0]}` : value;
 };
+const dateFields = new Set(["dateOfJoining", "terminationDate", "exitDate", "relievedDate"]);
+const dateInputValue = (value) => {
+  if (!value || value === "N/A") return "";
+  const parts = String(value).split("/");
+  return parts.length === 3 ? `${parts[2]}-${parts[1]}-${parts[0]}` : String(value).slice(0, 10);
+};
 
 export const WorkDetails = ({ employee, onEmployeeUpdated }) => {
   const [details, setDetails] = useState(() => makeDetails(employee));
@@ -88,8 +94,10 @@ export const WorkDetails = ({ employee, onEmployeeUpdated }) => {
     if (!employeeId) return toast.error("Employee ID is missing");
 
     const work = employee?.workInformation || {};
-    const currentBank = work.bankDetails?.[0] || {};
-    const currentEsiAndPf = currentBank.esiAndPf || {};
+    const bankEntry = work.bankDetails?.[0];
+    const currentBank = bankEntry && typeof bankEntry === "object" ? bankEntry : {};
+    const esiAndPfEntry = currentBank.esiAndPf;
+    const currentEsiAndPf = esiAndPfEntry && typeof esiAndPfEntry === "object" ? esiAndPfEntry : {};
     const workInformation = {
       ...work,
       designation: apiValue(draft.designation),
@@ -183,7 +191,7 @@ export const WorkDetails = ({ employee, onEmployeeUpdated }) => {
           <Dialog role="dialog" aria-modal="true" aria-labelledby="work-details-title" onMouseDown={(event) => event.stopPropagation()}>
             <DialogHeader><DialogTitle id="work-details-title">Edit Work Details</DialogTitle><CloseButton type="button" onClick={() => setEditing(false)} aria-label="Close">×</CloseButton></DialogHeader>
             <Form onSubmit={saveDetails}>
-              <FormGrid>{fields.map(([key, label]) => <Field key={key}><label htmlFor={`work-${key}`}>{label}</label><input id={`work-${key}`} value={draft[key] ?? ""} onChange={(event) => setDraft((current) => ({ ...current, [key]: event.target.value }))} /></Field>)}</FormGrid>
+              <FormGrid>{fields.map(([key, label]) => <Field key={key}><label htmlFor={`work-${key}`}>{label}</label><input id={`work-${key}`} type={dateFields.has(key) ? "date" : "text"} value={dateFields.has(key) ? dateInputValue(draft[key]) : draft[key] ?? ""} onChange={(event) => setDraft((current) => ({ ...current, [key]: event.target.value }))} /></Field>)}</FormGrid>
               <Actions><CancelButton type="button" onClick={() => setEditing(false)} disabled={saving}>Cancel</CancelButton><SaveButton type="submit" disabled={saving}>{saving ? "Saving..." : "Save changes"}</SaveButton></Actions>
             </Form>
           </Dialog>
