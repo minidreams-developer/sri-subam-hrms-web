@@ -7,7 +7,7 @@ import PersonalInfo from "./PersonalInfo/PersonalInfo";
 import AddWorkDetails from "./Work Details/AddWorkDetails";
 import Documents from "./Documents/Documents";
 import Button from "../../components/Button";
-import { postFormData } from "../../helpers/api_helper";
+import { post } from "../../helpers/api_helper";
 import { EMPLOYEE_REGISTRATION } from "../../helpers/url_helper";
 import { toast } from "react-toastify";
 
@@ -70,11 +70,9 @@ const CreateEmployee = () => {
       // Read from refs — always the latest values, no stale closure
       const personalData = savedPersonalData.current;
       const workData = savedWorkData.current;
-      const documentsData = documentsRef.current?.formData || {};
 
       console.log("Personal Data:", personalData);
       console.log("Work Data:", workData);
-      console.log("Documents Data:", documentsData);
 
       // --- Build payload: POST /v1/users/employee-registration ---
       const payload = {
@@ -82,6 +80,7 @@ const CreateEmployee = () => {
         email: personalData.email,
         password: personalData.password,
         phone: Number(personalData.contact),
+        role: "employee",
         gender: personalData.gender?.value,
         dateOfBirth: personalData.dob,
         age: Number(personalData.age),
@@ -97,20 +96,20 @@ const CreateEmployee = () => {
           panNo: personalData.panNo,
         },
 
-        address: [
+        addresses: [
           {
             addressLine1: personalData.address,
             addressLine2: personalData.addressLine2 || "",
             city: personalData.city,
-            state: personalData.state?.value,
             pincode: Number(personalData.pinCode),
           },
         ],
 
-        emergencyContact: (personalData.emergencyContacts || []).map((contact) => ({
+        emergencyContacts: (personalData.emergencyContacts || []).map((contact) => ({
           contactName: contact.emergencyContactName,
           phone: Number(contact.emergencyContact),
-          relationship: contact.relationship?.value,
+          relattionship: contact.relationship?.value,
+          mobileNumber: Number(contact.emergencyContact),
         })),
 
         workInformation: {
@@ -125,68 +124,36 @@ const CreateEmployee = () => {
           AttendanceType: workData.attendanceType?.value,
           shiftId: workData.shift?.value,
           userRemarks: workData.remarks,
-          totalExperience: workData.totalYearsOfExperience,
-          lastCompanyName: workData.lastCompanyName,
-          lastCompanyExperience: workData.experience,
-          location: workData.location,
-          attendancePermission: workData.attendancePermission?.value,
-          SalaryDetails: {
-            basicSalary: Number(workData.basicSalary),
-            annualCTC: Number(workData.ctcAnnual),
-            monthlyCTC: Number(workData.monthlyCTC),
-            houseRentAllowance: Number(workData.hra),
-            conveyanceAllowance: Number(workData.conveyanceAllowance),
-            specialAllowance: Number(workData.specialAllowance),
-            otherFixedAllowance: Number(workData.otherFixedAllowances) || 0,
-          },
-          bankDetails: [
-            {
-              accountHolderName: workData.accHolderName,
-              bankName: workData.bank,
-              accountNumber: workData.accNumber ? Number(workData.accNumber) : null,
-              ifscCode: workData.ifscCode,
-              branch: workData.bankBranch,
-              esiAndPf: {
-                esiNumber: workData.esiNumber ? Number(workData.esiNumber) : null,
-                pfNumber: workData.pfNumber ? Number(workData.pfNumber) : null,
-              },
-            },
-          ],
         },
+
+        salaryDetails: {
+          basicSalary: Number(workData.basicSalary),
+          annualCTC: Number(workData.ctcAnnual),
+          monthlyCTC: Number(workData.monthlyCTC),
+          houseRentAllowance: Number(workData.hra),
+          conveyanceAllowance: Number(workData.conveyanceAllowance),
+          specialAllowance: Number(workData.specialAllowance),
+          otherFixedAllowance: Number(workData.otherFixedAllowances) || 0,
+        },
+
+        bankDetails: [
+          {
+            accountHolderName: workData.accHolderName,
+            bankName: workData.bank,
+            accountNumber: String(workData.accNumber || "").trim(),
+            ifscCode: workData.ifscCode,
+            branch: workData.bankBranch,
+            esiAndPf: {
+              esiNumber: String(workData.esiNumber || "").trim(),
+              pfNumber: String(workData.pfNumber || "").trim(),
+            },
+          },
+        ],
       };
 
       console.log("Payload:", payload);
 
-      const multipartData = new FormData();
-      multipartData.append("payload", JSON.stringify(payload));
-      // Keep the regular body fields available to APIs that read multipart
-      // fields directly instead of parsing the consolidated `payload` field.
-      Object.entries(payload).forEach(([key, value]) => {
-        multipartData.append(key, typeof value === "object" ? JSON.stringify(value) : String(value ?? ""));
-      });
-
-      const documentMetadata = [];
-      const appendDocuments = (documents, category, fieldName) => {
-        (documents || []).forEach((document) => {
-          if (!(document.file instanceof File)) return;
-          multipartData.append(fieldName, document.file, document.file.name);
-          documentMetadata.push({
-            category,
-            label: document.label,
-            fileName: document.file.name,
-            keepOriginal: Boolean(document.keepOriginal),
-          });
-        });
-      };
-
-      appendDocuments(documentsData.governmentDocuments, "government", "governmentDocuments");
-      appendDocuments(documentsData.personalDocuments, "personal", "personalDocuments");
-      if (personalData.aadhaarImage instanceof File) {
-        multipartData.append("aadhaarImage", personalData.aadhaarImage, personalData.aadhaarImage.name);
-      }
-      multipartData.append("documentMetadata", JSON.stringify(documentMetadata));
-
-      const response = await postFormData(EMPLOYEE_REGISTRATION, multipartData);
+      const response = await post(EMPLOYEE_REGISTRATION, payload);
       console.log("Response:", response);
 
       toast.success("Employee created successfully!");
