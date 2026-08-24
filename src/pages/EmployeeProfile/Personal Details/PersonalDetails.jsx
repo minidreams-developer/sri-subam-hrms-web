@@ -141,7 +141,7 @@ export const PersonalDetails = ({ employee, onEmployeeUpdated }) => {
     setUploading(true);
     try {
       const formData = new FormData();
-      formData.append("userDocuments", file, file.name);
+      formData.append("personalDocuments", file, file.name);
       formData.append("documents", JSON.stringify([{
         documentName: file.name,
         documentType: "personal",

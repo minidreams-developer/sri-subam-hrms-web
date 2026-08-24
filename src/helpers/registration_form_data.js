@@ -46,14 +46,14 @@ export const buildDocumentFormData = (documentsData = {}) => {
   const formData = new FormData();
   const metadata = [];
   const groups = [
-    ["government", documentsData.governmentDocuments || []],
-    ["personal", documentsData.personalDocuments || []],
+    ["governmentDocuments", "government", documentsData.governmentDocuments || []],
+    ["personalDocuments", "personal", documentsData.personalDocuments || []],
   ];
 
-  groups.forEach(([documentType, documents]) => {
+  groups.forEach(([fieldName, documentType, documents]) => {
     documents.forEach((document) => {
       if (!(document.file instanceof File)) return;
-      formData.append("userDocuments", document.file, document.file.name);
+      formData.append(fieldName, document.file, document.file.name);
       metadata.push({
         documentName: document.label || document.file.name,
         documentType,

@@ -23,6 +23,30 @@ const axiosApi = axios.create({
   },
 });
 
+let activeRequestCount = 0;
+const loadingListeners = new Set();
+
+const notifyLoadingListeners = () => {
+  const isLoading = activeRequestCount > 0;
+  loadingListeners.forEach((listener) => listener(isLoading));
+};
+
+const startRequest = () => {
+  activeRequestCount += 1;
+  notifyLoadingListeners();
+};
+
+const finishRequest = () => {
+  activeRequestCount = Math.max(0, activeRequestCount - 1);
+  notifyLoadingListeners();
+};
+
+export const subscribeApiLoading = (listener) => {
+  loadingListeners.add(listener);
+  listener(activeRequestCount > 0);
+  return () => loadingListeners.delete(listener);
+};
+
 axiosApi.interceptors.request.use(
   async (config) => {
     const authUser = getStoredAuthUser();
@@ -70,6 +94,27 @@ axiosApi.interceptors.response.use(
       }
     }
 
+    return Promise.reject(error);
+  }
+);
+
+// Keep a single global loading state in sync with every request made through
+// this API client. The counter handles multiple simultaneous requests.
+axiosApi.interceptors.request.use(
+  (config) => {
+    startRequest();
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+axiosApi.interceptors.response.use(
+  (response) => {
+    finishRequest();
+    return response;
+  },
+  (error) => {
+    finishRequest();
     return Promise.reject(error);
   }
 );

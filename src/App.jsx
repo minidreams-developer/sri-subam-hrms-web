@@ -4,6 +4,7 @@ import GlobalStyles from "./theme/GlobalStyles";
 import { publicRoutes, privateRoutes } from "./route";
 import AdminLayout from "./components/AdminLayout";
 import Authmiddleware from "./components/Authmiddleware";
+import GlobalApiLoader from "./components/GlobalApiLoader";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -11,6 +12,7 @@ function App() {
   return (
     <>
       <GlobalStyles />
+      <GlobalApiLoader />
       <ToastContainer
         position="top-right"
         autoClose={3000}
