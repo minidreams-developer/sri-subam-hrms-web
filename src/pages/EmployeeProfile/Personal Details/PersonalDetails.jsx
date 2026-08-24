@@ -7,7 +7,7 @@ import UploadIcon from "../../../assets/images/employee/upload.svg";
 import DocumentIcon from "../../../assets/images/employee/document.svg";
 import EyeIcon from "../../../assets/images/employee/eye.svg";
 import SampleProfile from "../../../assets/images/employee/sampleProfile.jpg";
-import { patch } from "../../../helpers/api_helper";
+import { patch, patchFormData } from "../../../helpers/api_helper";
 import { toast } from "react-toastify";
 
 const NOT_AVAILABLE = "N/A";
@@ -33,6 +33,7 @@ export const PersonalDetails = ({ employee, onEmployeeUpdated }) => {
   const [active, setActive] = useState(employee?.isActive !== false);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [form, setForm] = useState({});
   const [uploadedDocuments, setUploadedDocuments] = useState([]);
   const primaryAddress = employee?.address?.[0] || employee?.addresses?.[0] || {};
@@ -130,10 +131,38 @@ export const PersonalDetails = ({ employee, onEmployeeUpdated }) => {
     ["Contact", details.contact], ["Email", details.email], ["Marital Status", details.maritalStatus],
     ["Mother Tongue", details.motherTongue], ["Identification Mark", details.identificationMark],
   ];
-  const upload = (event) => {
+  const upload = async (event) => {
     const file = event.target.files?.[0];
-    if (file) setUploadedDocuments((items) => [...items, file.name]);
     event.target.value = "";
+    if (!file) return;
+    if (!employee?.id && !employee?._id) return toast.error("Employee ID is missing");
+    if (file.size > 10 * 1024 * 1024) return toast.error("Document must be smaller than 10 MB");
+
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("userDocuments", file, file.name);
+      formData.append("documents", JSON.stringify([{
+        documentName: file.name,
+        documentType: "personal",
+        fileName: file.name,
+        mimeType: file.type,
+      }]));
+      const response = await patchFormData(employeeUrl(), formData);
+      const updated = response?.data || response?.user || response;
+      const serverDocuments = updated?.userDocuments || updated?.documents;
+      if (serverDocuments) {
+        setUploadedDocuments([]);
+        onEmployeeUpdated?.({ ...employee, ...(updated || {}) });
+      } else {
+        setUploadedDocuments((items) => [...items, file.name]);
+      }
+      toast.success("Document uploaded successfully");
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to upload document");
+    } finally {
+      setUploading(false);
+    }
   };
 
   return (
@@ -153,7 +182,7 @@ export const PersonalDetails = ({ employee, onEmployeeUpdated }) => {
       <Section title="Emergency Contact" items={[["Emergency Contact Name", display(emergencyContacts[0]?.contactName || emergencyContacts[0]?.name)], ["Relationship", display(emergencyContacts[0]?.relationship)], ["Mobile Number", display(emergencyContacts[0]?.phone || emergencyContacts[0]?.mobileNumber)]]} />
       {emergencyContacts.slice(1).map((contact, index) => <Section key={contact.id || contact._id || index} title="" items={[["Emergency Contact Name", display(contact.contactName || contact.name)], ["Relationship", display(contact.relationship)], ["Mobile Number", display(contact.phone || contact.mobileNumber)]]} />)}
 
-      <DocumentsHeader><SectionTitle>Documents</SectionTitle><UploadButton onClick={() => inputRef.current?.click()}><img src={UploadIcon} alt="" />Upload</UploadButton><input ref={inputRef} type="file" hidden onChange={upload} /></DocumentsHeader>
+      <DocumentsHeader><SectionTitle>Documents</SectionTitle><UploadButton type="button" disabled={uploading} onClick={() => inputRef.current?.click()}><img src={UploadIcon} alt="" />{uploading ? "Uploading..." : "Upload"}</UploadButton><input ref={inputRef} type="file" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" hidden onChange={upload} /></DocumentsHeader>
       <DocumentsPanel>{documents.length ? documents.map((document, index) => { const name = typeof document === "string" ? document : document.fileName || document.name || document.documentName || NOT_AVAILABLE; return <Document key={document.id || document._id || `${name}-${index}`}><DocLabel>{display(document.documentType || document.type || "Document")}</DocLabel><FileBox><span><img src={DocumentIcon} alt="" />{name}</span><img src={EyeIcon} alt="View" /></FileBox></Document>; }) : <Document><DocLabel>Documents</DocLabel><FileBox><span>{NOT_AVAILABLE}</span></FileBox></Document>}</DocumentsPanel>
       {editing && <ModalBackdrop onMouseDown={(e) => e.target === e.currentTarget && setEditing(false)}><Modal role="dialog" aria-modal="true" aria-labelledby="edit-personal-title"><ModalTitle id="edit-personal-title">Edit Personal Details</ModalTitle><EditForm onSubmit={save}>
         <Field><label>Full Name</label><input name="name" value={form.name || ""} onChange={change} required /></Field>
@@ -200,7 +229,7 @@ const SectionBlock = styled.div`display:flex;flex-direction:column;gap:12px;`;
 const Panel = styled.div`padding:12px 14px;border:1px solid #e0e3e6;border-radius:10px;background:#edf6f966;`;
 const DetailsGrid = styled.div`display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px 64px;@media(max-width:900px){grid-template-columns:repeat(2,minmax(0,1fr));}`;
 const DocumentsHeader = styled.div`display:flex;align-items:center;justify-content:space-between;margin-bottom:-8px;`;
-const UploadButton = styled.button`width:140px;height:36px;border:0;border-radius:7px;background:#087d88;color:#fff;display:flex;align-items:center;justify-content:center;gap:10px;font:600 12px "Inter-SemiBold",sans-serif;cursor:pointer;img{width:20px;height:20px;}`;
+const UploadButton = styled.button`width:140px;height:36px;border:0;border-radius:7px;background:#087d88;color:#fff;display:flex;align-items:center;justify-content:center;gap:10px;font:600 12px "Inter-SemiBold",sans-serif;cursor:pointer;img{width:20px;height:20px;}&:disabled{opacity:.65;cursor:not-allowed;}`;
 const DocumentsPanel = styled.div`display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px 56px;padding:12px 14px;border:1px solid #e0e3e6;border-radius:10px;background:#edf6f966;@media(max-width:900px){grid-template-columns:repeat(2,minmax(0,1fr));}`;
 const Document = styled.div`display:flex;flex-direction:column;gap:8px;`;
 const DocLabel = styled.span`font:500 12px/1.6 "Inter-Medium",sans-serif;`;

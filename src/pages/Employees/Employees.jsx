@@ -10,9 +10,10 @@ import TableToolbar from "../../components/TableToolbar";
 import PlusIcon from "../../assets/images/DashboardImages/plus-large_svgrepo.com.svg";
 import TabSwitcher from "../../components/TabSwitcher";
 import Filter from "../../components/filter";
-import { get } from "../../helpers/api_helper";
+import { del, get } from "../../helpers/api_helper";
 import { GET_EMPLOYEES_BY_ROLE, GET_STAFF_BY_ROLE, DEPARTMENTS, GET_SHIFTS } from "../../helpers/url_helper";
 import { toast } from "react-toastify";
+import DeleteConfirmationModal from "../../components/DeleteConfirmationModal";
 import {
   dashboardStats,
   employeeTableColumns,
@@ -46,6 +47,9 @@ const Employees = () => {
   const [shiftOptions, setShiftOptions] = useState([]);
   const [loadingDepts, setLoadingDepts] = useState(false);
   const [loadingShifts, setLoadingShifts] = useState(false);
+  const [employeeToDelete, setEmployeeToDelete] = useState(null);
+  const [staffToDelete, setStaffToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Handle navigation state from Create Employee/Staff pages
   useEffect(() => {
@@ -60,13 +64,12 @@ const Employees = () => {
 
   // Fetch data based on active tab
   useEffect(() => {
-    setCurrentPage(1); // Reset to first page when switching tabs
     if (activeTab === "Employee") {
-      fetchEmployeeData(1, pageSize, sortBy);
+      fetchEmployeeData(currentPage, pageSize, sortBy);
     } else {
-      fetchStaffData(1, pageSize, sortBy);
+      fetchStaffData(currentPage, pageSize, sortBy);
     }
-  }, [activeTab, pageSize, sortBy]);
+  }, [activeTab, currentPage, pageSize, sortBy]);
 
   // Fetch departments and shifts for filter dropdowns
   const fetchDepartmentsAndShifts = async () => {
@@ -226,6 +229,63 @@ const Employees = () => {
     });
   };
 
+  const handleDeleteEmployee = async (employee) => {
+    const employeeId = employee?.id;
+
+    if (!employeeId) {
+      toast.error("Employee ID is missing");
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      await del(`${GET_EMPLOYEES_BY_ROLE}/${employeeId}`);
+      toast.success("Employee deleted successfully");
+      setEmployeeToDelete(null);
+
+      // If the final row on this page was deleted, return to the previous page.
+      if (employees.length === 1 && currentPage > 1) {
+        setCurrentPage((page) => page - 1);
+      } else {
+        fetchEmployeeData(currentPage, pageSize, sortBy);
+      }
+    } catch (error) {
+      const errorMessage =
+        error.response?.data?.message || error.message || "Failed to delete employee";
+      toast.error(errorMessage);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleDeleteStaff = async (staffMember) => {
+    const staffId = staffMember?.id;
+
+    if (!staffId) {
+      toast.error("Staff ID is missing");
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      await del(`${GET_EMPLOYEES_BY_ROLE}/${staffId}`);
+      toast.success("Staff deleted successfully");
+      setStaffToDelete(null);
+
+      if (staff.length === 1 && currentPage > 1) {
+        setCurrentPage((page) => page - 1);
+      } else {
+        fetchStaffData(currentPage, pageSize, sortBy);
+      }
+    } catch (error) {
+      const errorMessage =
+        error.response?.data?.message || error.message || "Failed to delete staff";
+      toast.error(errorMessage);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   const handlePageChange = (newPage) => {
     setCurrentPage(newPage);
   };
@@ -326,6 +386,22 @@ const Employees = () => {
 
   return (
     <Container>
+      <DeleteConfirmationModal
+        isOpen={Boolean(employeeToDelete)}
+        title="Delete employee?"
+        message={`Are you sure you want to delete ${employeeToDelete?.name || "this employee"}? This action cannot be undone.`}
+        isDeleting={isDeleting}
+        onCancel={() => !isDeleting && setEmployeeToDelete(null)}
+        onConfirm={() => handleDeleteEmployee(employeeToDelete)}
+      />
+      <DeleteConfirmationModal
+        isOpen={Boolean(staffToDelete)}
+        title="Delete staff?"
+        message={`Are you sure you want to delete ${staffToDelete?.name || "this staff member"}? This action cannot be undone.`}
+        isDeleting={isDeleting}
+        onCancel={() => !isDeleting && setStaffToDelete(null)}
+        onConfirm={() => handleDeleteStaff(staffToDelete)}
+      />
       {showFilter && (
         <Filter onClose={handleFilterClose} onApply={handleFilterApply} />
       )}
@@ -391,7 +467,10 @@ const Employees = () => {
           { label: "Staffs", value: "Staffs" },
         ]}
         active={activeTab}
-        onChange={setActiveTab}
+        onChange={(tab) => {
+          setActiveTab(tab);
+          setCurrentPage(1);
+        }}
       />
 
       {activeTab === "Employee" ? (
@@ -421,6 +500,9 @@ const Employees = () => {
             currentPage={currentPage}
             server={true}
             onPageChange={handlePageChange}
+            isLoading={isLoading}
+            showEditAction={false}
+            onDelete={setEmployeeToDelete}
             alwaysShowPagination
             onRowClick={handleRowClick}
           />
@@ -458,6 +540,9 @@ const Employees = () => {
             currentPage={currentPage}
             server={true}
             onPageChange={handlePageChange}
+            isLoading={isLoading}
+            showEditAction={false}
+            onDelete={setStaffToDelete}
             alwaysShowPagination
             onRowClick={handleRowClick}
           />

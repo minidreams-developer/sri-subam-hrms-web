@@ -91,7 +91,9 @@ export async function post(url, data, config = {}) {
 }
 
 export async function postFormData(url, formData, config = {}, onProgress) {
-  // Set appropriate headers for multipart/form-data
+  // Override the axios instance's application/json default. Otherwise axios
+  // serializes FormData as JSON and the API receives malformed array/object
+  // values instead of multipart fields and files.
   config = {
     ...config,
     headers: {
@@ -121,6 +123,23 @@ export async function put(url, data, config = {}) {
 export async function patch(url, data, config = {}) {
   return axiosApi
     .patch(url, { ...data }, { ...config })
+    .then((response) => response.data);
+}
+
+export async function patchFormData(url, formData, config = {}, onProgress) {
+  return axiosApi
+    .patch(url, formData, {
+      ...config,
+      headers: {
+        "Content-Type": "multipart/form-data",
+        ...config.headers,
+      },
+      onUploadProgress: (progressEvent) => {
+        if (progressEvent.total && onProgress) {
+          onProgress(Math.round((progressEvent.loaded * 100) / progressEvent.total));
+        }
+      },
+    })
     .then((response) => response.data);
 }
 

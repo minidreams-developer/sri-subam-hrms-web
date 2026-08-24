@@ -40,6 +40,11 @@ const CalenderInput = ({ onDateSelect, initialDate, label = "Date", labelMargin 
           onChange={handleDateChange}
           placeholderText="Select Date"
           dateFormat="dd/MM/yyyy"
+          showMonthDropdown
+          showYearDropdown
+          dropdownMode="select"
+          yearDropdownItemNumber={100}
+          scrollableYearDropdown
           popperPlacement="bottom-start"
           showPopperArrow={false}
           calendarClassName="custom-calendar"
@@ -101,6 +106,29 @@ const FieldWrapper = styled.div`
       border-bottom: 1px solid ${theme.colors.border};
       border-top-left-radius: 0.625rem;
       border-top-right-radius: 0.625rem;
+    }
+
+    .react-datepicker__current-month {
+      display: none;
+    }
+
+    .react-datepicker__header__dropdown {
+      display: flex;
+      justify-content: center;
+      gap: 0.5rem;
+      margin: 0.25rem 2rem 0.65rem;
+    }
+
+    .react-datepicker__month-select,
+    .react-datepicker__year-select {
+      min-width: 6.5rem;
+      padding: 0.4rem 1.75rem 0.4rem 0.55rem;
+      border: 1px solid ${theme.colors.border};
+      border-radius: 0.375rem;
+      color: ${theme.colors.textColor};
+      background: white;
+      font: 500 0.875rem "Inter_18pt-Medium", sans-serif;
+      cursor: pointer;
     }
 
     .react-datepicker__day--selected,

@@ -4,11 +4,22 @@ import GlobalStyles from "./theme/GlobalStyles";
 import { publicRoutes, privateRoutes } from "./route";
 import AdminLayout from "./components/AdminLayout";
 import Authmiddleware from "./components/Authmiddleware";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 function App() {
   return (
     <>
       <GlobalStyles />
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop
+        closeOnClick
+        pauseOnHover
+        theme="colored"
+      />
       <Routes>
         {/* Public Routes */}
         {publicRoutes.map((route, idx) => (

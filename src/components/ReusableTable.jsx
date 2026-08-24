@@ -26,6 +26,7 @@ const ReusableTable = ({
   onPageChange,
   alwaysShowPagination = false,
   actionType = "default",
+  showEditAction = true,
   onView,
   onEdit,
   onDelete,
@@ -288,9 +289,11 @@ const ReusableTable = ({
                               <ActionMenuButton type="button" onClick={() => runRowAction("view", row)}>
                                 <FiEye size={16} /> View
                               </ActionMenuButton>
-                              <ActionMenuButton type="button" onClick={() => runRowAction("edit", row)}>
-                                <FiEdit2 size={16} /> Edit
-                              </ActionMenuButton>
+                              {showEditAction && (
+                                <ActionMenuButton type="button" onClick={() => runRowAction("edit", row)}>
+                                  <FiEdit2 size={16} /> Edit
+                                </ActionMenuButton>
+                              )}
                               <ActionMenuButton type="button" $delete onClick={() => runRowAction("delete", row)}>
                                 <FiTrash2 size={16} /> Delete
                               </ActionMenuButton>

@@ -7,8 +7,9 @@ import PersonalInfo from "./PersonalInfo/PersonalInfo";
 import AddWorkDetails from "./Work Details/AddWorkDetails";
 import Documents from "./Documents/Documents";
 import Button from "../../components/Button";
-import { post } from "../../helpers/api_helper";
+import { patchFormData, post } from "../../helpers/api_helper";
 import { EMPLOYEE_REGISTRATION } from "../../helpers/url_helper";
+import { buildDocumentFormData } from "../../helpers/registration_form_data";
 import { toast } from "react-toastify";
 
 const CreateEmployee = () => {
@@ -70,9 +71,11 @@ const CreateEmployee = () => {
       // Read from refs — always the latest values, no stale closure
       const personalData = savedPersonalData.current;
       const workData = savedWorkData.current;
+      const documentsData = documentsRef.current?.formData || {};
 
       console.log("Personal Data:", personalData);
       console.log("Work Data:", workData);
+      console.log("Documents Data:", documentsData);
 
       // --- Build payload: POST /v1/users/employee-registration ---
       const payload = {
@@ -155,6 +158,21 @@ const CreateEmployee = () => {
 
       const response = await post(EMPLOYEE_REGISTRATION, payload);
       console.log("Response:", response);
+
+      const selectedDocuments = [
+        ...(documentsData.governmentDocuments || []),
+        ...(documentsData.personalDocuments || []),
+      ].filter((document) => document.file instanceof File);
+      const createdEmployee = response?.data || response?.user || response;
+      const employeeId = createdEmployee?.id || createdEmployee?._id;
+
+      if (selectedDocuments.length) {
+        if (!employeeId) throw new Error("Employee created, but its ID was not returned for document upload");
+        await patchFormData(
+          `/v1/users/${employeeId}`,
+          buildDocumentFormData(documentsData),
+        );
+      }
 
       toast.success("Employee created successfully!");
       navigate("/admin/peopleHub/employees", { state: { activeTab: "Employee", refresh: true } });

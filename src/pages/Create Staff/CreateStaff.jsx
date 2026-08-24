@@ -7,8 +7,9 @@ import PersonalInfo from "./PersonalInfo/PersonalInfo";
 import Documents from "./Documents/Documents";
 import AddWorkDetails from "./Work Details/AddWorkDetails";
 import Button from "../../components/Button";
-import { post } from "../../helpers/api_helper";
+import { postFormData } from "../../helpers/api_helper";
 import { STAFF_REGISTRATION } from "../../helpers/url_helper";
+import { buildRegistrationFormData } from "../../helpers/registration_form_data";
 import { toast } from "react-toastify";
 
 const CreateStaff = () => {
@@ -151,15 +152,12 @@ const CreateStaff = () => {
           },
         ],
 
-        documents: {
-          governmentDocuments: documentsData.governmentDocuments || [],
-          personalDocuments: documentsData.personalDocuments || [],
-        },
       };
 
       console.log("Payload:", payload);
 
-      const response = await post(STAFF_REGISTRATION, payload);
+      const registrationData = buildRegistrationFormData(payload, documentsData);
+      const response = await postFormData(STAFF_REGISTRATION, registrationData);
       console.log("Response:", response);
 
       toast.success("Staff created successfully!");
