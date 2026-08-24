@@ -157,7 +157,9 @@ const getActiveSubmenu = (items, pathname, locationState) => {
 };
 
 const AdminLayout = () => {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(
+    () => typeof window === "undefined" || window.innerWidth > 1024,
+  );
   const [user, setUser] = useState(null);
   const [expandedMenu, setExpandedMenu] = useState({});
   const [visibleSidebarItems, setVisibleSidebarItems] = useState(SidebarItems);
@@ -166,6 +168,29 @@ const AdminLayout = () => {
   const [globalSearch, setGlobalSearch] = useState("");
   const location = useLocation();
   const navigate = useNavigate();
+
+  const closeMobileSidebar = () => {
+    if (window.innerWidth <= 1024) setSidebarOpen(false);
+  };
+
+  const navigateFromSidebar = (path, options) => {
+    navigate(path, options);
+    closeMobileSidebar();
+  };
+
+  useEffect(() => {
+    const handleResize = () => setSidebarOpen(window.innerWidth > 1024);
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") closeMobileSidebar();
+    };
+
+    window.addEventListener("resize", handleResize);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, []);
 
   useEffect(() => {
     const authUser = getStoredAuthUser();
@@ -224,6 +249,8 @@ const AdminLayout = () => {
     <LayoutContainer>
       <Sidebar
         open={sidebarOpen}
+        id="admin-sidebar"
+        aria-hidden={!sidebarOpen && window.innerWidth <= 1024}
         $isCreateCustomer={location.pathname.includes("/customer/add-customer")}
       >
         <LogoSection
@@ -256,7 +283,7 @@ const AdminLayout = () => {
                     if (hasSubmenu) {
                       toggleSubmenu(item.name, isExpanded);
                     } else {
-                      navigate(item.path);
+                      navigateFromSidebar(item.path);
                     }
                   }}
                 >
@@ -288,9 +315,9 @@ const AdminLayout = () => {
                           $isactive={isSubActive}
                           onClick={() => {
                             if (subItem.state) {
-                              navigate(subItem.path, { state: subItem.state });
+                              navigateFromSidebar(subItem.path, { state: subItem.state });
                             } else {
-                              navigate(subItem.path);
+                              navigateFromSidebar(subItem.path);
                             }
                           }}
                         >
@@ -305,6 +332,11 @@ const AdminLayout = () => {
           })}
         </SidebarNav>
       </Sidebar>
+      <SidebarBackdrop
+        $open={sidebarOpen}
+        onClick={() => setSidebarOpen(false)}
+        aria-hidden="true"
+      />
       <MainContent open={sidebarOpen}>
         <Header>
           <CoverLeft>
@@ -315,7 +347,9 @@ const AdminLayout = () => {
             )}
             <Hamburger
               onClick={() => setSidebarOpen(!sidebarOpen)}
-              title="Sidebar is fixed width"
+              aria-label={sidebarOpen ? "Close navigation" : "Open navigation"}
+              aria-expanded={sidebarOpen}
+              aria-controls="admin-sidebar"
             >
               <MdMenu />
             </Hamburger>
@@ -358,12 +392,15 @@ const AdminLayout = () => {
 const LayoutContainer = styled.div`
   display: flex;
   height: 100vh;
+  width: 100%;
+  overflow: hidden;
 `;
 
 const Sidebar = styled.div`
-  width: ${(props) => (props.open ? "16.25rem" : "5.5rem")};
-  min-width: ${(props) => (props.open ? "16.25rem" : "5.5rem")};
-  max-width: ${(props) => (props.open ? "16.25rem" : "5.5rem")};
+  box-sizing: border-box;
+  width: ${(props) => (props.open ? "17.5rem" : "5.5rem")};
+  min-width: ${(props) => (props.open ? "17.5rem" : "5.5rem")};
+  max-width: ${(props) => (props.open ? "17.5rem" : "5.5rem")};
   background-color: #ffffff;
   color: ${theme.colors.white};
   display: flex;
@@ -374,14 +411,37 @@ const Sidebar = styled.div`
   position: relative;
   transition: width 0.3s ease, padding 0.3s ease;
   
-  @media (max-width: 768px) {
+  @media (max-width: 1024px) {
     position: fixed;
     left: 0;
     top: 0;
     height: 100vh;
     z-index: 1000;
-    width: ${(props) => (props.open ? "16.25rem" : "5.5rem")};
-    min-width: ${(props) => (props.open ? "16.25rem" : "5.5rem")};
+    width: min(17.5rem, 86vw);
+    min-width: min(17.5rem, 86vw);
+    max-width: min(17.5rem, 86vw);
+    padding: 1.5rem 1.25rem;
+    transform: translateX(${(props) => (props.open ? "0" : "-100%")});
+    visibility: ${(props) => (props.open ? "visible" : "hidden")};
+    box-shadow: ${(props) =>
+      props.open ? "0 16px 40px rgba(15, 23, 42, 0.18)" : "none"};
+    transition: transform 0.25s ease, visibility 0.25s ease;
+  }
+`;
+
+const SidebarBackdrop = styled.div`
+  display: none;
+
+  @media (max-width: 1024px) {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 999;
+    background: rgba(15, 23, 42, 0.42);
+    opacity: ${(props) => (props.$open ? 1 : 0)};
+    visibility: ${(props) => (props.$open ? "visible" : "hidden")};
+    pointer-events: ${(props) => (props.$open ? "auto" : "none")};
+    transition: opacity 0.25s ease, visibility 0.25s ease;
   }
 `;
 
@@ -395,7 +455,8 @@ const LogoSection = styled.div`
 
 const Logo = styled.img`
   height: 40px;
-  width: ${(props) => (props.open ? "226px" : "40px")};
+  width: ${(props) => (props.open ? "100%" : "40px")};
+  max-width: 226px;
   object-fit: contain;
   cursor: pointer;
 `;
@@ -523,6 +584,7 @@ const SubMenuItem = styled.li`
 
 const MainContent = styled.div`
   flex-grow: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   height: 100vh;
@@ -541,6 +603,12 @@ const Header = styled.header`
   align-items: center;
   justify-content: space-between;
   gap: 1.25rem;
+
+  @media (max-width: 640px) {
+    min-height: 68px;
+    padding: 12px 16px;
+    gap: 0.75rem;
+  }
 `;
 
 const CoverLeft = styled.div`
@@ -556,7 +624,7 @@ const Hamburger = styled.button`
   cursor: pointer;
   color: ${theme.colors.textColor};
 
-  @media (min-width: 769px) {
+  @media (min-width: 1025px) {
     display: none;
   }
 `;
@@ -593,6 +661,11 @@ const Content = styled.main`
   padding: 1.25rem;
   background-color: ${theme.colors.bgColor};
   overflow-y: auto;
+  min-width: 0;
+
+  @media (max-width: 640px) {
+    padding: 1rem;
+  }
 `;
 
 const HeaderActions = styled.div`
@@ -600,6 +673,10 @@ const HeaderActions = styled.div`
   align-items: center;
   gap: 28px;
   min-width: 0;
+
+  @media (max-width: 640px) {
+    gap: 12px;
+  }
 `;
 
 const GlobalSearch = styled.div`
@@ -631,6 +708,10 @@ const HeaderDivider = styled.div`
   width: 1px;
   height: 40px;
   background: #e0e3e6;
+
+  @media (max-width: 480px) {
+    display: none;
+  }
 `;
 
 const TextWrap = styled.div`
@@ -652,6 +733,12 @@ const RightCover = styled.div`
   display: flex;
   align-items: center;
   gap: 0.688rem;
+
+  @media (max-width: 480px) {
+    > div {
+      display: none;
+    }
+  }
 `;
 
 const Profile = styled.img`

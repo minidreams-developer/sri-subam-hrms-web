@@ -238,7 +238,7 @@ const EmploymentList = () => {
       <ReusableTable
         columns={employmentTableColumns}
         data={filteredEmploymentData}
-        rowsPerPage={7}
+        rowsPerPage={20}
         totalResults={filteredEmploymentData.length}
         onView={handleViewEmployee}
         onEdit={handleEditEmployee}
