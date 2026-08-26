@@ -6,17 +6,17 @@ import Select from "react-select";
 import { customSelectStyles } from "../../../theme/reactSelectStyles";
 
 const CommissionDetails = forwardRef((_, ref) => {
-  const [formData, setFormData] = useState({
-    commissionPercentage: "",
-    allowance: "",
-    salaryDisbursementType: null,
-    accHolderName: "",
-    bank: "",
-    accNumber: "",
-    ifscCode: "",
-    branch: "",
-    remarks: "",
-  });
+  const [formData, setFormData] = useState(() => ({
+    commissionPercentage: "10",
+    allowance: "5000",
+    salaryDisbursementType: { value: "monthly", label: "Monthly" },
+    accHolderName: "Test Agent",
+    bank: "State Bank of India",
+    accNumber: String(Date.now()).slice(-12),
+    ifscCode: "SBIN0001234",
+    branch: "Chengalpattu",
+    remarks: "Test agent record",
+  }));
 
   useImperativeHandle(ref, () => ({
     formData,

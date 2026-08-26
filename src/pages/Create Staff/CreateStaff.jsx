@@ -7,10 +7,33 @@ import PersonalInfo from "./PersonalInfo/PersonalInfo";
 import Documents from "./Documents/Documents";
 import AddWorkDetails from "./Work Details/AddWorkDetails";
 import Button from "../../components/Button";
-import { postFormData } from "../../helpers/api_helper";
+import { get, patchFormData, post } from "../../helpers/api_helper";
 import { STAFF_REGISTRATION } from "../../helpers/url_helper";
-import { buildRegistrationFormData } from "../../helpers/registration_form_data";
+import { buildDocumentFormData } from "../../helpers/registration_form_data";
 import { toast } from "react-toastify";
+
+const findUserId = (value) => {
+  if (!value || typeof value !== "object") return null;
+  if (!Array.isArray(value) && (value.id || value._id)) return value.id || value._id;
+
+  for (const key of ["data", "user", "result", "createdUser", "staff"]) {
+    const id = findUserId(value[key]);
+    if (id) return id;
+  }
+  return null;
+};
+
+const findUserByEmail = (value, email) => {
+  if (!value || typeof value !== "object") return null;
+  if (Array.isArray(value)) {
+    return value.find((user) => user?.email?.toLowerCase() === email.toLowerCase()) || null;
+  }
+  for (const key of ["results", "data", "users", "result"]) {
+    const user = findUserByEmail(value[key], email);
+    if (user) return user;
+  }
+  return null;
+};
 
 const CreateStaff = () => {
   const navigate = useNavigate();
@@ -21,6 +44,7 @@ const CreateStaff = () => {
   // State updates are async and cause stale closure bugs inside async handlers.
   // Refs update synchronously and always return the latest value.
   const savedPersonalData = useRef({});
+  const savedDocumentsData = useRef({});
   const savedWorkData = useRef({});
 
   const personalInfoRef = useRef();
@@ -52,6 +76,10 @@ const CreateStaff = () => {
         savedPersonalData.current = personalInfoRef.current.formData;
         console.log("Saved personal data:", savedPersonalData.current);
       }
+      if (currentStep === 2 && documentsRef.current?.formData) {
+        savedDocumentsData.current = documentsRef.current.formData;
+        console.log("Saved documents data:", savedDocumentsData.current);
+      }
       setCurrentStep((s) => s + 1);
     } else {
       // Step 3 is still mounted — read directly from its ref
@@ -71,14 +99,16 @@ const CreateStaff = () => {
       // Read from refs — always the latest values, no stale closure
       const personalData = savedPersonalData.current;
       const workData = savedWorkData.current;
-      const documentsData = documentsRef.current?.formData || {};
+      const documentsData = savedDocumentsData.current;
 
       console.log("Personal Data:", personalData);
       console.log("Work Data:", workData);
       console.log("Documents Data:", documentsData);
 
-      // --- Build payload: POST /v1/users/staff-registration ---
+      // --- Build payload: POST /v1/users/employee-registration ---
       const payload = {
+        role: "staff",
+        employeeId: personalData.staffId,
         name: personalData.staffName,
         email: personalData.email,
         password: personalData.password,
@@ -103,6 +133,7 @@ const CreateStaff = () => {
             addressLine1: personalData.address,
             addressLine2: personalData.addressLine2 || "",
             city: personalData.city,
+            district: personalData.district?.value,
             state: personalData.state?.value,
             pincode: Number(personalData.pinCode),
           },
@@ -146,8 +177,8 @@ const CreateStaff = () => {
             ifscCode: workData.ifscCode,
             branch: workData.bankBranch,
             esiAndPf: {
-              esiNumber: Number(workData.esiNumber),
-              pfNumber: Number(workData.pfNumber),
+              esiNumber: String(workData.esiNumber || "").trim(),
+              pfNumber: String(workData.pfNumber || "").trim(),
             },
           },
         ],
@@ -156,9 +187,28 @@ const CreateStaff = () => {
 
       console.log("Payload:", payload);
 
-      const registrationData = buildRegistrationFormData(payload, documentsData);
-      const response = await postFormData(STAFF_REGISTRATION, registrationData);
+      const response = await post(STAFF_REGISTRATION, payload);
       console.log("Response:", response);
+
+      const selectedDocuments = [
+        ...(documentsData.governmentDocuments || []),
+        ...(documentsData.personalDocuments || []),
+      ].filter((document) => document.file instanceof File);
+      let staffUserId = findUserId(response);
+
+      if (selectedDocuments.length) {
+        if (!staffUserId) {
+          const usersResponse = await get(`/v1/users?email=${encodeURIComponent(payload.email)}&limit=10`);
+          const createdStaff = findUserByEmail(usersResponse, payload.email);
+          staffUserId = createdStaff?.id || createdStaff?._id;
+        }
+        if (!staffUserId) throw new Error("Staff created, but its ID was not returned for document upload");
+        await patchFormData(
+          `/v1/users/${staffUserId}`,
+          buildDocumentFormData(documentsData),
+        );
+        toast.success(`${selectedDocuments.length} document${selectedDocuments.length > 1 ? "s" : ""} uploaded`);
+      }
 
       toast.success("Staff created successfully!");
       navigate("/admin/peopleHub/employees", { state: { activeTab: "Staffs", refresh: true } });

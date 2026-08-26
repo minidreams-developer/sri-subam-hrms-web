@@ -8,40 +8,52 @@ import { customSelectStyles } from "../../../theme/reactSelectStyles";
 import UploadIcon from "../../../assets/images/employee/upload2.svg";
 import { get } from "../../../helpers/api_helper";
 import { GENERATE_STAFF_ID } from "../../../helpers/url_helper";
+import { stateDistrictMap, stateOptions } from "../../../utils/statesAndDistricts";
 import { toast } from "react-toastify";
 
-const PersonalInfo = forwardRef((_, ref) => {
-  const [formData, setFormData] = useState({
-    employeeType: null,
+const createPrefilledStaffData = () => {
+  const uniqueValue = String(Date.now());
+  const suffix = uniqueValue.slice(-4);
+
+  return {
+    employeeType: { value: "full_time", label: "Full Time" },
     staffId: "",
-    staffName: "",
-    gender: null,
-    dob: null,
-    age: "",
-    contact: "",
-    email: "",
-    password: "",
-    maritalStatus: null,
-    motherTongue: null,
-    identificationMark: "",
-    religion: null,
-    spokenLanguages: [],
+    staffName: `Test Staff ${suffix}`,
+    gender: { value: "male", label: "Male" },
+    dob: "1995-01-15",
+    age: "31",
+    contact: uniqueValue.slice(-10),
+    email: `staff.${uniqueValue}@example.com`,
+    password: "Staff@123",
+    maritalStatus: { value: "single", label: "Single" },
+    motherTongue: { value: "tamil", label: "Tamil" },
+    identificationMark: "Mole on right hand",
+    religion: { value: "hindu", label: "Hindu" },
+    spokenLanguages: ["tamil", "english"],
     aadhaarImage: null,
     profilePic: "",
-    aadharNo: "",
-    panNo: "",
-    address: "",
-    addressLine2: "",
-    city: "",
-    district: null,
-    state: null,
-    pinCode: "",
-  });
+    aadharNo: uniqueValue.slice(-12),
+    panNo: `TSTAF${suffix}F`,
+    address: "No. 10, Test Street",
+    addressLine2: "Near Main Road",
+    city: "Chengalpattu",
+    district: { value: "chengalpattu", label: "Chengalpattu" },
+    state: { value: "tamil_nadu", label: "Tamil Nadu" },
+    pinCode: "603001",
+  };
+};
+
+const PersonalInfo = forwardRef((_, ref) => {
+  const [formData, setFormData] = useState(createPrefilledStaffData);
 
   const [staffIdLoading, setStaffIdLoading] = useState(false);
 
   const [emergencyContacts, setEmergencyContacts] = useState([
-    { emergencyContact: "", emergencyContactName: "", relationship: null },
+    {
+      emergencyContact: String(Date.now() + 1).slice(-10),
+      emergencyContactName: "Test Emergency Contact",
+      relationship: { value: "father", label: "Father" },
+    },
   ]);
 
   // Generate Staff ID on component mount
@@ -124,15 +136,6 @@ const PersonalInfo = forwardRef((_, ref) => {
     { value: "telugu", label: "Telugu" },
     { value: "kannada", label: "Kannada" },
     { value: "malayalam", label: "Malayalam" },
-  ];
-
-  const stateOptions = [
-    { value: "tamil_nadu", label: "Tamil Nadu" },
-    { value: "kerala", label: "Kerala" },
-    { value: "karnataka", label: "Karnataka" },
-    { value: "andhra_pradesh", label: "Andhra Pradesh" },
-    { value: "telangana", label: "Telangana" },
-    { value: "maharashtra", label: "Maharashtra" },
   ];
 
   const relationshipOptions = [
@@ -434,12 +437,13 @@ const PersonalInfo = forwardRef((_, ref) => {
             <SelectWrapper>
               <Label>District</Label>
               <Select
-                options={stateOptions}
+                options={formData.state ? stateDistrictMap[formData.state.value] || [] : []}
                 value={formData.district}
                 onChange={(v) => handleChange("district", v)}
-                placeholder="Select District"
+                placeholder={formData.state ? "Select District" : "Select State first"}
                 styles={customSelectStyles}
                 isSearchable
+                isDisabled={!formData.state}
               />
             </SelectWrapper>
           </Col>
@@ -451,7 +455,7 @@ const PersonalInfo = forwardRef((_, ref) => {
               <Select
                 options={stateOptions}
                 value={formData.state}
-                onChange={(v) => handleChange("state", v)}
+                onChange={(v) => setFormData((prev) => ({ ...prev, state: v, district: null }))}
                 placeholder="Select State"
                 styles={customSelectStyles}
                 isSearchable

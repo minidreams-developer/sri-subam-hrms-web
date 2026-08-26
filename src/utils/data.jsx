@@ -74,7 +74,7 @@ export const employeeTableData = [
 ];
 
 export const staffTableColumns = [
-  { header: "Staff ID", accessor: "staffId" },
+  { header: "Staff ID", accessor: "employeeId" },
   { header: "Name", accessor: "name" },
   { header: "Role", accessor: "role" },
   { header: "Dept.", accessor: "department" },

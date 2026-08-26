@@ -11,37 +11,48 @@ import { GENERATE_AGENT_ID, BRANCHES } from "../../../helpers/url_helper";
 import { stateDistrictMap, stateOptions } from "../../../utils/statesAndDistricts";
 import { toast } from "react-toastify";
 
-const PersonalInfo = forwardRef((_, ref) => {
-  const [formData, setFormData] = useState({
-    agentType: null,
+const createPrefilledAgentData = () => {
+  const uniqueValue = String(Date.now());
+  const suffix = uniqueValue.slice(-4);
+
+  return {
+    agentType: { value: "full_time", label: "Full Time" },
     agentId: "",
-    agentName: "",
-    gender: null,
-    dob: null,
-    age: "",
-    contact: "",
-    email: "",
-    password: "",
-    maritalStatus: null,
-    motherTongue: null,
-    identificationMark: "",
-    religion: null,
-    spokenLanguages: [],
+    agentName: `Test Agent ${suffix}`,
+    gender: { value: "male", label: "Male" },
+    dob: "1992-06-15",
+    age: "34",
+    contact: uniqueValue.slice(-10),
+    email: `agent.${uniqueValue}@example.com`,
+    password: "Agent@123",
+    maritalStatus: { value: "single", label: "Single" },
+    motherTongue: { value: "tamil", label: "Tamil" },
+    identificationMark: "Mole on left hand",
+    religion: { value: "hindu", label: "Hindu" },
+    spokenLanguages: ["tamil", "english"],
     aadhaarImage: null,
     profilePic: "",
-    aadharNo: "",
-    panNo: "",
-    address: "",
-    addressLine2: "",
-    city: "",
-    district: null,
-    state: null,
-    pinCode: "",
+    aadharNo: uniqueValue.slice(-12),
+    panNo: `TAGNT${suffix}A`,
+    address: "No. 20, Agent Test Street",
+    addressLine2: "Near Bus Stand",
+    city: "Chengalpattu",
+    district: { value: "chengalpattu", label: "Chengalpattu" },
+    state: { value: "tamil_nadu", label: "Tamil Nadu" },
+    pinCode: "603001",
     branch: null,
-  });
+  };
+};
+
+const PersonalInfo = forwardRef((_, ref) => {
+  const [formData, setFormData] = useState(createPrefilledAgentData);
 
   const [emergencyContacts, setEmergencyContacts] = useState([
-    { emergencyContact: "", emergencyContactName: "", relationship: null },
+    {
+      emergencyContact: String(Date.now() + 1).slice(-10),
+      emergencyContactName: "Test Emergency Contact",
+      relationship: { value: "father", label: "Father" },
+    },
   ]);
 
   const [isGeneratingId, setIsGeneratingId] = useState(false);
@@ -54,14 +65,24 @@ const PersonalInfo = forwardRef((_, ref) => {
       setIsGeneratingId(true);
       try {
         const response = await get(GENERATE_AGENT_ID);
-        if (response?.data?.agentId) {
+        const agentId =
+          (typeof response === "string" && response) ||
+          response?.agentId ||
+          response?.employeeId ||
+          response?.data?.agentId ||
+          response?.data?.employeeId ||
+          (typeof response?.data === "string" && response.data) ||
+          response?.id ||
+          "";
+        if (agentId) {
           setFormData((prev) => ({
             ...prev,
-            agentId: response.data.agentId,
+            agentId,
           }));
         }
       } catch (error) {
         console.error("Failed to generate agent ID:", error);
+        toast.error("Failed to generate agent ID");
       } finally {
         setIsGeneratingId(false);
       }
@@ -87,6 +108,9 @@ const PersonalInfo = forwardRef((_, ref) => {
           label: branch.name || branch.branchName || "",
         }));
         setBranches(formattedBranches);
+        if (formattedBranches.length) {
+          setFormData((previous) => ({ ...previous, branch: previous.branch || formattedBranches[0] }));
+        }
       } catch (error) {
         console.error("Error fetching branches:", error);
         toast.error("Failed to fetch branches");

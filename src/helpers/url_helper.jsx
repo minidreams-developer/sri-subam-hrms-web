@@ -28,7 +28,7 @@ export const ADD_EMPLOYEE = "/users";
 export const CREATE_EMPLOYEE = "/v1/users";
 export const CREATE_EMPLOYEE_NEW = "/v1/employees";
 export const EMPLOYEE_REGISTRATION = "/v1/users/employee-registration";
-export const STAFF_REGISTRATION = "/v1/users?role=staff&page=1&limit=10&sortBy=createdAt:desc";
+export const STAFF_REGISTRATION = "/v1/users/employee-registration";
 export const GENERATE_EMPLOYEE_ID = "/v1/users/generate-employeeId";
 export const GENERATE_STAFF_ID = "/v1/users/generate-staffId";
 
@@ -130,8 +130,8 @@ export const UPDATE_ROLE = "/v1/roles/:roleId";
 export const DELETE_ROLE = "/v1/roles/:roleId";
 
 // Agents
-export const GENERATE_AGENT_ID = "/v1/users/agent";
-export const CREATE_AGENT = "/v1/users/agent";
+export const GENERATE_AGENT_ID = "/v1/users/generate-agentId";
+export const CREATE_AGENT = "/v1/users/employee-registration";
 export const GET_AGENTS = "/v1/users?role=agent";
 export const GET_AGENT_BY_ID = "/v1/users/:agentId";
 export const UPDATE_AGENT = "/v1/users/:agentId";
@@ -176,3 +176,9 @@ export const GET_ADJUSTMENTS_PENDING = "/v1/adjustments/pending";
 // Team & Department for Adjustments
 export const GET_DEPARTMENTS_LIST = "/v1/departments";
 export const GET_TEAMS_LIST = "/v1/teams";
+
+// Assets
+export const ASSETS = "/v1/assets";
+export const GET_ASSET_BY_ID = "/v1/assets/:assetId";
+export const GET_ASSETS_BY_EMPLOYEE = "/v1/assets/employee/:employeeId";
+export const ASSIGN_ASSET = "/v1/assets/:assetId/assign/:employeeId";

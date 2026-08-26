@@ -207,7 +207,9 @@ const Employees = () => {
           department: departmentName,
           designation: item.workInformation?.designation || item.designation || "N/A",
           shift: shiftName,
-          status: item.isActive ? "Active" : "Inactive",
+          status: typeof item.isActive === "string"
+            ? item.isActive
+            : item.status || (item.isActive ? "Active" : "In-Active"),
           joinedDate: formattedDate,
           gender: item.gender || "N/A",
           role: item.role || "employee",

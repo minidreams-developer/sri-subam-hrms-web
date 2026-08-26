@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import theme from "../../theme/theme";
@@ -8,8 +8,8 @@ import Documents from "./Documents/Documents";
 import CommissionDetails from "./Commission Details/CommissionDetails";
 import Button from "../../components/Button";
 import { toast } from "react-toastify";
-import { get, post } from "../../helpers/api_helper";
-import { GENERATE_AGENT_ID, CREATE_AGENT } from "../../helpers/url_helper";
+import { post } from "../../helpers/api_helper";
+import { CREATE_AGENT } from "../../helpers/url_helper";
 
 const CreateAgent = () => {
   const navigate = useNavigate();
@@ -25,24 +25,6 @@ const CreateAgent = () => {
   const commissionDetailsRef = useRef();
 
   const steps = ["Personal Information", "Document Upload", "Commission Details"];
-
-  // Generate Agent ID on component mount
-  useEffect(() => {
-    const generateAgentId = async () => {
-      try {
-        const response = await get(GENERATE_AGENT_ID);
-        if (response?.data?.agentId && personalInfoRef.current?.formData) {
-          // Update the agentId in PersonalInfo
-          // Since PersonalInfo is not mounted yet on initial load, we'll set it when PersonalInfo mounts
-        }
-      } catch (error) {
-        console.error("Failed to generate agent ID:", error);
-        toast.error("Failed to generate agent ID");
-      }
-    };
-
-    generateAgentId();
-  }, []);
 
   const handleBack = () => {
     if (currentStep > 1) {
@@ -95,9 +77,10 @@ const CreateAgent = () => {
       console.log("Documents Data:", documentsData);
       console.log("Commission Data:", commissionData);
 
-      // --- Build payload: POST /v1/users/agent ---
+      // --- Build payload: POST /v1/users/employee-registration ---
       const payload = {
-        agentId: personalData.agentId,
+        role: "agent",
+        employeeId: personalData.agentId,
         name: personalData.agentName,
         email: personalData.email,
         password: personalData.password,

@@ -111,7 +111,7 @@ const CreateEmployee = () => {
         emergencyContacts: (personalData.emergencyContacts || []).map((contact) => ({
           contactName: contact.emergencyContactName,
           phone: Number(contact.emergencyContact),
-          relattionship: contact.relationship?.value,
+          relationship: contact.relationship?.value,
           mobileNumber: Number(contact.emergencyContact),
         })),
 

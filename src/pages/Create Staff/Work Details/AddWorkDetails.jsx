@@ -9,41 +9,47 @@ import { get } from "../../../helpers/api_helper";
 import { DEPARTMENTS, GET_SHIFTS, GET_ALL_EMPLOYEES, TEAMS, BRANCHES } from "../../../helpers/url_helper";
 import { toast } from "react-toastify";
 
-const AddWorkDetails = forwardRef(({ onNext, onBack }, ref) => {
-  const [formData, setFormData] = useState({
-    dateOfJoining: null,
-    experienceType: null,
+const createPrefilledWorkData = () => {
+  const uniqueValue = String(Date.now());
+
+  return {
+    dateOfJoining: new Date().toISOString().slice(0, 10),
+    experienceType: { value: "experienced", label: "Experienced" },
     department: null,
-    designation: null,
+    designation: { value: "developer", label: "Developer" },
     team: null,
     branch: null,
-    contractAgent: null,
+    contractAgent: { value: "agent_1", label: "Agent 1" },
     reportingPerson: null,
-    attendanceType: null,
-    totalYearsOfExperience: "",
-    lastCompanyName: "",
-    experience: "",
-    location: "",
+    attendanceType: { value: "bio_metric", label: "Bio Metric" },
+    totalYearsOfExperience: "3",
+    lastCompanyName: "Test Technologies Pvt Ltd",
+    experience: "3 years of software development",
+    location: "Chengalpattu",
     shift: null,
-    attendancePermission: null,
-    esiNumber: "",
-    pfNumber: "",
-    ctcAnnual: "",
-    monthlyCTC: "",
-    basicSalary: "",
-    hra: "",
-    conveyanceAllowance: "",
-    specialAllowance: "",
-    specialAllowance2: "",
-    otherFixedAllowances: "",
-    salaryDisbursementType: null,
-    accHolderName: "",
-    bank: "",
-    accNumber: "",
-    ifscCode: "",
-    bankBranch: "",
-    remarks: "",
-  });
+    attendancePermission: { value: "auto", label: "Auto" },
+    esiNumber: `ESI${uniqueValue.slice(-8)}`,
+    pfNumber: `PF${uniqueValue.slice(-8)}`,
+    ctcAnnual: "600000",
+    monthlyCTC: "50000",
+    basicSalary: "25000",
+    hra: "10000",
+    conveyanceAllowance: "3000",
+    specialAllowance: "12000",
+    specialAllowance2: "0",
+    otherFixedAllowances: "0",
+    salaryDisbursementType: { value: "bank_transfer", label: "Bank Transfer" },
+    accHolderName: "Test Staff",
+    bank: "State Bank of India",
+    accNumber: uniqueValue.slice(-12),
+    ifscCode: "SBIN0001234",
+    bankBranch: "Chengalpattu",
+    remarks: "Test staff record",
+  };
+};
+
+const AddWorkDetails = forwardRef(({ onNext, onBack }, ref) => {
+  const [formData, setFormData] = useState(createPrefilledWorkData);
 
   // Loading states
   const [departmentsLoading, setDepartmentsLoading] = useState(false);
@@ -86,6 +92,7 @@ const AddWorkDetails = forwardRef(({ onNext, onBack }, ref) => {
         label: dept.departmentName || dept.name || "Unknown",
       }));
       setDepartmentOptions(options);
+      if (options.length) setFormData((previous) => ({ ...previous, department: previous.department || options[0] }));
     } catch (error) {
       console.error("Error fetching departments:", error);
       toast.error("Failed to fetch departments");
@@ -112,6 +119,7 @@ const AddWorkDetails = forwardRef(({ onNext, onBack }, ref) => {
         label: shift.shiftName || shift.name || "Unknown",
       }));
       setShiftOptions(options);
+      if (options.length) setFormData((previous) => ({ ...previous, shift: previous.shift || options[0] }));
     } catch (error) {
       console.error("Error fetching shifts:", error);
       toast.error("Failed to fetch shifts");
@@ -140,6 +148,7 @@ const AddWorkDetails = forwardRef(({ onNext, onBack }, ref) => {
         label: user.name || user.employeeName || "Unknown",
       }));
       setReportingPersonOptions(options);
+      if (options.length) setFormData((previous) => ({ ...previous, reportingPerson: previous.reportingPerson || options[0] }));
     } catch (error) {
       console.error("Error fetching users:", error);
     } finally {
@@ -165,6 +174,7 @@ const AddWorkDetails = forwardRef(({ onNext, onBack }, ref) => {
         label: team.teamName || team.name || "Unknown",
       }));
       setTeamOptions(options);
+      if (options.length) setFormData((previous) => ({ ...previous, team: previous.team || options[0] }));
     } catch (error) {
       console.error("Error fetching teams:", error);
     } finally {
@@ -190,6 +200,7 @@ const AddWorkDetails = forwardRef(({ onNext, onBack }, ref) => {
         label: branch.branchName || branch.name || "Unknown",
       }));
       setBranchOptions(options);
+      if (options.length) setFormData((previous) => ({ ...previous, branch: previous.branch || options[0] }));
     } catch (error) {
       console.error("Error fetching branches:", error);
     } finally {

@@ -9,9 +9,10 @@ import TableToolbar from "../../components/TableToolbar";
 import PlusIcon from "../../assets/images/DashboardImages/plus-large_svgrepo.com.svg";
 import Filter from "../../components/filter";
 import ReusableTable from "../../components/ReusableTable";
-import { get } from "../../helpers/api_helper";
+import { del, get } from "../../helpers/api_helper";
 import { GET_AGENTS } from "../../helpers/url_helper";
 import { toast } from "react-toastify";
+import DeleteConfirmationModal from "../../components/DeleteConfirmationModal";
 
 // Agents table columns
 const agentsTableColumns = [
@@ -45,6 +46,8 @@ const Agents = () => {
   const [showFilter, setShowFilter] = useState(false);
   const [agentsData, setAgentsData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [agentToDelete, setAgentToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [agentsStats, setAgentsStats] = useState([
     { title: "Total Agents", value: "0", percent: "12 %", type: "down" },
     { title: "Active Agents", value: "0", percent: "20.5 %", type: "up" },
@@ -113,7 +116,8 @@ const Agents = () => {
       const transformed = agentsList.map((agent, idx) => {
         console.log(`Agent ${idx}:`, agent);
         return {
-          agentId: agent?.agentId || "N/A",
+          id: agent?.id || agent?._id,
+          agentId: agent?.employeeId || agent?.agentId || "N/A",
           name: agent?.name || "N/A",
           laboursCount: "-",
           joinedDate: formatDate(agent?.workInformation?.joinedDate),
@@ -159,6 +163,28 @@ const Agents = () => {
     navigate("/admin/people/agents/agentProfile");
   };
 
+  const handleDeleteAgent = async () => {
+    const userId = agentToDelete?.id;
+    if (!userId) {
+      toast.error("Agent ID is missing");
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      await del(`/v1/users/${userId}`);
+      toast.success("Agent deleted successfully");
+      setAgentToDelete(null);
+      await fetchAgents();
+    } catch (error) {
+      toast.error(
+        error.response?.data?.message || error.message || "Failed to delete agent",
+      );
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   const handleFilterOpen = () => {
     setShowFilter(true);
   };
@@ -187,6 +213,14 @@ const Agents = () => {
 
   return (
     <Container>
+      <DeleteConfirmationModal
+        isOpen={Boolean(agentToDelete)}
+        title="Delete agent?"
+        message={`Are you sure you want to delete ${agentToDelete?.name || "this agent"}? This action cannot be undone.`}
+        isDeleting={isDeleting}
+        onCancel={() => !isDeleting && setAgentToDelete(null)}
+        onConfirm={handleDeleteAgent}
+      />
       {showFilter && (
         <Filter onClose={handleFilterClose} onApply={handleFilterApply} />
       )}
@@ -264,6 +298,7 @@ const Agents = () => {
         rowsPerPage={7}
         totalResults={filteredAgentsData.length}
         onRowClick={handleRowClick}
+        onDelete={setAgentToDelete}
       />
     </Container>
   );

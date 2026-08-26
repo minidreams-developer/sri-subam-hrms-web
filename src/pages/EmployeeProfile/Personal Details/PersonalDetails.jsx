@@ -8,6 +8,8 @@ import DocumentIcon from "../../../assets/images/employee/document.svg";
 import EyeIcon from "../../../assets/images/employee/eye.svg";
 import SampleProfile from "../../../assets/images/employee/sampleProfile.jpg";
 import { patch, patchFormData } from "../../../helpers/api_helper";
+import { buildDocumentFormData } from "../../../helpers/registration_form_data";
+import DocumentUploadForm from "../../Create Employee/Documents/Documents";
 import { toast } from "react-toastify";
 
 const NOT_AVAILABLE = "N/A";
@@ -21,6 +23,11 @@ const read = (employee, keys, defaultValue = NOT_AVAILABLE) => {
 };
 
 const display = (value) => value === undefined || value === null || value === "" ? NOT_AVAILABLE : value;
+const getEmployeeStatus = (employee) => {
+  if (["Active", "In-Active", "Relieved"].includes(employee?.isActive)) return employee.isActive;
+  if (["Active", "In-Active", "Relieved"].includes(employee?.status)) return employee.status;
+  return employee?.isActive === false ? "In-Active" : "Active";
+};
 const formatDate = (value) => {
   if (!value) return NOT_AVAILABLE;
   const date = value instanceof Date ? value : new Date(value);
@@ -28,12 +35,14 @@ const formatDate = (value) => {
 };
 
 export const PersonalDetails = ({ employee, onEmployeeUpdated }) => {
-  const inputRef = useRef(null);
+  const documentFormRef = useRef(null);
   const pictureInputRef = useRef(null);
-  const [active, setActive] = useState(employee?.isActive !== false);
+  const [employeeStatus, setEmployeeStatus] = useState(getEmployeeStatus(employee));
+  const [statusSaving, setStatusSaving] = useState(false);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [documentUploadOpen, setDocumentUploadOpen] = useState(false);
   const [form, setForm] = useState({});
   const [uploadedDocuments, setUploadedDocuments] = useState([]);
   const primaryAddress = employee?.address?.[0] || employee?.addresses?.[0] || {};
@@ -55,7 +64,9 @@ export const PersonalDetails = ({ employee, onEmployeeUpdated }) => {
     zipCode: display(primaryAddress.pincode || employee?.zipCode || employee?.pincode),
     profilePic: read(employee, ["profilePic", "profileImage", "avatar"], SampleProfile),
   };
-  useEffect(() => setActive(employee?.isActive !== false), [employee?.isActive]);
+  useEffect(() => {
+    setEmployeeStatus(getEmployeeStatus(employee));
+  }, [employee?.status, employee?.isActive]);
 
   const employeeUrl = () => `/v1/users/${employee?.id || employee?._id}`;
   const openEditor = () => {
@@ -69,10 +80,36 @@ export const PersonalDetails = ({ employee, onEmployeeUpdated }) => {
       motherTongue: details.motherTongue, identificationMark: details.identificationMark,
       address1: details.address1, address2: details.address2, city: details.city,
       state: details.state, zipCode: details.zipCode,
+      emergencyContacts: (emergencyContacts.length ? emergencyContacts : [{}]).map((contact) => ({
+        ...contact,
+        contactName: contact.contactName || contact.name || "",
+        relationship: contact.relationship || contact.relattionship || "",
+        phone: contact.phone || contact.mobileNumber || "",
+      })),
     });
     setEditing(true);
   };
   const change = (event) => setForm((current) => ({ ...current, [event.target.name]: event.target.value }));
+  const changeEmergencyContact = (index, field, value) => {
+    setForm((current) => ({
+      ...current,
+      emergencyContacts: current.emergencyContacts.map((contact, contactIndex) =>
+        contactIndex === index ? { ...contact, [field]: value } : contact
+      ),
+    }));
+  };
+  const addEmergencyContact = () => {
+    setForm((current) => ({
+      ...current,
+      emergencyContacts: [...current.emergencyContacts, { contactName: "", relationship: "", phone: "" }],
+    }));
+  };
+  const removeEmergencyContact = (index) => {
+    setForm((current) => ({
+      ...current,
+      emergencyContacts: current.emergencyContacts.filter((_, contactIndex) => contactIndex !== index),
+    }));
+  };
   const save = async (event) => {
     event.preventDefault();
     if (!employee?.id && !employee?._id) return toast.error("Employee ID is missing");
@@ -87,6 +124,14 @@ export const PersonalDetails = ({ employee, onEmployeeUpdated }) => {
           ...primaryAddress, addressLine1: form.address1, addressLine2: form.address2,
           city: form.city, state: form.state, pincode: form.zipCode,
         }],
+        emergencyContacts: form.emergencyContacts.map((contact) => ({
+          ...(contact.id && { id: contact.id }),
+          ...(contact._id && { _id: contact._id }),
+          contactName: contact.contactName,
+          relationship: contact.relationship,
+          phone: contact.phone ? Number(contact.phone) : null,
+          mobileNumber: contact.phone ? Number(contact.phone) : null,
+        })),
       };
       const response = await patch(employeeUrl(), payload);
       const updated = response?.data || response?.user || response;
@@ -117,13 +162,21 @@ export const PersonalDetails = ({ employee, onEmployeeUpdated }) => {
     } catch (error) { toast.error(error.response?.data?.message || "Failed to update profile picture"); }
   };
   const toggleStatus = async () => {
-    const next = !active;
+    const previousStatus = employeeStatus;
+    const nextStatus = employeeStatus === "Active" ? "In-Active" : "Active";
+    setEmployeeStatus(nextStatus);
+    setStatusSaving(true);
     try {
-      await patch(employeeUrl(), { isActive: next });
-      setActive(next);
-      onEmployeeUpdated?.({ ...employee, isActive: next });
-      toast.success(`Employee marked ${next ? "active" : "inactive"}`);
-    } catch (error) { toast.error(error.response?.data?.message || "Failed to update status"); }
+      const response = await patch(employeeUrl(), { isActive: nextStatus });
+      const updated = response?.data || response?.user || response;
+      onEmployeeUpdated?.({ ...employee, isActive: nextStatus, ...(updated || {}) });
+      toast.success(`Employee status changed to ${nextStatus}`);
+    } catch (error) {
+      setEmployeeStatus(previousStatus);
+      toast.error(error.response?.data?.message || "Failed to update status");
+    } finally {
+      setStatusSaving(false);
+    }
   };
   const info = [
     ["Full Name", details.fullName], ["Employee ID", details.employeeId], ["Employee Type", details.employeeType],
@@ -131,32 +184,34 @@ export const PersonalDetails = ({ employee, onEmployeeUpdated }) => {
     ["Contact", details.contact], ["Email", details.email], ["Marital Status", details.maritalStatus],
     ["Mother Tongue", details.motherTongue], ["Identification Mark", details.identificationMark],
   ];
-  const upload = async (event) => {
-    const file = event.target.files?.[0];
-    event.target.value = "";
-    if (!file) return;
+  const upload = async () => {
     if (!employee?.id && !employee?._id) return toast.error("Employee ID is missing");
-    if (file.size > 10 * 1024 * 1024) return toast.error("Document must be smaller than 10 MB");
+    const documentsData = documentFormRef.current?.formData || {};
+    const selectedDocuments = [
+      ...(documentsData.governmentDocuments || []).map((document) => ({ ...document, documentType: "government" })),
+      ...(documentsData.personalDocuments || []).map((document) => ({ ...document, documentType: "personal" })),
+    ].filter((document) => document.file instanceof File);
+    if (!selectedDocuments.length) return toast.error("Please select at least one document");
+    if (selectedDocuments.some((document) => document.file.size > 10 * 1024 * 1024)) {
+      return toast.error("Each document must be smaller than 10 MB");
+    }
 
     setUploading(true);
     try {
-      const formData = new FormData();
-      formData.append("personalDocuments", file, file.name);
-      formData.append("documents", JSON.stringify([{
-        documentName: file.name,
-        documentType: "personal",
-        fileName: file.name,
-        mimeType: file.type,
-      }]));
-      const response = await patchFormData(employeeUrl(), formData);
+      const response = await patchFormData(employeeUrl(), buildDocumentFormData(documentsData));
       const updated = response?.data || response?.user || response;
       const serverDocuments = updated?.userDocuments || updated?.documents;
       if (serverDocuments) {
         setUploadedDocuments([]);
         onEmployeeUpdated?.({ ...employee, ...(updated || {}) });
       } else {
-        setUploadedDocuments((items) => [...items, file.name]);
+        setUploadedDocuments((items) => [...items, ...selectedDocuments.map((document) => ({
+          documentName: document.label || document.file.name,
+          documentType: document.documentType,
+          fileName: document.file.name,
+        }))]);
       }
+      setDocumentUploadOpen(false);
       toast.success("Document uploaded successfully");
     } catch (error) {
       toast.error(error.response?.data?.message || "Failed to upload document");
@@ -169,7 +224,7 @@ export const PersonalDetails = ({ employee, onEmployeeUpdated }) => {
     <Wrapper>
       <HeaderRow>
         <Heading><IconBox><img src={UserIcon} alt="" /></IconBox><strong>Personal Details</strong></Heading>
-        <HeaderActions><Status>{active ? "Active" : "Inactive"} <Switch type="button" $active={active} onClick={toggleStatus} aria-label="Toggle employee status"><span /></Switch></Status><EditButton type="button" onClick={openEditor}><img src={EditIcon} alt="" />Edit details</EditButton></HeaderActions>
+        <HeaderActions><Status>{employeeStatus}<Switch type="button" $active={employeeStatus === "Active"} onClick={toggleStatus} disabled={statusSaving} aria-label={`Mark employee ${employeeStatus === "Active" ? "In-Active" : "Active"}`}><span /></Switch></Status><EditButton type="button" onClick={openEditor}><img src={EditIcon} alt="" />Edit details</EditButton></HeaderActions>
       </HeaderRow>
 
       <SectionTitle>Personal Information</SectionTitle>
@@ -179,11 +234,12 @@ export const PersonalDetails = ({ employee, onEmployeeUpdated }) => {
       </PersonalCard>
 
       <Section title="Address Information" items={[["Address 1", details.address1], ["Address 2", details.address2], ["City", details.city], ["State", details.state], ["ZIP Code", details.zipCode]]} />
-      <Section title="Emergency Contact" items={[["Emergency Contact Name", display(emergencyContacts[0]?.contactName || emergencyContacts[0]?.name)], ["Relationship", display(emergencyContacts[0]?.relationship)], ["Mobile Number", display(emergencyContacts[0]?.phone || emergencyContacts[0]?.mobileNumber)]]} />
-      {emergencyContacts.slice(1).map((contact, index) => <Section key={contact.id || contact._id || index} title="" items={[["Emergency Contact Name", display(contact.contactName || contact.name)], ["Relationship", display(contact.relationship)], ["Mobile Number", display(contact.phone || contact.mobileNumber)]]} />)}
+      <Section title="Emergency Contact" items={[["Emergency Contact Name", display(emergencyContacts[0]?.contactName || emergencyContacts[0]?.name)], ["Relationship", display(emergencyContacts[0]?.relationship || emergencyContacts[0]?.relattionship)], ["Mobile Number", display(emergencyContacts[0]?.phone || emergencyContacts[0]?.mobileNumber)]]} />
+      {emergencyContacts.slice(1).map((contact, index) => <Section key={contact.id || contact._id || index} title="" items={[["Emergency Contact Name", display(contact.contactName || contact.name)], ["Relationship", display(contact.relationship || contact.relattionship)], ["Mobile Number", display(contact.phone || contact.mobileNumber)]]} />)}
 
-      <DocumentsHeader><SectionTitle>Documents</SectionTitle><UploadButton type="button" disabled={uploading} onClick={() => inputRef.current?.click()}><img src={UploadIcon} alt="" />{uploading ? "Uploading..." : "Upload"}</UploadButton><input ref={inputRef} type="file" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" hidden onChange={upload} /></DocumentsHeader>
+      <DocumentsHeader><SectionTitle>Documents</SectionTitle><UploadButton type="button" disabled={uploading} onClick={() => setDocumentUploadOpen(true)}><img src={UploadIcon} alt="" />{uploading ? "Uploading..." : "Upload"}</UploadButton></DocumentsHeader>
       <DocumentsPanel>{documents.length ? documents.map((document, index) => { const name = typeof document === "string" ? document : document.fileName || document.name || document.documentName || NOT_AVAILABLE; return <Document key={document.id || document._id || `${name}-${index}`}><DocLabel>{display(document.documentType || document.type || "Document")}</DocLabel><FileBox><span><img src={DocumentIcon} alt="" />{name}</span><img src={EyeIcon} alt="View" /></FileBox></Document>; }) : <Document><DocLabel>Documents</DocLabel><FileBox><span>{NOT_AVAILABLE}</span></FileBox></Document>}</DocumentsPanel>
+      {documentUploadOpen && <ModalBackdrop onMouseDown={(event) => event.target === event.currentTarget && !uploading && setDocumentUploadOpen(false)}><UploadModal role="dialog" aria-modal="true" aria-labelledby="upload-documents-title"><ModalTitle id="upload-documents-title">Upload Documents</ModalTitle><UploadFormBody><DocumentUploadForm ref={documentFormRef} /></UploadFormBody><UploadModalActions><CancelButton type="button" disabled={uploading} onClick={() => setDocumentUploadOpen(false)}>Cancel</CancelButton><SaveButton type="button" disabled={uploading} onClick={upload}>{uploading ? "Uploading..." : "Upload Documents"}</SaveButton></UploadModalActions></UploadModal></ModalBackdrop>}
       {editing && <ModalBackdrop onMouseDown={(e) => e.target === e.currentTarget && setEditing(false)}><Modal role="dialog" aria-modal="true" aria-labelledby="edit-personal-title"><ModalTitle id="edit-personal-title">Edit Personal Details</ModalTitle><EditForm onSubmit={save}>
         <Field><label>Full Name</label><input name="name" value={form.name || ""} onChange={change} required /></Field>
         <Field><label>Employee ID</label><input name="employeeId" value={form.employeeId || ""} onChange={change} /></Field>
@@ -200,6 +256,13 @@ export const PersonalDetails = ({ employee, onEmployeeUpdated }) => {
         <Field><label>City</label><input name="city" value={form.city || ""} onChange={change} /></Field>
         <Field><label>State</label><input name="state" value={form.state || ""} onChange={change} /></Field>
         <Field><label>ZIP Code</label><input name="zipCode" value={form.zipCode || ""} onChange={change} /></Field>
+        <EmergencyHeading><span>Emergency Contacts</span><AddContactButton type="button" onClick={addEmergencyContact}>+ Add contact</AddContactButton></EmergencyHeading>
+        {form.emergencyContacts?.map((contact, index) => <EmergencyFields key={contact.id || contact._id || index}>
+          <Field><label>Contact Name</label><input value={contact.contactName || ""} onChange={(event) => changeEmergencyContact(index, "contactName", event.target.value)} /></Field>
+          <Field><label>Relationship</label><select value={contact.relationship || ""} onChange={(event) => changeEmergencyContact(index, "relationship", event.target.value)}><option value="">Select</option><option value="father">Father</option><option value="mother">Mother</option><option value="spouse">Spouse</option><option value="sibling">Sibling</option><option value="other">Other</option></select></Field>
+          <Field><label>Mobile Number</label><input type="tel" value={contact.phone || ""} onChange={(event) => changeEmergencyContact(index, "phone", event.target.value.replace(/\D/g, ""))} /></Field>
+          {form.emergencyContacts.length > 1 && <RemoveContactButton type="button" onClick={() => removeEmergencyContact(index)}>Remove</RemoveContactButton>}
+        </EmergencyFields>)}
         <ModalActions><CancelButton type="button" onClick={() => setEditing(false)}>Cancel</CancelButton><SaveButton type="submit" disabled={saving}>{saving ? "Saving..." : "Save Changes"}</SaveButton></ModalActions>
       </EditForm></Modal></ModalBackdrop>}
     </Wrapper>
@@ -214,7 +277,7 @@ const Heading = styled.div`display:flex; align-items:center; gap:14px; font:600 
 const IconBox = styled.span`width:36px;height:36px;border-radius:6px;background:#edf6f9;display:grid;place-items:center; img{width:20px;height:20px;}`;
 const HeaderActions = styled.div`display:flex;align-items:center;gap:36px;`;
 const Status = styled.div`display:flex;align-items:center;gap:10px;font:500 14px/1.6 "Inter-Medium",sans-serif;`;
-const Switch = styled.button`width:40px;height:22px;border:0;border-radius:100px;padding:2px;background:${p=>p.$active?"#066c78":"#b1b1b1"};cursor:pointer; span{display:block;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 2px 4px #2727271a;transform:translateX(${p=>p.$active?"18px":"0"});transition:.2s;}`;
+const Switch = styled.button`width:40px;height:22px;border:0;border-radius:100px;padding:2px;background:${p=>p.$active?"#066c78":"#b1b1b1"};cursor:pointer;span{display:block;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 2px 4px #2727271a;transform:translateX(${p=>p.$active?"18px":"0"});transition:.2s;}&:disabled{opacity:.65;cursor:not-allowed;}`;
 const EditButton = styled.button`width:140px;height:40px;border:0;border-radius:8px;background:#edf6f9;color:#066c78;display:flex;align-items:center;justify-content:center;gap:10px;font:600 12px "Inter-SemiBold",sans-serif;cursor:pointer;img{width:20px;height:20px;}`;
 const SectionTitle = styled.h3`margin:0;color:#066c78;font:600 14px/1.6 "Inter-SemiBold",sans-serif;`;
 const PersonalCard = styled.div`display:grid;grid-template-columns:158px 1fr;gap:18px;padding:12px;border:1px solid #e0e3e6;border-radius:10px;background:#edf6f966;@media(max-width:900px){grid-template-columns:1fr;}`;
@@ -236,8 +299,15 @@ const DocLabel = styled.span`font:500 12px/1.6 "Inter-Medium",sans-serif;`;
 const FileBox = styled.div`height:34px;border:1px solid #e0e3e6;border-radius:5px;background:#edf6f966;padding:0 10px;display:flex;align-items:center;justify-content:space-between;font:600 11px "Inter-SemiBold",sans-serif;span{display:flex;align-items:center;gap:9px;}img{width:16px;height:16px;}`;
 const ModalBackdrop = styled.div`position:fixed;inset:0;z-index:1000;background:#0c242780;display:grid;place-items:center;padding:24px;`;
 const Modal = styled.div`width:min(760px,100%);max-height:90vh;overflow:auto;background:#fff;border-radius:12px;padding:24px;box-shadow:0 20px 60px #0003;`;
+const UploadModal = styled(Modal)`width:min(900px,100%);`;
+const UploadFormBody = styled.div`max-height:65vh;overflow:auto;padding:4px 2px 12px;&>div{width:100%;}`;
+const UploadModalActions = styled.div`display:flex;justify-content:flex-end;gap:12px;margin-top:20px;padding-top:16px;border-top:1px solid #e0e3e6;`;
 const ModalTitle = styled.h2`margin:0 0 20px;color:#0c2427;font:600 20px "Inter-SemiBold",sans-serif;`;
 const EditForm = styled.form`display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;@media(max-width:650px){grid-template-columns:1fr;}`;
+const EmergencyHeading = styled.div`grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;margin-top:8px;font:600 15px "Inter-SemiBold",sans-serif;color:#066c78;`;
+const AddContactButton = styled.button`height:34px;padding:0 14px;border:1px solid #087d88;border-radius:7px;background:#fff;color:#087d88;cursor:pointer;font-weight:600;`;
+const EmergencyFields = styled.div`grid-column:1/-1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr)) auto;align-items:end;gap:12px;padding:14px;border:1px solid #d8e0e2;border-radius:8px;background:#f7fbfc;@media(max-width:650px){grid-template-columns:1fr;}`;
+const RemoveContactButton = styled.button`height:42px;padding:0 12px;border:1px solid #c94b4b;border-radius:7px;background:#fff;color:#c94b4b;cursor:pointer;font-weight:600;`;
 const Field = styled.div`display:flex;flex-direction:column;gap:6px;label{color:#4b6265;font:500 12px "Inter-Medium",sans-serif;}input,select{height:42px;border:1px solid #d8e0e2;border-radius:7px;padding:0 11px;background:#fff;color:#0c2427;font:500 13px "Inter-Medium",sans-serif;outline:none;}input:focus,select:focus{border-color:#087d88;box-shadow:0 0 0 2px #087d8820;}`;
 const ModalActions = styled.div`grid-column:1/-1;display:flex;justify-content:flex-end;gap:12px;margin-top:8px;`;
 const CancelButton = styled.button`height:40px;padding:0 22px;border:1px solid #087d88;border-radius:7px;background:#fff;color:#087d88;cursor:pointer;font-weight:600;`;
