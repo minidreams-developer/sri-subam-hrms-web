@@ -67,8 +67,8 @@ const TableToolbar = ({
               }
             >
               {select1Options.map((opt, idx) => (
-                <option key={idx} value={opt}>
-                  {opt}
+                <option key={opt?.value ?? idx} value={opt?.value ?? opt}>
+                  {opt?.label ?? opt}
                 </option>
               ))}
             </select>
@@ -84,8 +84,8 @@ const TableToolbar = ({
               }
             >
               {select2Options.map((opt, idx) => (
-                <option key={idx} value={opt}>
-                  {opt}
+                <option key={opt?.value ?? idx} value={opt?.value ?? opt}>
+                  {opt?.label ?? opt}
                 </option>
               ))}
             </select>

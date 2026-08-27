@@ -150,10 +150,28 @@ const PersonalInfo = forwardRef((_, ref) => {
   };
 
   const handleImageUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      handleChange("aadhaarImage", file);
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select an image file");
+      return;
     }
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Profile picture must be smaller than 2 MB");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setFormData((prev) => ({
+        ...prev,
+        aadhaarImage: file,
+        profilePic: reader.result,
+      }));
+    };
+    reader.onerror = () => toast.error("Could not read the selected image");
+    reader.readAsDataURL(file);
   };
 
   const handleEmergencyContactChange = (index, field, value) => {

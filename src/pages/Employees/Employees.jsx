@@ -65,11 +65,21 @@ const Employees = () => {
   // Fetch data based on active tab
   useEffect(() => {
     if (activeTab === "Employee") {
-      fetchEmployeeData(currentPage, pageSize, sortBy);
+      const timeoutId = window.setTimeout(() => {
+        fetchEmployeeData(currentPage, pageSize, sortBy);
+      }, employeeSearch.trim() ? 350 : 0);
+      return () => window.clearTimeout(timeoutId);
     } else {
-      fetchStaffData(currentPage, pageSize, sortBy);
+      const timeoutId = window.setTimeout(() => {
+        fetchStaffData(currentPage, pageSize, sortBy);
+      }, staffSearch.trim() ? 350 : 0);
+      return () => window.clearTimeout(timeoutId);
     }
-  }, [activeTab, currentPage, pageSize, sortBy]);
+  }, [
+    activeTab, currentPage, pageSize, sortBy,
+    employeeSearch, employeeDept, employeeShift,
+    staffSearch, staffRole, staffShift,
+  ]);
 
   // Fetch departments and shifts for filter dropdowns
   const fetchDepartmentsAndShifts = async () => {
@@ -84,9 +94,9 @@ const Employees = () => {
       
       // Transform to dropdown options
       const deptOptions = deptList.map((dept) => ({
-        value: dept.departmentName || dept.name || "N/A",
+        value: dept.id || dept._id,
         label: dept.departmentName || dept.name || "N/A",
-      }));
+      })).filter((option) => option.value);
       
       setDepartmentOptions(deptOptions);
       console.log("Department options:", deptOptions);
@@ -108,9 +118,9 @@ const Employees = () => {
       
       // Transform to dropdown options
       const shiftOpts = shiftList.map((shift) => ({
-        value: shift.shiftName || shift.name || "N/A",
+        value: shift.id || shift._id,
         label: shift.shiftName || shift.name || "N/A",
-      }));
+      })).filter((option) => option.value);
       
       setShiftOptions(shiftOpts);
       console.log("Shift options:", shiftOpts);
@@ -125,7 +135,17 @@ const Employees = () => {
   const fetchEmployeeData = async (page = 1, limit = 10, sort = "createdAt:desc") => {
     setIsLoading(true);
     try {
-      const response = await get(`${GET_EMPLOYEES_BY_ROLE}?role=employee&page=${page}&limit=${limit}&sortBy=${sort}`);
+      const query = new URLSearchParams({
+        role: "employee",
+        page: String(page),
+        limit: String(limit),
+        sortBy: sort,
+      });
+      if (employeeSearch.trim()) query.set("search", employeeSearch.trim());
+      if (employeeDept !== "All Department") query.set("departmentId", employeeDept);
+      if (employeeShift !== "All Shifts") query.set("shiftId", employeeShift);
+
+      const response = await get(`${GET_EMPLOYEES_BY_ROLE}?${query.toString()}`);
       console.log("Employee API Response:", response);
       transformAndSetData(response, setEmployees, setTotalResults, setTotalPages);
     } catch (error) {
@@ -141,7 +161,17 @@ const Employees = () => {
   const fetchStaffData = async (page = 1, limit = 10, sort = "createdAt:desc") => {
     setIsLoading(true);
     try {
-      const response = await get(`/v1/users?role=staff&page=${page}&limit=${limit}&sortBy=${sort}`);
+      const query = new URLSearchParams({
+        role: "staff",
+        page: String(page),
+        limit: String(limit),
+        sortBy: sort,
+      });
+      if (staffSearch.trim()) query.set("search", staffSearch.trim());
+      if (staffRole !== "All Roles") query.set("designation", staffRole);
+      if (staffShift !== "All Shifts") query.set("shiftId", staffShift);
+
+      const response = await get(`/v1/users?${query.toString()}`);
       console.log("Staff API Response:", response);
       transformAndSetData(response, setStaff, setTotalResults, setTotalPages);
     } catch (error) {
@@ -367,24 +397,9 @@ const Employees = () => {
     }
   };
 
-  const filteredEmployeeData = employees.filter((row) => {
-    const m1 =
-      employeeDept === "All Department" || row.department === employeeDept;
-    const m2 = employeeShift === "All Shifts" || row.shift === employeeShift;
-    const m3 =
-      !employeeSearch ||
-      row.name.toLowerCase().includes(employeeSearch.toLowerCase());
-    return m1 && m2 && m3;
-  });
+  const filteredEmployeeData = employees;
 
-  const filteredStaffData = staff.filter((row) => {
-    const m1 = staffRole === "All Roles" || row.role === staffRole;
-    const m2 = staffShift === "All Shifts" || row.shift === staffShift;
-    const m3 =
-      !staffSearch ||
-      row.name.toLowerCase().includes(staffSearch.toLowerCase());
-    return m1 && m2 && m3;
-  });
+  const filteredStaffData = staff;
 
   return (
     <Container>
@@ -480,13 +495,22 @@ const Employees = () => {
           <TableToolbar
             searchPlaceholder="Search Employee"
             searchValue={employeeSearch}
-            onSearchChange={setEmployeeSearch}
-            select1Options={["All Department", ...departmentOptions.map(d => d.value)]}
+            onSearchChange={(value) => {
+              setEmployeeSearch(value);
+              setCurrentPage(1);
+            }}
+            select1Options={[{ value: "All Department", label: "All Department" }, ...departmentOptions]}
             select1Value={employeeDept}
-            onSelect1Change={setEmployeeDept}
-            select2Options={["All Shifts", ...shiftOptions.map(s => s.value)]}
+            onSelect1Change={(value) => {
+              setEmployeeDept(value);
+              setCurrentPage(1);
+            }}
+            select2Options={[{ value: "All Shifts", label: "All Shifts" }, ...shiftOptions]}
             select2Value={employeeShift}
-            onSelect2Change={setEmployeeShift}
+            onSelect2Change={(value) => {
+              setEmployeeShift(value);
+              setCurrentPage(1);
+            }}
             filterText="Filter"
             onFilterClick={handleFilterOpen}
             actionText="New Employee"
@@ -514,7 +538,10 @@ const Employees = () => {
           <TableToolbar
             searchPlaceholder="Search Staff"
             searchValue={staffSearch}
-            onSearchChange={setStaffSearch}
+            onSearchChange={(value) => {
+              setStaffSearch(value);
+              setCurrentPage(1);
+            }}
             select1Options={[
               "All Roles",
               "Office Admin",
@@ -523,10 +550,16 @@ const Employees = () => {
               "Security",
             ]}
             select1Value={staffRole}
-            onSelect1Change={setStaffRole}
-            select2Options={["All Shifts", ...shiftOptions.map(s => s.value)]}
+            onSelect1Change={(value) => {
+              setStaffRole(value);
+              setCurrentPage(1);
+            }}
+            select2Options={[{ value: "All Shifts", label: "All Shifts" }, ...shiftOptions]}
             select2Value={staffShift}
-            onSelect2Change={setStaffShift}
+            onSelect2Change={(value) => {
+              setStaffShift(value);
+              setCurrentPage(1);
+            }}
             filterText="Filter"
             onFilterClick={handleFilterOpen}
             actionText="New Staff"

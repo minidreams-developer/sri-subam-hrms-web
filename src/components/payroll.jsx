@@ -28,7 +28,7 @@ const PayrollComponent = ({ employee, onEmployeeUpdated }) => {
       houseRentAllowance: salaryDetails.houseRentAllowance ?? salaryDetails.hra ?? "",
       conveyanceAllowance: salaryDetails.conveyanceAllowance ?? "",
       specialAllowance: salaryDetails.specialAllowance ?? "",
-      otherFixedAllowances: salaryDetails.otherFixedAllowances ?? "",
+      otherFixedAllowance: salaryDetails.otherFixedAllowance ?? salaryDetails.otherFixedAllowances ?? "",
     });
     setEditor("basic");
   };
@@ -120,7 +120,7 @@ const PayrollComponent = ({ employee, onEmployeeUpdated }) => {
           },
           {
             label: "Other Fixed Allowances",
-            value: money(salaryDetails.otherFixedAllowances),
+            value: money(salaryDetails.otherFixedAllowance ?? salaryDetails.otherFixedAllowances),
           },
         ]}
       />
@@ -254,7 +254,7 @@ const PayrollComponent = ({ employee, onEmployeeUpdated }) => {
                 ["annualCTC", "CTC (Annual)", "number"], ["monthlyCTC", "Monthly CTC", "number"],
                 ["effectiveFrom", "Effective From", "text"], ["basicSalary", "Basic Salary", "number"],
                 ["houseRentAllowance", "HRA", "number"], ["conveyanceAllowance", "Conveyance Allowance", "number"],
-                ["specialAllowance", "Special Allowance", "number"], ["otherFixedAllowances", "Other Fixed Allowances", "number"],
+                ["specialAllowance", "Special Allowance", "number"], ["otherFixedAllowance", "Other Fixed Allowances", "number"],
               ] : [
                 ["totalSalary", "Total Salary", "number"], ["overtimePayment", "Overtime Payment", "number"],
                 ["additionPayment", "Addition Payment", "number"], ["deductions", "Deductions", "number"],
