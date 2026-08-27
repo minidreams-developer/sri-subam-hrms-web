@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import theme from "../../theme/theme";
 import Select from "react-select";
@@ -7,22 +7,24 @@ import { customSelectStyles } from "../../theme/reactSelectStyles";
 import InputComponent from "../../components/InputComponent";
 import CalenderInput from "../../components/CalenderInput";
 import Button from "../../components/Button";
-import { post } from "../../helpers/api_helper";
+import { patch, post } from "../../helpers/api_helper";
 import { CREATE_HOLIDAY } from "../../helpers/url_helper";
 import { toast } from "react-toastify";
 
 const AddHoliday = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const editHoliday = location.state?.mode === "edit" ? location.state.holiday : null;
   const [formData, setFormData] = useState({
-    month: "",
-    date: "",
-    holidayTitle: "",
+    month: editHoliday?.month || (editHoliday?.date ? new Date(editHoliday.date).getMonth() + 1 : ""),
+    date: editHoliday?.date || "",
+    holidayTitle: editHoliday?.holidayTitle || "",
     people: [],
-    description: "",
-    nextWorkingDay: "",
-    Remarks: "",
-    status: true,
-    holidayImage: "",
+    description: editHoliday?.description || "",
+    nextWorkingDay: editHoliday?.nextWorkingDay || "",
+    Remarks: editHoliday?.Remarks || editHoliday?.remarks || "",
+    status: editHoliday?.status ?? true,
+    holidayImage: editHoliday?.holidayImage || "",
   });
   const [loading, setLoading] = useState(false);
 
@@ -83,13 +85,14 @@ const AddHoliday = () => {
       };
 
       // Submit to API
-      const response = await post(CREATE_HOLIDAY, payload);
+      const holidayId = editHoliday?.id || editHoliday?._id;
+      const response = editHoliday ? await patch(`${CREATE_HOLIDAY}/${holidayId}`, payload) : await post(CREATE_HOLIDAY, payload);
 
-      if (response?.id) {
-        toast.success("Holiday created successfully");
+      if (response) {
+        toast.success(`Holiday ${editHoliday ? "updated" : "created"} successfully`);
         navigate("/admin/time-hub/dayOffHolidays");
       } else {
-        toast.error("Failed to create holiday");
+        toast.error(`Failed to ${editHoliday ? "update" : "create"} holiday`);
       }
     } catch (error) {
       console.error("Error creating holiday:", error);
@@ -102,7 +105,7 @@ const AddHoliday = () => {
   return (
     <>
     <Container>
-        <Title>Holiday Details</Title>
+        <Title>{editHoliday ? "Edit Holiday" : "Holiday Details"}</Title>
 
         <FormGrid>
           <FormGroup>

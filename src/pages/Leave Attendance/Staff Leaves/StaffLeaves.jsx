@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import ReusableTable from "../../../components/ReusableTable";
-import { get } from "../../../helpers/api_helper";
+import { del, get } from "../../../helpers/api_helper";
 import { GET_LEAVE_REQUESTS } from "../../../helpers/url_helper";
 import TableToolbar from "../../../components/TableToolbar";
 import PlusIcon from "../../../assets/images/DashboardImages/plus-large_svgrepo.com.svg";
@@ -16,7 +16,7 @@ const StaffLeaves = () => {
     { header: "Type", accessor: "type" },
     { header: "From", accessor: "from" },
     { header: "To", accessor: "to" },
-    { header: "Status", accessor: "status" },
+    { header: "Status", accessor: "status" }, { header: "Action", accessor: "actions" },
   ];
 
   const [staffLeaveData, setStaffLeaveData] = useState([]);
@@ -56,6 +56,7 @@ const StaffLeaves = () => {
             ? new Date(leave.singleDate).toLocaleDateString()
             : new Date(leave.endDate).toLocaleDateString(),
           status: leave.status || "pending",
+          raw: leave, actions: "",
         }));
 
         setStaffLeaveData(transformedData);
@@ -123,6 +124,9 @@ const StaffLeaves = () => {
         onPageSizeChange={setPageSize}
         alwaysShowPagination
         loading={loading}
+        onView={(row) => navigate("/admin/time-hub/leaveAttendance/edit-Leave", { state: { leave: row.raw, leaveId: row.id, returnTo: "/admin/time-hub/leaveAttendance", returnTab: "Staffs Leaves", readOnly: true } })}
+        onEdit={(row) => navigate("/admin/time-hub/leaveAttendance/edit-Leave", { state: { leave: row.raw, leaveId: row.id, returnTo: "/admin/time-hub/leaveAttendance", returnTab: "Staffs Leaves" } })}
+        onDelete={async (row) => { if (!window.confirm("Delete this leave request?")) return; try { await del(`${GET_LEAVE_REQUESTS}/${row.id}`); setStaffLeaveData((items) => items.filter((item) => item.id !== row.id)); toast.success("Leave request deleted"); } catch (error) { toast.error(error.response?.data?.message || "Failed to delete leave request"); } }}
       />
     </>
   );

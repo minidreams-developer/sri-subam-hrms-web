@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import ReusableTable from "../../../components/ReusableTable";
 import TableToolbar from "../../../components/TableToolbar";
 import PlusIcon from "../../../assets/images/DashboardImages/plus-large_svgrepo.com.svg";
-import { get } from "../../../helpers/api_helper";
+import { del, get } from "../../../helpers/api_helper";
 import { GET_LEAVE_REQUESTS } from "../../../helpers/url_helper";
 import { toast } from "react-toastify";
 
@@ -16,7 +16,7 @@ const EmployeeLeaves = () => {
     { header: "Type", accessor: "type" },
     { header: "From", accessor: "from" },
     { header: "To", accessor: "to" },
-    { header: "Status", accessor: "status" },
+    { header: "Status", accessor: "status" }, { header: "Action", accessor: "actions" },
   ];
 
   const [leaveData, setLeaveData] = useState([]);
@@ -51,6 +51,7 @@ const EmployeeLeaves = () => {
             ? new Date(leave.singleDate).toLocaleDateString()
             : new Date(leave.endDate).toLocaleDateString(),
           status: leave.status || "pending",
+          raw: leave, actions: "",
         }));
 
         setLeaveData(transformedData);
@@ -118,6 +119,9 @@ const EmployeeLeaves = () => {
         onPageSizeChange={setPageSize}
         alwaysShowPagination
         loading={loading}
+        onView={(row) => navigate("/admin/time-hub/leaveAttendance/edit-Leave", { state: { leave: row.raw, leaveId: row.id, returnTo: "/admin/time-hub/leaveAttendance", returnTab: "Employee Leaves", readOnly: true } })}
+        onEdit={(row) => navigate("/admin/time-hub/leaveAttendance/edit-Leave", { state: { leave: row.raw, leaveId: row.id, returnTo: "/admin/time-hub/leaveAttendance", returnTab: "Employee Leaves" } })}
+        onDelete={async (row) => { if (!window.confirm("Delete this leave request?")) return; try { await del(`${GET_LEAVE_REQUESTS}/${row.id}`); setLeaveData((items) => items.filter((item) => item.id !== row.id)); toast.success("Leave request deleted"); } catch (error) { toast.error(error.response?.data?.message || "Failed to delete leave request"); } }}
       />
     </>
   );

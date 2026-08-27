@@ -138,8 +138,8 @@ const AddTeamModal = ({ isOpen, onClose, onSave, isLoading = false }) => {
         <ModalBody>
           <TeamIdWrapper>
             <InputComponent
-              label="Team ID (Optional)"
-              placeholder="Auto-generated if empty"
+              label="Team ID"
+              placeholder=""
               value={formData.teamId}
               onChange={(e) => handleChange("teamId", e.target.value)}
               labelMargin="0 0 0.625rem 0"
@@ -251,8 +251,8 @@ const Overlay = styled.div`
 `;
 
 const ModalContainer = styled.div`
-  background: ${theme.colors.white};
-  border-radius: 1rem;
+  background: #f7f8fc;
+  border-radius: 10px;
   width: 440px;
   max-width: 90%;
   max-height: 90vh;
@@ -278,7 +278,7 @@ const ModalHeader = styled.div`
 `;
 
 const ModalTitle = styled.h2`
-  font-size: 1.25rem;
+  font-size: 1rem;
   font-weight: 600;
   font-family: "Inter-SemiBold", sans-serif;
   color: ${theme.colors.primary};

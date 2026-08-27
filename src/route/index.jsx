@@ -66,6 +66,8 @@ import Agents from "../pages/People/Agents";
 import CreateAgent from "../pages/Create Agent/CreateAgent";
 import AgentProfile from "../pages/AgentProfile/AgentProfile";
 import LogWorkEntry from "../pages/Contractors/LogWorkEntry";
+import Help from "../pages/Help/Help";
+import RosterSchedule from "../pages/RosterSchedule/RosterSchedule";
 
 
 const publicRoutes = [
@@ -79,6 +81,10 @@ const privateRoutes = [
     path: "/admin",
     element: <AdminLayout />,
     children: [
+      {
+        path: "help",
+        element: <Help />,
+      },
       {
         path: "dashboard",
         element: <DashboardPage />,
@@ -147,6 +153,10 @@ const privateRoutes = [
       {
         path: "time-hub/timesheet",
         element: <Timesheet />,
+      },
+      {
+        path: "time-hub/roster-schedule",
+        element: <RosterSchedule />,
       },
       {
         path: "time-hub/attendance/add",

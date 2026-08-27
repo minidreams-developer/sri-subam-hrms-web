@@ -9,15 +9,21 @@ import { Label } from "reactstrap";
 import CalenderInput from "../../../components/CalenderInput";
 import TimeInputComponent from "../../../components/TimeInputComponent";
 import Button from "../../../components/Button";
+import { patch } from "../../../helpers/api_helper";
+import { toast } from "react-toastify";
 
 const EditLeave = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const profileEmployee = location.state?.employee;
+  const leave = location.state?.leave || {};
+  const leaveId = location.state?.leaveId || leave.id || leave._id;
+  const readOnly = Boolean(location.state?.readOnly);
   const returnTo = location.state?.returnTo || "/admin/time-hub/leaveAttendance";
-  const employeeOption = profileEmployee ? {
-    value: profileEmployee._id || profileEmployee.id,
-    label: profileEmployee.name || profileEmployee.firstName || "Employee",
+  const selectedPerson = profileEmployee || (typeof leave.employeeId === "object" ? leave.employeeId : null);
+  const employeeOption = selectedPerson ? {
+    value: selectedPerson._id || selectedPerson.id,
+    label: selectedPerson.name || selectedPerson.firstName || "Employee",
   } : null;
   const options = employeeOption ? [employeeOption] : [];
 
@@ -29,14 +35,25 @@ const EditLeave = () => {
   ];
 
   const [employee, setEmployee] = useState(employeeOption);
-  const [employeeId, setEmployeeId] = useState(profileEmployee?.employeeId || "");
-  const [date, setDate] = useState(null);
-  const [fromDate, setFromDate] = useState(null);
-  const [toDate, setToDate] = useState(null);
-  const [leaveType, setLeaveType] = useState(leaveOptions[0]);
-  const [startTime, setStartTime] = useState(null);
-  const [endTime, setEndTime] = useState(null);
-  const [remarks, setRemarks] = useState("");
+  const [employeeId, setEmployeeId] = useState(selectedPerson?.employeeId || "");
+  const [date, setDate] = useState(leave.singleDate || null);
+  const [fromDate, setFromDate] = useState(leave.startDate || null);
+  const [toDate, setToDate] = useState(leave.endDate || null);
+  const [leaveType, setLeaveType] = useState(leaveOptions.find((option) => option.value === leave.leaveType) || leaveOptions[0]);
+  const [startTime, setStartTime] = useState(leave.startTime || null);
+  const [endTime, setEndTime] = useState(leave.endTime || null);
+  const [remarks, setRemarks] = useState(leave.remarks || leave.reason || "");
+  const [saving, setSaving] = useState(false);
+  const updateLeave = async () => {
+    if (!leaveId) return toast.error("Leave request ID is missing");
+    setSaving(true);
+    try {
+      await patch(`/v1/leave-requests/${leaveId}`, { employeeId: employee?.value || leave.employeeId?.id || leave.employeeId?._id || leave.employeeId, leaveType: leaveType?.value, singleDate: date, startDate: fromDate, endDate: toDate, startTime, endTime, remarks });
+      toast.success("Leave request updated successfully");
+      navigate(returnTo, { state: { activeTab: location.state?.returnTab } });
+    } catch (error) { toast.error(error.response?.data?.message || "Failed to update leave request"); }
+    finally { setSaving(false); }
+  };
 
   return (
     <Container>
@@ -200,13 +217,16 @@ const EditLeave = () => {
         </Col>
       </Row>
       <ButtonRow>
-        <Button
+        {!readOnly && <Button
           text="Update"
           bg={theme.colors.primary}
           color={theme.colors.white}
           width="120px"
           radius="0.625rem"
-        />
+          onClick={updateLeave}
+          loading={saving}
+          disabled={saving}
+        />}
         <Button
           text="Cancel"
           bg={theme.colors.white}

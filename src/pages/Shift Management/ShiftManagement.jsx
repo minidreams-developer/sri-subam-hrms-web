@@ -414,7 +414,7 @@ const ShiftManagement = () => {
             </Section>
 
             <Footer>
-              <EditButton>
+              <EditButton type="button" onClick={(event) => handleEditShift(event, shiftDetails?.id || shiftDetails?._id || selectedShift?.id)}>
                 <img src={EditIcon} alt="edit" width="16" height="16" />
                 Edit details
               </EditButton>

@@ -126,10 +126,18 @@ const Branches = () => {
     navigate("/admin/peopleHub/branch/createBranch");
   };
 
-  const handleEditBranch = () => {
-    if (!selectedBranch) return;
+  const handleEditBranch = (branch = selectedBranch) => {
+    if (!branch) {
+      toast.error("Branch details are unavailable");
+      return;
+    }
+    setIsSidebarOpen(false);
     navigate("/admin/peopleHub/branch/createBranch", {
-      state: { mode: "edit", branch: selectedBranch },
+      state: {
+        mode: "edit",
+        branch: branch.originalData || branch,
+        branchId: branch.id || branch._id || branch.originalData?.id || branch.originalData?._id,
+      },
     });
   };
 

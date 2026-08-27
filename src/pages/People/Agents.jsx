@@ -160,7 +160,9 @@ const Agents = () => {
   };
 
   const handleRowClick = (row) => {
-    navigate("/admin/people/agents/agentProfile");
+    navigate("/admin/people/agents/agentProfile", {
+      state: { agentId: row.id },
+    });
   };
 
   const handleDeleteAgent = async () => {

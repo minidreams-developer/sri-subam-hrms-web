@@ -34,15 +34,21 @@ const formatDate = (value) => {
   return Number.isNaN(date.getTime()) ? NOT_AVAILABLE : date.toLocaleDateString("en-GB");
 };
 
-export const PersonalDetails = ({ employee, onEmployeeUpdated }) => {
+export const PersonalDetails = ({ employee, onEmployeeUpdated, entity = "employee" }) => {
+  const isAgent = entity === "agent";
+  const entityLabel = isAgent ? "Agent" : "Employee";
   const documentFormRef = useRef(null);
   const pictureInputRef = useRef(null);
+  const changeDocumentInputRef = useRef(null);
   const [employeeStatus, setEmployeeStatus] = useState(getEmployeeStatus(employee));
   const [statusSaving, setStatusSaving] = useState(false);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [documentUploadOpen, setDocumentUploadOpen] = useState(false);
+  const [documentPreview, setDocumentPreview] = useState(null);
+  const [documentToChange, setDocumentToChange] = useState(null);
+  const [documentSaving, setDocumentSaving] = useState(false);
   const [form, setForm] = useState({});
   const [uploadedDocuments, setUploadedDocuments] = useState([]);
   const primaryAddress = employee?.address?.[0] || employee?.addresses?.[0] || {};
@@ -112,7 +118,7 @@ export const PersonalDetails = ({ employee, onEmployeeUpdated }) => {
   };
   const save = async (event) => {
     event.preventDefault();
-    if (!employee?.id && !employee?._id) return toast.error("Employee ID is missing");
+    if (!employee?.id && !employee?._id) return toast.error(`${entityLabel} ID is missing`);
     setSaving(true);
     try {
       const payload = {
@@ -137,7 +143,7 @@ export const PersonalDetails = ({ employee, onEmployeeUpdated }) => {
       const updated = response?.data || response?.user || response;
       onEmployeeUpdated?.({ ...employee, ...form, ...payload, ...(updated || {}) });
       setEditing(false);
-      toast.success("Personal details updated successfully");
+      toast.success(`${entityLabel} details updated successfully`);
     } catch (error) {
       toast.error(error.response?.data?.message || "Failed to update personal details");
     } finally { setSaving(false); }
@@ -179,13 +185,13 @@ export const PersonalDetails = ({ employee, onEmployeeUpdated }) => {
     }
   };
   const info = [
-    ["Full Name", details.fullName], ["Employee ID", details.employeeId], ["Employee Type", details.employeeType],
+    ["Full Name", details.fullName], [`${entityLabel} ID`, details.employeeId], [isAgent ? "Employment Type" : "Employee Type", details.employeeType],
     ["Gender", details.gender], ["DOB", details.dob], ["Age", details.age],
     ["Contact", details.contact], ["Email", details.email], ["Marital Status", details.maritalStatus],
     ["Mother Tongue", details.motherTongue], ["Identification Mark", details.identificationMark],
   ];
   const upload = async () => {
-    if (!employee?.id && !employee?._id) return toast.error("Employee ID is missing");
+    if (!employee?.id && !employee?._id) return toast.error(`${entityLabel} ID is missing`);
     const documentsData = documentFormRef.current?.formData || {};
     const selectedDocuments = [
       ...(documentsData.governmentDocuments || []).map((document) => ({ ...document, documentType: "government" })),
@@ -219,6 +225,80 @@ export const PersonalDetails = ({ employee, onEmployeeUpdated }) => {
       setUploading(false);
     }
   };
+  const previewDocument = (document, name) => {
+    const rawUrl = typeof document === "string"
+      ? document
+      : document.fileUrl || document.fileURL || document.documentUrl || document.url || document.path;
+    if (!rawUrl) return toast.error("Preview is not available for this document");
+    const url = /^(https?:|data:|blob:)/i.test(rawUrl)
+      ? rawUrl
+      : `${import.meta.env.VITE_API_BASE_URL || ""}/${String(rawUrl).replace(/^\/+/, "")}`;
+    const extension = String(name || rawUrl).split("?")[0].split(".").pop()?.toLowerCase();
+    setDocumentPreview({
+      name,
+      url,
+      isImage: ["jpg", "jpeg", "png", "gif", "bmp", "webp", "svg"].includes(extension),
+    });
+  };
+  const documentKey = (document, index) => document?.id || document?._id || `${document?.fileName || document?.name || document?.documentName || document}-${index}`;
+  const removeDocument = async (document, index) => {
+    if (!window.confirm("Remove this document?")) return;
+    const id = employee?.id || employee?._id;
+    if (!id) return toast.error(`${entityLabel} ID is missing`);
+    const remaining = documents.filter((_, documentIndex) => documentIndex !== index);
+    setDocumentSaving(true);
+    try {
+      const field = employee?.userDocuments ? "userDocuments" : "documents";
+      const response = await patch(employeeUrl(), { [field]: remaining });
+      const updated = response?.data?.user || response?.data || response?.user || response;
+      setUploadedDocuments([]);
+      onEmployeeUpdated?.({ ...employee, [field]: remaining, ...(updated || {}) });
+      if (documentPreview && documentPreview.name === (document?.fileName || document?.name || document?.documentName)) setDocumentPreview(null);
+      toast.success("Document removed successfully");
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to remove document");
+    } finally { setDocumentSaving(false); }
+  };
+  const chooseReplacement = (document, index) => {
+    setDocumentToChange({ document, index });
+    changeDocumentInputRef.current?.click();
+  };
+  const changeDocument = async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file || !documentToChange) return;
+    if (file.size > 10 * 1024 * 1024) return toast.error("Document must be smaller than 10 MB");
+    setDocumentSaving(true);
+    try {
+      const oldDocument = documentToChange.document;
+      const documentType = oldDocument?.documentType || oldDocument?.type || "personal";
+      const fieldName = documentType === "government" ? "governmentDocuments" : "personalDocuments";
+      const formData = new FormData();
+      formData.append(fieldName, file, file.name);
+      formData.append("documents", JSON.stringify([{
+        documentName: oldDocument?.documentName || oldDocument?.name || file.name,
+        documentType,
+        fieldName,
+        fileName: file.name,
+        mimeType: file.type,
+        keepOriginal: false,
+        replaceDocumentId: oldDocument?.id || oldDocument?._id,
+      }]));
+      const response = await patchFormData(employeeUrl(), formData);
+      const updated = response?.data?.user || response?.data || response?.user || response;
+      const replacement = { ...oldDocument, fileName: file.name, name: file.name, fileUrl: URL.createObjectURL(file) };
+      const field = employee?.userDocuments ? "userDocuments" : "documents";
+      const nextDocuments = documents.map((item, index) => index === documentToChange.index ? replacement : item);
+      setUploadedDocuments([]);
+      onEmployeeUpdated?.({ ...employee, [field]: nextDocuments, ...(updated || {}) });
+      toast.success("Document changed successfully");
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to change document");
+    } finally {
+      setDocumentSaving(false);
+      setDocumentToChange(null);
+    }
+  };
 
   return (
     <Wrapper>
@@ -238,12 +318,14 @@ export const PersonalDetails = ({ employee, onEmployeeUpdated }) => {
       {emergencyContacts.slice(1).map((contact, index) => <Section key={contact.id || contact._id || index} title="" items={[["Emergency Contact Name", display(contact.contactName || contact.name)], ["Relationship", display(contact.relationship || contact.relattionship)], ["Mobile Number", display(contact.phone || contact.mobileNumber)]]} />)}
 
       <DocumentsHeader><SectionTitle>Documents</SectionTitle><UploadButton type="button" disabled={uploading} onClick={() => setDocumentUploadOpen(true)}><img src={UploadIcon} alt="" />{uploading ? "Uploading..." : "Upload"}</UploadButton></DocumentsHeader>
-      <DocumentsPanel>{documents.length ? documents.map((document, index) => { const name = typeof document === "string" ? document : document.fileName || document.name || document.documentName || NOT_AVAILABLE; return <Document key={document.id || document._id || `${name}-${index}`}><DocLabel>{display(document.documentType || document.type || "Document")}</DocLabel><FileBox><span><img src={DocumentIcon} alt="" />{name}</span><img src={EyeIcon} alt="View" /></FileBox></Document>; }) : <Document><DocLabel>Documents</DocLabel><FileBox><span>{NOT_AVAILABLE}</span></FileBox></Document>}</DocumentsPanel>
+      <DocumentsPanel>{documents.length ? documents.map((document, index) => { const name = typeof document === "string" ? document.split("/").pop() : document.fileName || document.name || document.documentName || NOT_AVAILABLE; return <Document key={documentKey(document, index)}><DocLabel>{display(document.documentType || document.type || "Document")}</DocLabel><FileBox><FileIdentity><img src={DocumentIcon} alt="" />{name}</FileIdentity><DocumentActions><ViewButton type="button" onClick={() => previewDocument(document, name)} aria-label={`View ${name}`}><img src={EyeIcon} alt="" /></ViewButton><ChangeButton type="button" disabled={documentSaving} onClick={() => chooseReplacement(document, index)}>Change</ChangeButton><RemoveDocumentButton type="button" disabled={documentSaving} onClick={() => removeDocument(document, index)}>Remove</RemoveDocumentButton></DocumentActions></FileBox></Document>; }) : <Document><DocLabel>Documents</DocLabel><FileBox><span>{NOT_AVAILABLE}</span></FileBox></Document>}</DocumentsPanel>
+      <input ref={changeDocumentInputRef} type="file" hidden onChange={changeDocument} />
+      {documentPreview && <ModalBackdrop onMouseDown={(event) => event.target === event.currentTarget && setDocumentPreview(null)}><PreviewModal role="dialog" aria-modal="true" aria-labelledby="document-preview-title"><PreviewHeader><ModalTitle id="document-preview-title">{documentPreview.name}</ModalTitle><CloseButton type="button" onClick={() => setDocumentPreview(null)} aria-label="Close preview">×</CloseButton></PreviewHeader><PreviewBody>{documentPreview.isImage ? <PreviewImage src={documentPreview.url} alt={documentPreview.name} /> : <PreviewFrame src={documentPreview.url} title={documentPreview.name} />}</PreviewBody><PreviewActions><OpenLink href={documentPreview.url} target="_blank" rel="noreferrer">Open in new tab</OpenLink></PreviewActions></PreviewModal></ModalBackdrop>}
       {documentUploadOpen && <ModalBackdrop onMouseDown={(event) => event.target === event.currentTarget && !uploading && setDocumentUploadOpen(false)}><UploadModal role="dialog" aria-modal="true" aria-labelledby="upload-documents-title"><ModalTitle id="upload-documents-title">Upload Documents</ModalTitle><UploadFormBody><DocumentUploadForm ref={documentFormRef} /></UploadFormBody><UploadModalActions><CancelButton type="button" disabled={uploading} onClick={() => setDocumentUploadOpen(false)}>Cancel</CancelButton><SaveButton type="button" disabled={uploading} onClick={upload}>{uploading ? "Uploading..." : "Upload Documents"}</SaveButton></UploadModalActions></UploadModal></ModalBackdrop>}
       {editing && <ModalBackdrop onMouseDown={(e) => e.target === e.currentTarget && setEditing(false)}><Modal role="dialog" aria-modal="true" aria-labelledby="edit-personal-title"><ModalTitle id="edit-personal-title">Edit Personal Details</ModalTitle><EditForm onSubmit={save}>
         <Field><label>Full Name</label><input name="name" value={form.name || ""} onChange={change} required /></Field>
-        <Field><label>Employee ID</label><input name="employeeId" value={form.employeeId || ""} onChange={change} /></Field>
-        <Field><label>Employee Type</label><select name="employeeType" value={form.employeeType || ""} onChange={change}><option value="">Select</option><option value="full_time">Full Time</option><option value="part_time">Part Time</option><option value="contract">Contract</option></select></Field>
+        <Field><label>{entityLabel} ID</label><input name="employeeId" value={form.employeeId || ""} onChange={change} /></Field>
+        <Field><label>{isAgent ? "Employment Type" : "Employee Type"}</label><select name="employeeType" value={form.employeeType || ""} onChange={change}><option value="">Select</option>{isAgent && <option value="agent">Agent</option>}<option value="full_time">Full Time</option><option value="part_time">Part Time</option><option value="contract">Contract</option></select></Field>
         <Field><label>Gender</label><select name="gender" value={(form.gender || "").toLowerCase()} onChange={change}><option value="">Select</option><option value="male">Male</option><option value="female">Female</option><option value="other">Other</option></select></Field>
         <Field><label>Date of Birth</label><input type="date" name="dateOfBirth" value={form.dateOfBirth || ""} onChange={change} /></Field>
         <Field><label>Contact</label><input name="phone" value={form.phone || ""} onChange={change} /></Field>
@@ -296,9 +378,22 @@ const UploadButton = styled.button`width:140px;height:36px;border:0;border-radiu
 const DocumentsPanel = styled.div`display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px 56px;padding:12px 14px;border:1px solid #e0e3e6;border-radius:10px;background:#edf6f966;@media(max-width:900px){grid-template-columns:repeat(2,minmax(0,1fr));}`;
 const Document = styled.div`display:flex;flex-direction:column;gap:8px;`;
 const DocLabel = styled.span`font:500 12px/1.6 "Inter-Medium",sans-serif;`;
-const FileBox = styled.div`height:34px;border:1px solid #e0e3e6;border-radius:5px;background:#edf6f966;padding:0 10px;display:flex;align-items:center;justify-content:space-between;font:600 11px "Inter-SemiBold",sans-serif;span{display:flex;align-items:center;gap:9px;}img{width:16px;height:16px;}`;
+const FileBox = styled.div`min-height:42px;border:1px solid #e0e3e6;border-radius:5px;background:#edf6f966;padding:5px 8px;display:flex;align-items:center;justify-content:space-between;gap:8px;font:600 11px "Inter-SemiBold",sans-serif;img{width:16px;height:16px;}`;
+const FileIdentity = styled.span`display:flex;align-items:center;gap:7px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;`;
+const DocumentActions = styled.span`display:flex;align-items:center;gap:4px;flex:0 0 auto;`;
+const ViewButton = styled.button`width:30px;height:30px;border:0;background:transparent;border-radius:5px;display:grid;place-items:center;cursor:pointer;&:hover{background:#dceff2;}&:focus-visible{outline:2px solid #087d88;outline-offset:1px;}img{width:16px;height:16px;}`;
+const ChangeButton = styled.button`height:28px;padding:0 7px;border:1px solid #087d88;border-radius:5px;background:#fff;color:#087d88;font:600 10px "Inter-SemiBold",sans-serif;cursor:pointer;&:disabled{opacity:.55;}`;
+const RemoveDocumentButton = styled(ChangeButton)`border-color:#c94b4b;color:#c94b4b;`;
 const ModalBackdrop = styled.div`position:fixed;inset:0;z-index:1000;background:#0c242780;display:grid;place-items:center;padding:24px;`;
 const Modal = styled.div`width:min(760px,100%);max-height:90vh;overflow:auto;background:#fff;border-radius:12px;padding:24px;box-shadow:0 20px 60px #0003;`;
+const PreviewModal = styled(Modal)`width:min(960px,100%);height:min(86vh,760px);display:flex;flex-direction:column;overflow:hidden;`;
+const PreviewHeader = styled.div`display:flex;align-items:flex-start;justify-content:space-between;gap:16px;h2{margin-bottom:16px;overflow-wrap:anywhere;}`;
+const CloseButton = styled.button`flex:0 0 auto;width:34px;height:34px;border:0;border-radius:50%;background:#edf6f9;color:#0c2427;font-size:24px;line-height:1;cursor:pointer;`;
+const PreviewBody = styled.div`flex:1;min-height:0;border:1px solid #e0e3e6;border-radius:8px;overflow:auto;background:#f5f7f8;display:grid;place-items:center;`;
+const PreviewImage = styled.img`display:block;max-width:100%;max-height:100%;object-fit:contain;`;
+const PreviewFrame = styled.iframe`width:100%;height:100%;min-height:480px;border:0;background:#fff;`;
+const PreviewActions = styled.div`display:flex;justify-content:flex-end;padding-top:14px;`;
+const OpenLink = styled.a`height:38px;padding:0 18px;border-radius:7px;background:#087d88;color:#fff;text-decoration:none;display:inline-flex;align-items:center;font:600 12px "Inter-SemiBold",sans-serif;`;
 const UploadModal = styled(Modal)`width:min(900px,100%);`;
 const UploadFormBody = styled.div`max-height:65vh;overflow:auto;padding:4px 2px 12px;&>div{width:100%;}`;
 const UploadModalActions = styled.div`display:flex;justify-content:flex-end;gap:12px;margin-top:20px;padding-top:16px;border-top:1px solid #e0e3e6;`;

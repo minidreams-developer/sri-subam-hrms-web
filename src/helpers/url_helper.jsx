@@ -110,6 +110,9 @@ export const UPDATE_ATTENDANCE = "/v1/attendance/:attendanceId";
 export const DELETE_ATTENDANCE = "/v1/attendance/:attendanceId";
 export const GET_ATTENDANCE_STATS = "/v1/attendance/stats";
 
+// Roster Schedule API
+export const ROSTERS = "/v1/rosters";
+
 // Overtime API
 export const OVERTIME_RECORDS = "/v1/overtime";
 export const CREATE_OVERTIME = "/v1/overtime";

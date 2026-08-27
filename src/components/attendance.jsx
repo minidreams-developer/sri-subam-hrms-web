@@ -86,7 +86,7 @@ const Attendance = () => {
           : "N/A";
 
         return {
-          id: empId,
+          id: record._id || record.id,
           employeeId: empId,
           name: employeeName,
           designation: designation,
@@ -96,6 +96,7 @@ const Attendance = () => {
           workingHrs: workingHours,
           status: record.attendanceStatus === "onTime" ? "On Time" : record.attendanceStatus === "earlyOut" ? "Early Out" : "Arrived Late",
           remarks: record.remarks || "N/A",
+          raw: record,
         };
       });
 
@@ -352,6 +353,7 @@ const Attendance = () => {
             rowsPerPage={rowsPerPage}
             totalResults={filteredData.length}
             emptyStateText="No attendance records found"
+            onRowClick={(row) => navigate("/admin/peopleHub/employees/attendance/edit", { state: { attendance: row.raw, attendanceId: row.id, returnTo: "/admin/time-hub/attendance" } })}
           />
         ) : (
           <LoadingMessage>No attendance records found</LoadingMessage>

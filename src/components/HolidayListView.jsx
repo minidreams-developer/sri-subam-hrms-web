@@ -3,8 +3,9 @@ import styled from "styled-components";
 import theme from "../theme/theme";
 import { IoChevronDown, IoChevronUp } from "react-icons/io5";
 import DotMenuIcon from "../assets/images/DayOff/dot-menu.svg";
+import { FiEdit2, FiTrash2 } from "react-icons/fi";
 
-const HolidayListView = ({ holidays = [], currentYear }) => {
+const HolidayListView = ({ holidays = [], currentYear, onEdit, onDelete }) => {
   const [expandedMonths, setExpandedMonths] = useState([]);
   const [groupedHolidays, setGroupedHolidays] = useState({});
 
@@ -105,9 +106,7 @@ const HolidayListView = ({ holidays = [], currentYear }) => {
                       <HolidayDate>{formatDate(holiday.date)}</HolidayDate>
                       <HolidayName>{holiday.holidayTitle}</HolidayName>
                       <HolidayDescription>{holiday.description}</HolidayDescription>
-                      <MenuIcon>
-                        <img src={DotMenuIcon} alt="menu" />
-                      </MenuIcon>
+                      <MenuIcon><button type="button" onClick={() => onEdit?.(holidays.find((item) => (item.id || item._id) === holiday.id))} aria-label="Edit holiday"><FiEdit2 /></button><button type="button" onClick={() => onDelete?.(holidays.find((item) => (item.id || item._id) === holiday.id))} aria-label="Delete holiday"><FiTrash2 /></button></MenuIcon>
                     </HolidayItem>
                   ))}
                 </HolidayList>
@@ -242,6 +241,7 @@ const MenuIcon = styled.div`
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  gap: 4px;
   opacity: 0.7;
   transition: opacity 0.2s;
 
@@ -249,8 +249,5 @@ const MenuIcon = styled.div`
     opacity: 1;
   }
 
-  img {
-    width: 20px;
-    height: 20px;
-  }
+  button{width:30px;height:30px;border:0;border-radius:5px;background:transparent;color:${theme.colors.primary};display:grid;place-items:center;cursor:pointer;&:last-child{color:#c94b4b;}&:hover{background:#edf6f9;}}
 `;

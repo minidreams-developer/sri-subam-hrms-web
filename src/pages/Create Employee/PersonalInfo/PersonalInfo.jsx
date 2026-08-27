@@ -12,36 +12,43 @@ import { stateDistrictMap, stateOptions } from "../../../utils/statesAndDistrict
 import { toast } from "react-toastify";
 
 const PersonalInfo = forwardRef((_, ref) => {
-  const [formData, setFormData] = useState({
-    employeeType: null,
+  const [formData, setFormData] = useState(() => ({
+    employeeType: { value: "full_time", label: "Full Time" },
     employeeId: "",
-    employeeName: "",
-    gender: null,
-    dob: null,
-    age: "",
-    contact: "",
-    email: "",
-    password: "",
-    maritalStatus: null,
-    motherTongue: null,
-    identificationMark: "",
-    religion: null,
-    spokenLanguages: [],
+    employeeName: "Test Employee",
+    gender: { value: "male", label: "Male" },
+    dob: new Date(1997, 4, 15),
+    age: "29",
+    contact: "9876543210",
+    email: `test.employee.${Date.now()}@example.com`,
+    password: "Test@12345",
+    maritalStatus: { value: "single", label: "Single" },
+    motherTongue: { value: "tamil", label: "Tamil" },
+    identificationMark: "Small mole on right hand",
+    religion: { value: "hindu", label: "Hindu" },
+    spokenLanguages: [
+      { value: "tamil", label: "Tamil" },
+      { value: "english", label: "English" },
+    ],
     aadhaarImage: null,
     profilePic: "",
-    aadharNo: "",
-    panNo: "",
-    address: "",
-    addressLine2: "",
-    city: "",
-    district: null,
-    state: null,
-    pinCode: "",
+    aadharNo: "234567890123",
+    panNo: "ABCDE1234F",
+    address: "12 Test Street",
+    addressLine2: "Near Central Park",
+    city: "Chennai",
+    district: { value: "chennai", label: "Chennai" },
+    state: { value: "tamil_nadu", label: "Tamil Nadu" },
+    pinCode: "600001",
     branch: null,
-  });
+  }));
 
   const [emergencyContacts, setEmergencyContacts] = useState([
-    { emergencyContact: "", emergencyContactName: "", relationship: null },
+    {
+      emergencyContact: "9876501234",
+      emergencyContactName: "Test Contact",
+      relationship: { value: "father", label: "Father" },
+    },
   ]);
 
   const [employeeIdLoading, setEmployeeIdLoading] = useState(false);
@@ -74,6 +81,9 @@ const PersonalInfo = forwardRef((_, ref) => {
         label: branch.name || branch.branchName || "",
       }));
       setBranches(formattedBranches);
+      if (formattedBranches.length) {
+        setFormData((prev) => ({ ...prev, branch: prev.branch || formattedBranches[0] }));
+      }
     } catch (error) {
       console.error("Error fetching branches:", error);
       toast.error("Failed to fetch branches");

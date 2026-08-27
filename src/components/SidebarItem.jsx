@@ -101,18 +101,25 @@ const SidebarItems = [
       {
         name: "Attendance",
         path: "/admin/time-hub/attendance",
+        activePaths: ["/admin/time-hub/attendance/add", "/admin/peopleHub/employees/attendance/edit"],
       },
       {
         name: "Timesheet",
         path: "/admin/time-hub/timesheet",
       },
       {
+        name: "Roster Schedule",
+        path: "/admin/time-hub/roster-schedule",
+      },
+      {
         name: "Leave Attendance",
         path: "/admin/time-hub/leaveAttendance",
+        activePaths: ["/admin/time-hub/leaveAttendance/add-LeaveOrPermissions", "/admin/time-hub/leaveAttendance/edit-Leave"],
       },
       {
         name: "Shift Management",
         path: "/admin/time-hub/shiftManagement",
+        activePaths: ["/admin/time-hub/shiftManagement/addNewShift"],
       },
       {
         name: "Overtime Management",
@@ -125,6 +132,7 @@ const SidebarItems = [
       {
         name: "Day Off & Holidays",
         path: "/admin/time-hub/dayOffHolidays",
+        activePaths: ["/admin/time-hub/dayOffHolidays/createNewHoliday"],
       },
     ],
   },

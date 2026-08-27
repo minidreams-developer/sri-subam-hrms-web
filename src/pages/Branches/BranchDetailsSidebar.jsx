@@ -108,7 +108,7 @@ const BranchDetailsSidebar = ({ open, onClose, data, onEdit }) => {
         </ScrollContent>
 
         <Footer>
-          <EditButton type="button" onClick={onEdit}>
+          <EditButton type="button" onClick={(event) => { event.stopPropagation(); onEdit?.(data); }}>
             <img src={EditIcon} alt="edit" width="16" height="16" />
             Edit details
           </EditButton>

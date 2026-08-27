@@ -1,5 +1,5 @@
 import React from "react";
-import { useOutletContext } from "react-router-dom";
+import { useLocation, useOutletContext } from "react-router-dom";
 import styled from "styled-components";
 import theme from "../../theme/theme";
 import Button from "../../components/Button";
@@ -12,7 +12,8 @@ import Permissions from "./Permissions/Permissions";
 
 const LeaveAttendance = () => {
   const { setHeaderTitle } = useOutletContext() || {};
-  const [activeTab, setActiveTab] = React.useState("Staffs Leaves");
+  const location = useLocation();
+  const [activeTab, setActiveTab] = React.useState(location.state?.activeTab || "Staffs Leaves");
 
   const stats = [
     { title: "Leaves Today", value: "286", percent: "20.5 %", type: "up" },

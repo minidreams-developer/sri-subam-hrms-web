@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import TableToolbar from "../../../components/TableToolbar";
 import ReusableTable from "../../../components/ReusableTable";
-import { get } from "../../../helpers/api_helper";
+import { get, patch } from "../../../helpers/api_helper";
 import { OVERTIME_RECORDS } from "../../../helpers/url_helper";
 import { toast } from "react-toastify";
 
@@ -116,15 +116,21 @@ const Pending = ({ onStatusChange, onApproveAll, refreshKey = 0 }) => {
     filterData(overtimeData, value);
   };
 
-  const handleStatusChange = (row, status) => {
+  const handleStatusChange = async (row, status) => {
+    if (!String(row.id).startsWith("preview-")) {
+      try { await patch(`${OVERTIME_RECORDS}/${row.id}`, { status: status.toLowerCase() }); }
+      catch (error) { toast.error(error.response?.data?.message || `Failed to ${status.toLowerCase()} overtime`); return; }
+    }
     const remaining = overtimeData.filter((item) => item.id !== row.id);
     setOvertimeData(remaining);
     filterData(remaining, search);
     onStatusChange?.(row, status);
   };
 
-  const handleApproveAll = () => {
+  const handleApproveAll = async () => {
     if (!filteredData.length) return;
+    try { await Promise.all(filteredData.filter((item) => !String(item.id).startsWith("preview-")).map((item) => patch(`${OVERTIME_RECORDS}/${item.id}`, { status: "approved" }))); }
+    catch (error) { toast.error(error.response?.data?.message || "Failed to approve overtime requests"); return; }
     const approvedIds = new Set(filteredData.map((item) => item.id));
     const remaining = overtimeData.filter((item) => !approvedIds.has(item.id));
     setOvertimeData(remaining);

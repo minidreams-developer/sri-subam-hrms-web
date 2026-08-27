@@ -1,14 +1,38 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import styled from "styled-components";
 import theme from "../../theme/theme";
 import TabSwitcher from "../../components/TabSwitcher";
-import { PersonalDetails } from "./Personal Details/PersonalDetails";
+import { PersonalDetails } from "../EmployeeProfile/Personal Details/PersonalDetails";
 import EmploymentList from "./EmploymentList/EmploymentList";
 import PayrollComponent from "../../components/payroll";
 import Assets from "../../components/assets";
+import { get } from "../../helpers/api_helper";
+import { toast } from "react-toastify";
 
 const AgentProfile = () => {
   const [active, setActive] = useState("Personal Details");
+  const [agent, setAgent] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const location = useLocation();
+  const agentId = location.state?.agentId;
+
+  useEffect(() => {
+    if (!agentId) return;
+    const fetchAgent = async () => {
+      setLoading(true);
+      try {
+        const response = await get(`/v1/users/${agentId}`);
+        const result = response?.data?.user || response?.data || response?.user || response?.result || response;
+        setAgent(result && !Array.isArray(result) ? result : null);
+      } catch (error) {
+        toast.error(error.response?.data?.message || "Failed to fetch agent profile");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchAgent();
+  }, [agentId]);
 
   return (
     <Container>
@@ -23,7 +47,7 @@ const AgentProfile = () => {
         onChange={setActive}
       />
 
-      {active === "Personal Details" && <PersonalDetails />}
+      {loading ? <Section>Loading agent data...</Section> : active === "Personal Details" && <PersonalDetails employee={agent} onEmployeeUpdated={setAgent} entity="agent" />}
       {active === "Employment List" && <EmploymentList />}
       {active === "Payroll" && <PayrollComponent />}
       {active === "Report" && <Section>Report content</Section>}

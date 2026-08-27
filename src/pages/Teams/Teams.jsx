@@ -1,282 +1,81 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import { FaUsers } from "react-icons/fa";
-import { FiMoreHorizontal } from "react-icons/fi";
-import AddTeamMemberModal from "../../components/AddTeamMemberModal";
-import Button from "../../components/Button";
+import { FiPlus } from "react-icons/fi";
+import { toast } from "react-toastify";
+import AddTeamModal from "../../components/AddTeamModal";
 import ReusableTable from "../../components/ReusableTable";
 import SearchInputComponent from "../../components/SearchInputComponent";
+import { del, get, post } from "../../helpers/api_helper";
+import { CREATE_TEAM, TEAMS } from "../../helpers/url_helper";
 import theme from "../../theme/theme";
 
-const TEAM = {
-  teamId: "#TM879",
-  name: "Jumakazoom",
-  department: "Design Development",
-  teamLead: "Manoj Kumar (Agent)",
-  totalMembers: 36,
+const listFrom = (response) => response?.results || response?.data?.results || response?.data || response || [];
+const textOf = (value, keys = ["name"]) => {
+  if (!value) return "N/A";
+  if (typeof value === "string") return value;
+  for (const key of keys) if (value[key]) return value[key];
+  return "N/A";
 };
-
-const MEMBERS = [
-  ["#EMP8740", "Manoj Kumar", "UI/UX Designer", "Design", "Shift 1", "12-12-2025", "Active"],
-  ["#EMP8740", "Adison Stanton", "Procurement", "PP", "Shift 3", "12-12-2025", "In-Active"],
-  ["#EMP8740", "Cheyenne Workman", "Developer", "DT", "Shift 4", "12-12-2025", "Relieved"],
-  ["#EMP8740", "Jocelyn Bergson", "Sales Manager", "DT", "Rotational", "12-12-2025", "Active"],
-  ["#EMP8740", "Nolan Dokidis", "UI/UX Designer", "Dev", "Shift 1", "12-12-2025", "In-Active"],
-  ["#EMP8740", "Marilyn Press", "Front end Developer", "MT", "Shift 2", "12-12-2025", "In-Active"],
-  ["#EMP8740", "Cheyenne Workman", "UI/UX Designer", "Design", "Shift 3", "12-12-2025", "Active"],
-].map(([employeeId, name, designation, dept, shift, joinedDate, status]) => ({
-  employeeId,
-  name,
-  designation,
-  dept,
-  shift,
-  joinedDate,
-  status,
-  actions: "",
-}));
 
 const Teams = () => {
-  const [searchValue, setSearchValue] = useState("");
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const navigate = useNavigate();
+  const [teams, setTeams] = useState([]);
+  const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
 
+  const loadTeams = async () => {
+    setLoading(true);
+    try {
+      const response = await get(`${TEAMS}?page=1&limit=100`);
+      const list = listFrom(response);
+      setTeams(Array.isArray(list) ? list : []);
+    } catch (error) { toast.error(error.response?.data?.message || "Failed to load teams"); }
+    finally { setLoading(false); }
+  };
+
+  useEffect(() => { loadTeams(); }, []);
+
+  const rows = useMemo(() => teams.map((team) => ({
+    id: team.id || team._id, raw: team,
+    teamId: team.teamCode || team.teamId || "N/A",
+    name: team.teamName || team.name || "N/A",
+    department: textOf(team.department, ["departmentName", "name"]),
+    teamLead: textOf(team.teamLead || team.lead, ["name", "fullName", "email"]),
+    totalMembers: team.totalMembers ?? team.memberCount ?? team.members?.length ?? 0,
+    actions: "",
+  })).filter((team) => !search.trim() || Object.values(team).some((value) => typeof value !== "object" && String(value).toLowerCase().includes(search.toLowerCase()))), [teams, search]);
+
+  const createTeam = async (form) => {
+    setSaving(true);
+    try {
+      await post(CREATE_TEAM, { teamCode: form.teamId, teamId: form.teamId, teamName: form.name.trim(), name: form.name.trim(), department: form.department.value, teamLead: form.teamLead.value });
+      toast.success("Team created successfully"); setModalOpen(false); await loadTeams();
+    } catch (error) { toast.error(error.response?.data?.message || "Failed to create team"); }
+    finally { setSaving(false); }
+  };
+  const openTeam = (row) => navigate("/admin/peopleHub/teams/teamDetails", { state: { teamId: row.id, team: row.raw } });
+  const removeTeam = async (row) => {
+    if (!window.confirm(`Delete ${row.name}?`)) return;
+    try { await del(`${TEAMS}/${row.id}`); toast.success("Team deleted successfully"); await loadTeams(); }
+    catch (error) { toast.error(error.response?.data?.message || "Failed to delete team"); }
+  };
   const columns = [
-    { key: "employeeId", header: "Employee ID" },
-    {
-      key: "name",
-      header: (
-        <SortableHeader>
-          Name
-          <SortMarks aria-hidden="true"><span>▲</span><span>▼</span></SortMarks>
-        </SortableHeader>
-      ),
-    },
-    { key: "designation", header: "Designation" },
-    { key: "dept", header: "Dept." },
-    { key: "shift", header: "Shift" },
-    { key: "joinedDate", header: "Joined Date" },
-    { key: "status", header: "Status" },
-    {
-      key: "actions",
-      header: "Action",
-      align: "right",
-      useDefaultActionMenu: true,
-    },
+    { key: "teamId", header: "Team ID" }, { key: "name", header: "Name" }, { key: "department", header: "Department" },
+    { key: "teamLead", header: "Team Lead" }, { key: "totalMembers", header: "Total Members" }, { key: "actions", header: "Action", align: "right" },
   ];
 
-  const filteredMembers = useMemo(() => {
-    const query = searchValue.trim().toLowerCase();
-    if (!query) return MEMBERS;
-    return MEMBERS.filter((member) =>
-      Object.values(member).some((value) => String(value).toLowerCase().includes(query)),
-    );
-  }, [searchValue]);
-
-  return (
-    <PageCard>
-      <TopRow>
-        <TitleGroup>
-          <TeamIcon><FaUsers /></TeamIcon>
-          <Title>Team Name</Title>
-        </TitleGroup>
-
-        <Actions>
-          <SearchInputComponent
-            placeholder="Search Employee"
-            value={searchValue}
-            onSearchChange={setSearchValue}
-            width="356px"
-            height="40px"
-          />
-          <Button
-            text="Add New"
-            icon={<Plus aria-hidden="true">＋</Plus>}
-            onClick={() => setIsModalOpen(true)}
-            bg={theme.colors.primary}
-            color={theme.colors.white}
-            width="154px"
-            radius="10px"
-            fontSize="0.875rem"
-            fontWeight="600"
-          />
-          <MenuButton type="button" aria-label="Team actions"><FiMoreHorizontal /></MenuButton>
-        </Actions>
-      </TopRow>
-
-      <TeamSummary>
-        <SummaryColumn>
-          <SummaryLine><Label>Team ID</Label><Colon>:</Colon><Value>{TEAM.teamId}</Value></SummaryLine>
-          <SummaryLine><Label>Name</Label><Colon>:</Colon><Value>{TEAM.name}</Value></SummaryLine>
-          <SummaryLine><Label>Department</Label><Colon>:</Colon><Value>{TEAM.department}</Value></SummaryLine>
-        </SummaryColumn>
-        <SummaryColumn>
-          <SummaryLine><Label>Team Lead</Label><Colon>:</Colon><Value>{TEAM.teamLead}</Value></SummaryLine>
-          <SummaryLine><Label>Total Members</Label><Colon>:</Colon><Value>{TEAM.totalMembers}</Value></SummaryLine>
-        </SummaryColumn>
-      </TeamSummary>
-
-      <TableArea>
-        <ReusableTable
-          columns={columns}
-          data={filteredMembers}
-          rowsPerPage={7}
-          totalResults={filteredMembers.length}
-        />
-      </TableArea>
-
-      <AddTeamMemberModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSave={() => setIsModalOpen(false)}
-      />
-    </PageCard>
-  );
+  return <Card><Toolbar><Heading><Icon><FaUsers /></Icon><h1>All Teams</h1></Heading><Controls><SearchInputComponent placeholder="Search Teams" value={search} onSearchChange={setSearch} width="356px" height="40px" /><AddButton type="button" onClick={() => setModalOpen(true)}><FiPlus />Add Team</AddButton></Controls></Toolbar><TableWrap><ReusableTable columns={columns} data={rows} rowsPerPage={10} totalResults={rows.length} isLoading={loading} onRowClick={openTeam} onView={openTeam} onDelete={removeTeam} showEditAction={false} /></TableWrap><AddTeamModal isOpen={modalOpen} onClose={() => !saving && setModalOpen(false)} onSave={createTeam} isLoading={saving} /></Card>;
 };
 
-const PageCard = styled.section`
-  width: 100%;
-  min-height: calc(100vh - 130px);
-  box-sizing: border-box;
-  padding: 20px;
-  background: #fff;
-  border-radius: 10px;
-`;
-
-const TopRow = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 24px;
-
-  @media (max-width: 1000px) {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-`;
-
-const TitleGroup = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 16px;
-`;
-
-const TeamIcon = styled.div`
-  width: 40px;
-  height: 40px;
-  display: grid;
-  place-items: center;
-  color: ${theme.colors.primary};
-  background: ${theme.colors.secondaryPrimary};
-  border-radius: 6px;
-  svg { width: 20px; height: 20px; }
-`;
-
-const Title = styled.h1`
-  margin: 0;
-  color: ${theme.colors.textColor};
-  font: 600 18px/1.6 "Inter", sans-serif;
-`;
-
-const Actions = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  > div:first-child { flex: 0 1 356px; }
-
-  @media (max-width: 1000px) {
-    width: 100%;
-    flex-wrap: wrap;
-  }
-`;
-
-const Plus = styled.span`
-  font-size: 22px;
-  font-weight: 300;
-  line-height: 1;
-`;
-
-const MenuButton = styled.button`
-  width: 40px;
-  height: 40px;
-  display: grid;
-  place-items: center;
-  padding: 0;
-  color: ${theme.colors.textColor};
-  background: #fff;
-  border: 1px solid #e0e3e6;
-  border-radius: 10px;
-  cursor: pointer;
-  svg { width: 20px; height: 20px; }
-`;
-
-const TeamSummary = styled.div`
-  display: grid;
-  grid-template-columns: 286px minmax(300px, 1fr);
-  column-gap: 78px;
-  margin-top: 26px;
-  padding-bottom: 26px;
-  border-bottom: 1px solid #e0e3e6;
-
-  @media (max-width: 1000px) {
-    grid-template-columns: 1fr;
-    row-gap: 15px;
-  }
-`;
-
-const SummaryColumn = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-`;
-
-const SummaryLine = styled.div`
-  display: grid;
-  grid-template-columns: 86px 12px minmax(0, 1fr);
-  gap: 10px;
-  align-items: center;
-  min-height: 24px;
-  font: 500 14px/1.6 "Inter", sans-serif;
-`;
-
-const Label = styled.span`color: #6b6b6b;`;
-const Colon = styled.span`color: #6b6b6b;`;
-const Value = styled.span`color: ${theme.colors.textColor}; white-space: nowrap;`;
-
-const TableArea = styled.div`
-  table { table-layout: auto; }
-  th { height: 40px; padding: 10px; min-width: 80px; }
-  td { height: 48px; padding: 12px 10px; min-width: 80px; white-space: nowrap; }
-  th:first-child, td:first-child { width: 130px; }
-  th:nth-child(2), td:nth-child(2) { width: 170px; }
-  th:nth-child(3), td:nth-child(3) { width: 160px; }
-  th:last-child, td:last-child { width: 60px; }
-  thead p { color: #8a8a8a !important; font-size: 14px !important; }
-  tbody tr:hover { background: #fafafc; }
-`;
-
-const SortableHeader = styled.span`
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-`;
-
-const SortMarks = styled.span`
-  display: inline-flex;
-  flex-direction: column;
-  color: #80cbd3;
-  font-size: 6px;
-  line-height: 6px;
-`;
-
-const RowAction = styled.button`
-  display: grid;
-  place-items: center;
-  margin-left: auto;
-  padding: 0;
-  color: ${theme.colors.textColor};
-  background: transparent;
-  border: 0;
-  cursor: pointer;
-  svg { width: 20px; height: 20px; }
-`;
-
 export default Teams;
+const Card = styled.section`min-height:calc(100vh - 130px);padding:20px;background:#fff;border-radius:10px;box-sizing:border-box;`;
+const Toolbar = styled.div`display:flex;align-items:center;justify-content:space-between;gap:24px;padding-bottom:23px;border-bottom:1px solid #e0e3e6;@media(max-width:850px){align-items:flex-start;flex-direction:column;}`;
+const Heading = styled.div`display:flex;align-items:center;gap:18px;h1{margin:0;color:${theme.colors.textColor};font:600 18px "Inter-SemiBold",sans-serif;}`;
+const Icon = styled.span`width:40px;height:40px;border-radius:6px;background:${theme.colors.secondaryPrimary};color:${theme.colors.primary};display:grid;place-items:center;svg{width:19px;height:19px;}`;
+const Controls = styled.div`display:flex;align-items:center;gap:20px;@media(max-width:600px){width:100%;flex-wrap:wrap;}`;
+const AddButton = styled.button`height:40px;min-width:154px;padding:0 20px;border:0;border-radius:10px;background:${theme.colors.primary};color:#fff;display:flex;align-items:center;justify-content:center;gap:10px;font:600 14px "Inter-SemiBold",sans-serif;cursor:pointer;svg{font-size:20px;}`;
+const TableWrap = styled.div`th{padding-top:13px;padding-bottom:13px;}td{padding-top:14px;padding-bottom:14px;}`;

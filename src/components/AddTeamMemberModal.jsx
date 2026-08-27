@@ -1,48 +1,50 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import styled from "styled-components";
 import theme from "../theme/theme";
 import Button from "./Button";
-import InputComponent from "./InputComponent";
 import Select from "react-select";
 import { customSelectStyles } from "../theme/reactSelectStyles";
+import { get } from "../helpers/api_helper";
+import { DEPARTMENTS, GET_ALL_EMPLOYEES } from "../helpers/url_helper";
+import { toast } from "react-toastify";
 
-const AddTeamMemberModal = ({ isOpen, onClose, onSave }) => {
+const AddTeamMemberModal = ({ isOpen, onClose, onSave, isLoading = false }) => {
   const [formData, setFormData] = useState({
+    employment: null,
     employee: null,
     department: null,
-    name: "",
   });
 
-  const employeeOptions = [
-    { value: "emp001", label: "John Doe" },
-    { value: "emp002", label: "Jane Smith" },
-    { value: "emp003", label: "Mike Johnson" },
-    { value: "emp004", label: "Sarah Williams" },
-    { value: "emp005", label: "David Brown" },
-  ];
+  const [users, setUsers] = useState([]);
+  const [employeeOptions, setEmployeeOptions] = useState([]);
+  const [departmentOptions, setDepartmentOptions] = useState([]);
+  useEffect(() => { if (!isOpen) return; Promise.all([get(`${GET_ALL_EMPLOYEES}?page=1&limit=100`), get(`${DEPARTMENTS}?page=1&limit=100`)]).then(([users, departments]) => {
+    const userList = users?.results || users?.data?.results || users?.data || users || [];
+    const departmentList = departments?.results || departments?.data?.results || departments?.data || departments || [];
+    setUsers(Array.isArray(userList) ? userList : []);
+    setDepartmentOptions((Array.isArray(departmentList) ? departmentList : []).map((department) => ({ value:department.id||department._id,label:department.departmentName||department.name })));
+  }).catch(() => toast.error("Failed to load members")); }, [isOpen]);
 
-  const departmentOptions = [
-    { value: "IT", label: "IT" },
-    { value: "HR", label: "HR" },
-    { value: "Sales", label: "Sales" },
-    { value: "Marketing", label: "Marketing" },
-    { value: "Finance", label: "Finance" },
-    { value: "Design", label: "Design" },
-  ];
+  useEffect(() => {
+    const role = formData.employment?.value;
+    const departmentId = formData.department?.value;
+    const options = users.filter((user) => {
+      const userRole = String(user.role?.name || user.role || user.userType || user.employeeType || "").toLowerCase();
+      const userDepartment = user.workInformation?.department || user.department;
+      const userDepartmentId = userDepartment?.id || userDepartment?._id || userDepartment;
+      return (!role || userRole.includes(role)) && (!departmentId || String(userDepartmentId) === String(departmentId));
+    }).map((user) => ({ value:user.id||user._id,label:user.name||user.email,raw:user }));
+    setEmployeeOptions(options);
+    setFormData((current) => ({ ...current, employee: options.some((option) => option.value === current.employee?.value) ? current.employee : null }));
+  }, [users, formData.employment, formData.department]);
 
   const handleChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleSave = () => {
+    if (!formData.employee) return toast.error("Please select an employee");
     onSave && onSave(formData);
-    onClose();
-    // Reset form
-    setFormData({
-      employee: null,
-      department: null,
-      name: "",
-    });
   };
 
   if (!isOpen) return null;
@@ -57,12 +59,12 @@ const AddTeamMemberModal = ({ isOpen, onClose, onSave }) => {
 
         <ModalBody>
           <SelectWrapper>
-            <Label>Employee</Label>
+            <Label>Employment</Label>
             <Select
-              options={employeeOptions}
-              value={formData.employee}
-              onChange={(value) => handleChange("employee", value)}
-              placeholder="Select Employee"
+              options={[{value:"employee",label:"Employee"},{value:"staff",label:"Staff"},{value:"agent",label:"Agent"}]}
+              value={formData.employment}
+              onChange={(value) => handleChange("employment", value)}
+              placeholder="Select Employment"
               styles={customSelectStyles}
               isSearchable
             />
@@ -80,13 +82,7 @@ const AddTeamMemberModal = ({ isOpen, onClose, onSave }) => {
             />
           </SelectWrapper>
 
-          <InputComponent
-            label="Name"
-            placeholder="Enter Name"
-            value={formData.name}
-            onChange={(e) => handleChange("name", e.target.value)}
-            labelMargin="1rem 0 0.625rem 0"
-          />
+          <SelectWrapper><Label>Name</Label><Select options={employeeOptions} value={formData.employee} onChange={(value) => handleChange("employee", value)} placeholder="Select Name" styles={customSelectStyles} isSearchable /></SelectWrapper>
         </ModalBody>
 
         <ModalFooter>
@@ -103,7 +99,7 @@ const AddTeamMemberModal = ({ isOpen, onClose, onSave }) => {
             onClick={onClose}
           />
           <Button
-            text="Save"
+            text="Add"
             bg={theme.colors.primary}
             color={theme.colors.white}
             width="48%"
@@ -112,6 +108,8 @@ const AddTeamMemberModal = ({ isOpen, onClose, onSave }) => {
             fontWeight="600"
             fontFamily="Inter-SemiBold"
             onClick={handleSave}
+            loading={isLoading}
+            disabled={isLoading}
           />
         </ModalFooter>
       </ModalContainer>
@@ -133,8 +131,8 @@ const Overlay = styled.div`
 `;
 
 const ModalContainer = styled.div`
-  background: ${theme.colors.white};
-  border-radius: 1rem;
+  background: #f7f8fc;
+  border-radius: 10px;
   width: 440px;
   max-width: 90%;
   max-height: 90vh;
@@ -160,7 +158,7 @@ const ModalHeader = styled.div`
 `;
 
 const ModalTitle = styled.h2`
-  font-size: 1.25rem;
+  font-size: 1rem;
   font-weight: 600;
   font-family: "Inter-SemiBold", sans-serif;
   color: ${theme.colors.primary};

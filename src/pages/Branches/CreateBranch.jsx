@@ -8,7 +8,7 @@ import Button from "../../components/Button";
 import Select from "react-select";
 import { customSelectStyles } from "../../theme/reactSelectStyles";
 import { IoArrowBack } from "react-icons/io5";
-import { post, get, put } from "../../helpers/api_helper";
+import { post, get, patch } from "../../helpers/api_helper";
 import { CREATE_BRANCH, GENERATE_BRANCH_ID, DEPARTMENTS, GET_SHIFTS, GET_ALL_EMPLOYEES } from "../../helpers/url_helper";
 import { toast } from "react-toastify";
 import { stateDistrictMap, stateOptions } from "../../utils/statesAndDistricts";
@@ -17,8 +17,10 @@ const CreateBranch = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const editBranch = location.state?.mode === "edit" ? location.state.branch : null;
+  const editBranchId = location.state?.branchId || editBranch?.id || editBranch?._id;
   const isEditMode = Boolean(editBranch);
   const [isLoading, setIsLoading] = useState(false);
+  const [isReviewing, setIsReviewing] = useState(false);
   const [departmentsLoading, setDepartmentsLoading] = useState(false);
   const [shiftsLoading, setShiftsLoading] = useState(false);
   const [usersLoading, setUsersLoading] = useState(false);
@@ -213,6 +215,11 @@ const CreateBranch = () => {
   };
 
   const handleBack = () => {
+    if (isReviewing) {
+      setIsReviewing(false);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
     navigate(-1);
   };
 
@@ -220,22 +227,36 @@ const CreateBranch = () => {
     navigate("/admin/peopleHub/branch");
   };
 
-  const handleNext = async () => {
+  const validateForm = () => {
     // Validate required fields
     if (!formData.name) {
       toast.error("Branch name is required");
-      return;
+      return false;
     }
     if (!formData.branchType) {
       toast.error("Branch type is required");
-      return;
+      return false;
     }
     if (!formData.branchStatus) {
       toast.error("Branch status is required");
-      return;
+      return false;
     }
     if (!formData.email) {
       toast.error("Email is required");
+      return false;
+    }
+    return true;
+  };
+
+  const handleNext = () => {
+    if (!validateForm()) return;
+    setIsReviewing(true);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleSubmit = async () => {
+    if (!validateForm()) {
+      setIsReviewing(false);
       return;
     }
 
@@ -263,9 +284,13 @@ const CreateBranch = () => {
         shifts: formData.selectShifts?.value,
       };
 
-      const branchId = editBranch?.id || editBranch?._id || editBranch?.branchNumber;
+      const branchId = editBranchId || editBranch?.branchNumber;
+      if (isEditMode && !branchId) {
+        toast.error("Branch ID is missing. Please reopen the branch and try again.");
+        return;
+      }
       const response = isEditMode
-        ? await put(`${CREATE_BRANCH}/${branchId}`, payload)
+        ? await patch(`${CREATE_BRANCH}/${branchId}`, payload)
         : await post(CREATE_BRANCH, payload);
 
       if (response) {
@@ -290,7 +315,7 @@ const CreateBranch = () => {
         <BackButton onClick={handleBack}>
           <IoArrowBack size={20} />
         </BackButton>
-        <Title>{isEditMode ? "Edit Branch" : "Create New Branch"}</Title>
+        <Title>{isReviewing ? `Review ${isEditMode ? "Branch Changes" : "New Branch"}` : isEditMode ? "Edit Branch" : "Create New Branch"}</Title>
       </Header>
 
       <FormContainer>
@@ -520,6 +545,7 @@ const CreateBranch = () => {
           </Row>
         </Section>
 
+        {isReviewing && <ReviewNotice>Please review the details above. The API will only be called when you click {isEditMode ? "Update" : "Create"}.</ReviewNotice>}
         <ButtonRow>
           <Button
             text="Back"
@@ -547,7 +573,7 @@ const CreateBranch = () => {
               onClick={handleCancel}
             />
             <Button
-              text="Next"
+              text={isReviewing ? (isEditMode ? "Update" : "Create") : "Next"}
               bg={theme.colors.primary}
               color={theme.colors.white}
               width="150px"
@@ -555,7 +581,7 @@ const CreateBranch = () => {
               fontSize="0.875rem"
               fontWeight="600"
               fontFamily="Inter-SemiBold"
-              onClick={handleNext}
+              onClick={isReviewing ? handleSubmit : handleNext}
               loading={isLoading}
               disabled={isLoading}
             />
@@ -654,6 +680,16 @@ const ButtonRow = styled.div`
   margin-top: 2rem;
   padding-top: 2rem;
   border-top: 1px solid ${theme.colors.border};
+`;
+
+const ReviewNotice = styled.div`
+  margin-top: 1.5rem;
+  padding: 0.875rem 1rem;
+  border: 1px solid #b8dce0;
+  border-radius: 8px;
+  background: #edf6f9;
+  color: ${theme.colors.primary};
+  font: 500 0.875rem/1.5 "Inter-Medium", sans-serif;
 `;
 
 const RightButtons = styled.div`

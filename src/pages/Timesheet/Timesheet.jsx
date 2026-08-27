@@ -148,7 +148,7 @@ const Timesheet = () => {
                 </DetailCard>
               </DetailSection>
               <DetailSection>
-                <DetailTitleRow><DetailTitle>Attendance Details</DetailTitle><EditButton aria-label="Edit attendance">✎</EditButton></DetailTitleRow>
+                <DetailTitleRow><DetailTitle>Attendance Details</DetailTitle><EditButton aria-label="Edit attendance" onClick={() => { setManualForm((current) => ({ ...current, employee: String(employees.indexOf(selectedEmployee)) })); setSelectedEmployee(null); setShowManualForm(true); }}>✎</EditButton></DetailTitleRow>
                 <DetailCard>
                   {[['Login', '10:30 AM'], ['Log Out', '10:30 PM'], ['Break Hrs', '1.36 Hrs'], ['Working Hrs', '12.00 Hrs'], ['Over Time', '4.00 Hrs'], ['Shift', 'Morning'], ['Status', 'On Time']].map(([label, value]) => <DetailItem key={label} $wide={label === 'Status'} $success={label === 'Status'}><span>{label}</span><strong>{value}</strong></DetailItem>)}
                 </DetailCard>

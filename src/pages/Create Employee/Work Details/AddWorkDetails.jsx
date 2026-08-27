@@ -11,38 +11,38 @@ import { toast } from "react-toastify";
 
 const AddWorkDetails = forwardRef(({ onNext, onBack }, ref) => {
   const [formData, setFormData] = useState({
-    dateOfJoining: null,
-    experienceType: null,
+    dateOfJoining: new Date(),
+    experienceType: { value: "experienced", label: "Experienced" },
     department: null,
-    designation: null,
+    designation: { value: "developer", label: "Developer" },
     team: null,
     branch: null,
-    contractAgent: null,
+    contractAgent: { value: "agent_1", label: "Agent 1" },
     reportingPerson: null,
-    attendanceType: null,
-    totalYearsOfExperience: "",
-    lastCompanyName: "",
-    experience: "",
-    location: "",
+    attendanceType: { value: "bio_metric", label: "Bio Metric" },
+    totalYearsOfExperience: "4",
+    lastCompanyName: "Test Technologies Pvt Ltd",
+    experience: "Frontend application development",
+    location: "Chennai",
     shift: null,
-    attendancePermission: null,
-    esiNumber: "",
-    pfNumber: "",
-    ctcAnnual: "",
-    monthlyCTC: "",
-    basicSalary: "",
-    hra: "",
-    conveyanceAllowance: "",
-    specialAllowance: "",
-    specialAllowance2: "",
-    otherFixedAllowances: "",
-    salaryDisbursementType: null,
-    accHolderName: "",
-    bank: "",
-    accNumber: "",
-    ifscCode: "",
-    bankBranch: "",
-    remarks: "",
+    attendancePermission: { value: "auto", label: "Auto" },
+    esiNumber: "310012345600",
+    pfNumber: "TNMAS1234567000001",
+    ctcAnnual: "720000",
+    monthlyCTC: "60000",
+    basicSalary: "35000",
+    hra: "14000",
+    conveyanceAllowance: "3000",
+    specialAllowance: "5000",
+    specialAllowance2: "1000",
+    otherFixedAllowances: "2000",
+    salaryDisbursementType: { value: "bank_transfer", label: "Bank Transfer" },
+    accHolderName: "Test Employee",
+    bank: "State Bank of India",
+    accNumber: "12345678901",
+    ifscCode: "SBIN0001234",
+    bankBranch: "Chennai Main Branch",
+    remarks: "Test employee record",
   });
 
   // Loading states
@@ -86,6 +86,7 @@ const AddWorkDetails = forwardRef(({ onNext, onBack }, ref) => {
         label: dept.departmentName || dept.name || "Unknown",
       }));
       setDepartmentOptions(options);
+      if (options.length) setFormData((prev) => ({ ...prev, department: prev.department || options[0] }));
     } catch (error) {
       console.error("Error fetching departments:", error);
       toast.error("Failed to fetch departments");
@@ -112,6 +113,7 @@ const AddWorkDetails = forwardRef(({ onNext, onBack }, ref) => {
         label: shift.shiftName || shift.name || "Unknown",
       }));
       setShiftOptions(options);
+      if (options.length) setFormData((prev) => ({ ...prev, shift: prev.shift || options[0] }));
     } catch (error) {
       console.error("Error fetching shifts:", error);
       toast.error("Failed to fetch shifts");
@@ -142,6 +144,7 @@ const AddWorkDetails = forwardRef(({ onNext, onBack }, ref) => {
           : user.name || user.email || "Unknown",
       }));
       setReportingPersonOptions(options);
+      if (options.length) setFormData((prev) => ({ ...prev, reportingPerson: prev.reportingPerson || options[0] }));
     } catch (error) {
       console.error("Error fetching users:", error);
       toast.error("Failed to fetch users");
@@ -168,6 +171,7 @@ const AddWorkDetails = forwardRef(({ onNext, onBack }, ref) => {
         label: team.teamName || team.name || "Unknown",
       }));
       setTeamOptions(options);
+      if (options.length) setFormData((prev) => ({ ...prev, team: prev.team || options[0] }));
     } catch (error) {
       console.error("Error fetching teams:", error);
       toast.error("Failed to fetch teams");
@@ -194,6 +198,7 @@ const AddWorkDetails = forwardRef(({ onNext, onBack }, ref) => {
         label: branch.branchName || branch.name || "Unknown",
       }));
       setBranchOptions(options);
+      if (options.length) setFormData((prev) => ({ ...prev, branch: prev.branch || options[0] }));
     } catch (error) {
       console.error("Error fetching branches:", error);
       toast.error("Failed to fetch branches");

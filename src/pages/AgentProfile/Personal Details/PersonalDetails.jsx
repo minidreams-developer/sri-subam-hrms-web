@@ -9,20 +9,63 @@ import CardDetails from "../../../components/CardDetails";
 import CardDetailsAlt from "../../../components/CardDetailsAlt";
 import FileUploadComponent from "../../../components/FileUploadComponent";
 import Button from "../../../components/Button";
+import { patch } from "../../../helpers/api_helper";
+import { toast } from "react-toastify";
 
-export const PersonalDetails = () => {
+export const PersonalDetails = ({ agent, onAgentUpdated }) => {
+  const fallback = agent || {};
+  const address = fallback.address?.[0] || fallback.addresses?.[0] || {};
   const details = {
-    fullName: "Manoj Kumar",
-    agentId: "#AGT001",
-    employmentType: "Agent",
-    gender: "Male",
-    dob: "20-09-1999",
-    age: "31 Years",
-    contact: "+91 9500827645",
-    email: "designedbymanoj@gmail.com",
-    maritalStatus: "Married",
-    motherTongue: "Tamil",
-    identificationMark: "Small mole on right cheek",
+    fullName: fallback.name || fallback.fullName || "N/A",
+    agentId: fallback.employeeId || fallback.agentId || "N/A",
+    employmentType: fallback.employeeType || fallback.employmentType || "Agent",
+    gender: fallback.gender || "N/A",
+    dob: fallback.dateOfBirth ? new Date(fallback.dateOfBirth).toLocaleDateString("en-GB") : "N/A",
+    age: fallback.age === 0 || fallback.age ? `${fallback.age} Years` : "N/A",
+    contact: fallback.phone || fallback.contact || "N/A",
+    email: fallback.email || "N/A",
+    maritalStatus: fallback.maritalStatus || fallback.martialStatus || "N/A",
+    motherTongue: fallback.motherTongue || "N/A",
+    identificationMark: fallback.identificationMark || "N/A",
+  };
+  const [editing, setEditing] = React.useState(false);
+  const [saving, setSaving] = React.useState(false);
+  const [form, setForm] = React.useState({});
+  const openEditor = () => {
+    setForm({
+      name: fallback.name || "", employeeId: fallback.employeeId || fallback.agentId || "",
+      gender: fallback.gender || "", dateOfBirth: String(fallback.dateOfBirth || "").slice(0, 10),
+      age: fallback.age ?? "", phone: fallback.phone || "", email: fallback.email || "",
+      maritalStatus: fallback.maritalStatus || fallback.martialStatus || "",
+      motherTongue: fallback.motherTongue || "", identificationMark: fallback.identificationMark || "",
+      address1: address.addressLine1 || "", address2: address.addressLine2 || "",
+      city: address.city || "", state: address.state || "", zipCode: address.pincode || "",
+    });
+    setEditing(true);
+  };
+  const change = (event) => setForm((current) => ({ ...current, [event.target.name]: event.target.value }));
+  const save = async (event) => {
+    event.preventDefault();
+    const id = fallback.id || fallback._id;
+    if (!id) return toast.error("Agent ID is missing");
+    setSaving(true);
+    try {
+      const payload = {
+        name: form.name, employeeId: form.employeeId, gender: form.gender,
+        dateOfBirth: form.dateOfBirth, age: form.age === "" ? null : Number(form.age),
+        phone: form.phone, email: form.email, martialStatus: form.maritalStatus,
+        motherTongue: form.motherTongue, identificationMark: form.identificationMark,
+        address: [{ ...address, addressLine1: form.address1, addressLine2: form.address2,
+          city: form.city, state: form.state, pincode: form.zipCode }],
+      };
+      const response = await patch(`/v1/users/${id}`, payload);
+      const updated = response?.data?.user || response?.data || response?.user || response;
+      onAgentUpdated?.({ ...fallback, ...payload, ...(updated || {}) });
+      setEditing(false);
+      toast.success("Agent details updated successfully");
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to update agent details");
+    } finally { setSaving(false); }
   };
 
   const [docFiles, setDocFiles] = React.useState([
@@ -40,7 +83,7 @@ export const PersonalDetails = () => {
           </IconWrap>
           <Title>Personal Details</Title>
         </LeftHead>
-        <EditBtn>
+        <EditBtn type="button" onClick={openEditor}>
           <img src={EditIcon} alt="edit" width="16" height="16" />
           Edit details
         </EditBtn>
@@ -109,11 +152,11 @@ export const PersonalDetails = () => {
         title="Address Information"
         columns={3}
         items={[
-          { label: "Address 1", value: "8530" },
-          { label: "Address 2", value: "Arabi Building, Gandhinagar 2nd street" },
-          { label: "City", value: "Tirupur" },
-          { label: "State", value: "Tamil Nadu" },
-          { label: "ZIP Code", value: "641666" },
+          { label: "Address 1", value: address.addressLine1 || "N/A" },
+          { label: "Address 2", value: address.addressLine2 || "N/A" },
+          { label: "City", value: address.city || "N/A" },
+          { label: "State", value: address.state || "N/A" },
+          { label: "ZIP Code", value: address.pincode || "N/A" },
         ]}
       />
       <CardDetails
@@ -160,6 +203,29 @@ export const PersonalDetails = () => {
           />
         ))}
       </CardDetailsAlt>
+      {editing && <ModalBackdrop onMouseDown={(event) => event.target === event.currentTarget && !saving && setEditing(false)}>
+        <Modal role="dialog" aria-modal="true" aria-labelledby="edit-agent-title">
+          <ModalTitle id="edit-agent-title">Edit Agent Details</ModalTitle>
+          <EditForm onSubmit={save}>
+            <Field><label>Full Name</label><input name="name" value={form.name || ""} onChange={change} required /></Field>
+            <Field><label>Agent ID</label><input name="employeeId" value={form.employeeId || ""} onChange={change} /></Field>
+            <Field><label>Gender</label><select name="gender" value={form.gender || ""} onChange={change}><option value="">Select</option><option value="male">Male</option><option value="female">Female</option><option value="other">Other</option></select></Field>
+            <Field><label>Date of Birth</label><input type="date" name="dateOfBirth" value={form.dateOfBirth || ""} onChange={change} /></Field>
+            <Field><label>Age</label><input type="number" min="0" name="age" value={form.age ?? ""} onChange={change} /></Field>
+            <Field><label>Contact</label><input name="phone" value={form.phone || ""} onChange={change} /></Field>
+            <Field><label>Email</label><input type="email" name="email" value={form.email || ""} onChange={change} required /></Field>
+            <Field><label>Marital Status</label><select name="maritalStatus" value={form.maritalStatus || ""} onChange={change}><option value="">Select</option><option value="single">Single</option><option value="married">Married</option><option value="divorced">Divorced</option></select></Field>
+            <Field><label>Mother Tongue</label><input name="motherTongue" value={form.motherTongue || ""} onChange={change} /></Field>
+            <Field><label>Identification Mark</label><input name="identificationMark" value={form.identificationMark || ""} onChange={change} /></Field>
+            <Field><label>Address 1</label><input name="address1" value={form.address1 || ""} onChange={change} /></Field>
+            <Field><label>Address 2</label><input name="address2" value={form.address2 || ""} onChange={change} /></Field>
+            <Field><label>City</label><input name="city" value={form.city || ""} onChange={change} /></Field>
+            <Field><label>State</label><input name="state" value={form.state || ""} onChange={change} /></Field>
+            <Field><label>ZIP Code</label><input name="zipCode" value={form.zipCode || ""} onChange={change} /></Field>
+            <ModalActions><CancelBtn type="button" disabled={saving} onClick={() => setEditing(false)}>Cancel</CancelBtn><SaveBtn type="submit" disabled={saving}>{saving ? "Saving..." : "Save Changes"}</SaveBtn></ModalActions>
+          </EditForm>
+        </Modal>
+      </ModalBackdrop>}
     </Wrapper>
   );
 };
@@ -312,3 +378,12 @@ const Value = styled.span`
   line-height: 160%;
   color: ${theme.colors.textColor};
 `;
+
+const ModalBackdrop = styled.div`position:fixed;inset:0;z-index:1000;background:#0c242780;display:grid;place-items:center;padding:24px;`;
+const Modal = styled.div`width:min(760px,100%);max-height:90vh;overflow:auto;background:#fff;border-radius:12px;padding:24px;box-shadow:0 20px 60px #0003;`;
+const ModalTitle = styled.h2`margin:0 0 20px;color:${theme.colors.textColor};font:600 20px "Inter-SemiBold",sans-serif;`;
+const EditForm = styled.form`display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;@media(max-width:650px){grid-template-columns:1fr;}`;
+const Field = styled.div`display:flex;flex-direction:column;gap:6px;label{color:${theme.colors.secondaryTextColor};font:500 12px "Inter-Medium",sans-serif;}input,select{height:42px;border:1px solid ${theme.colors.border};border-radius:7px;padding:0 11px;background:#fff;color:${theme.colors.textColor};font:500 13px "Inter-Medium",sans-serif;outline:none;}input:focus,select:focus{border-color:${theme.colors.primary};}`;
+const ModalActions = styled.div`grid-column:1/-1;display:flex;justify-content:flex-end;gap:12px;margin-top:8px;`;
+const CancelBtn = styled.button`height:40px;padding:0 22px;border:1px solid ${theme.colors.primary};border-radius:7px;background:#fff;color:${theme.colors.primary};cursor:pointer;font-weight:600;`;
+const SaveBtn = styled.button`height:40px;padding:0 22px;border:0;border-radius:7px;background:${theme.colors.primary};color:#fff;cursor:pointer;font-weight:600;&:disabled{opacity:.65;cursor:not-allowed;}`;

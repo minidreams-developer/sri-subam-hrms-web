@@ -9,7 +9,7 @@ import DotIcon from "../../assets/images/Overtime/actionDot.svg";
 import Arrow from "../../assets/images/DayOff/arrow.svg";
 import CalendarView from "../../components/CalendarView";
 import HolidayListView from "../../components/HolidayListView";
-import { get } from "../../helpers/api_helper";
+import { del, get } from "../../helpers/api_helper";
 import { GET_HOLIDAYS } from "../../helpers/url_helper";
 import { toast } from "react-toastify";
 
@@ -70,6 +70,8 @@ const DayOffAndHoliday = () => {
   const handleAddHoliday = () => {
     navigate("/admin/time-hub/dayOffHolidays/createNewHoliday");
   };
+  const editHoliday = (holiday) => navigate("/admin/time-hub/dayOffHolidays/createNewHoliday", { state: { holiday, mode: "edit" } });
+  const deleteHoliday = async (holiday) => { if (!window.confirm(`Delete ${holiday.holidayTitle || "this holiday"}?`)) return; try { await del(`${GET_HOLIDAYS}/${holiday.id || holiday._id}`); toast.success("Holiday deleted"); fetchHolidays(); } catch (error) { toast.error(error.response?.data?.message || "Failed to delete holiday"); } };
 
   return (
     <Container>
@@ -117,7 +119,7 @@ const DayOffAndHoliday = () => {
       {viewType === "Calendar View" ? (
         <CalendarView currentYear={currentYear} showAttendance={false} holidays={holidays} />
       ) : (
-        <HolidayListView holidays={holidays} currentYear={currentYear} />
+        <HolidayListView holidays={holidays} currentYear={currentYear} onEdit={editHoliday} onDelete={deleteHoliday} />
       )}
     </Container>
   );
