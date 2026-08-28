@@ -48,8 +48,10 @@ const AgentProfile = () => {
       />
 
       {loading ? <Section>Loading agent data...</Section> : active === "Personal Details" && <PersonalDetails employee={agent} onEmployeeUpdated={setAgent} entity="agent" />}
-      {active === "Employment List" && <EmploymentList />}
-      {active === "Payroll" && <PayrollComponent />}
+      {active === "Employment List" && <EmploymentList agentId={agent?._id || agent?.id || agentId} />}
+      {active === "Payroll" && (
+        <PayrollComponent employee={agent} onEmployeeUpdated={setAgent} />
+      )}
       {active === "Report" && <Section>Report content</Section>}
     </Container>
   );

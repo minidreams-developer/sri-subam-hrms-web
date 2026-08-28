@@ -1,8 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
-import GreenArrow from "../../assets/images/dashboardImages/green.svg";
-import RedArrow from "../../assets/images/dashboardImages/red.svg";
 import theme from "../../theme/theme";
 import Button from "../../components/Button";
 import TableToolbar from "../../components/TableToolbar";
@@ -10,7 +8,6 @@ import PlusIcon from "../../assets/images/DashboardImages/plus-large_svgrepo.com
 import Filter from "../../components/filter";
 import ReusableTable from "../../components/ReusableTable";
 import { del, get } from "../../helpers/api_helper";
-import { GET_AGENTS } from "../../helpers/url_helper";
 import { toast } from "react-toastify";
 import DeleteConfirmationModal from "../../components/DeleteConfirmationModal";
 
@@ -46,27 +43,97 @@ const Agents = () => {
   const [showFilter, setShowFilter] = useState(false);
   const [agentsData, setAgentsData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize] = useState(10);
+  const [totalResults, setTotalResults] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [sortBy] = useState("createdAt:desc");
   const [agentToDelete, setAgentToDelete] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const statsRequestId = useRef(0);
   const [agentsStats, setAgentsStats] = useState([
-    { title: "Total Agents", value: "0", percent: "12 %", type: "down" },
-    { title: "Active Agents", value: "0", percent: "20.5 %", type: "up" },
-    { title: "In-Active Agents", value: "0", percent: "12 %", type: "down" },
-    { title: "New Agents", value: "0", percent: "20.5 %", type: "up" },
+    { title: "Total Agents", value: null },
+    { title: "Active Agents", value: null },
+    { title: "In-Active Agents", value: null },
+    { title: "New Agents", value: null },
   ]);
 
-  // Fetch agents from API on component mount
   useEffect(() => {
-    fetchAgents();
-  }, []);
+    const timeoutId = window.setTimeout(() => {
+      fetchAgents(currentPage, pageSize, sortBy);
+    }, agentSearch.trim() ? 350 : 0);
+    return () => window.clearTimeout(timeoutId);
+  }, [currentPage, pageSize, sortBy, agentSearch, selectedFilter, selectedRange]);
 
-  const fetchAgents = async () => {
+  useEffect(() => {
+    fetchAgentStats();
+  }, [selectedFilter, selectedRange]);
+
+  const fetchAgentStats = async () => {
+    const requestId = ++statsRequestId.current;
+    setAgentsStats((items) => items.map((item) => ({ ...item, value: null })));
+    try {
+      const query = new URLSearchParams({ role: "agent" });
+      if (selectedFilter !== "All") {
+        query.set("status", selectedFilter.toLowerCase().replace("-", ""));
+      }
+      const rangeDays = { "Last 7 days": 7, "Last 30 days": 30, "Last 90 days": 90 }[selectedRange];
+      if (rangeDays) {
+        const joinedTo = new Date();
+        const joinedFrom = new Date(joinedTo);
+        joinedFrom.setDate(joinedFrom.getDate() - rangeDays);
+        query.set("joinedFrom", joinedFrom.toISOString().slice(0, 10));
+        query.set("joinedTo", joinedTo.toISOString().slice(0, 10));
+      }
+
+      const response = await get(`/v1/users/count?${query.toString()}`);
+      if (requestId !== statsRequestId.current) return;
+      const root = response?.data ?? response;
+      const counts = root?.counts ?? root?.statusCounts ?? root;
+      const valueOf = (keys) => {
+        for (const key of keys) {
+          if (counts?.[key] !== undefined && counts?.[key] !== null) return String(counts[key]);
+        }
+        return "0";
+      };
+      setAgentsStats([
+        { title: "Total Agents", value: valueOf(["total", "totalCount", "count", "totalAgents"]) },
+        { title: "Active Agents", value: valueOf(["active", "activeCount", "activeAgents"]) },
+        { title: "In-Active Agents", value: valueOf(["inactive", "inActive", "inactiveCount", "inActiveCount", "inactiveAgents"]) },
+        { title: "New Agents", value: valueOf(["new", "newCount", "newAgent", "newAgents"]) },
+      ]);
+    } catch (error) {
+      if (requestId !== statsRequestId.current) return;
+      console.error("Failed to fetch agent counts:", error);
+      toast.error(error.response?.data?.message || "Failed to load agent status counts");
+    }
+  };
+
+  const fetchAgents = async (page = 1, limit = 10, sort = "createdAt:desc") => {
     setIsLoading(true);
     try {
       console.log("=== Starting fetchAgents ===");
-      console.log("GET_AGENTS endpoint:", GET_AGENTS);
       
-      const response = await get(GET_AGENTS);
+      const query = new URLSearchParams({
+        role: "agent",
+        page: String(page),
+        limit: String(limit),
+        sortBy: sort,
+      });
+      if (agentSearch.trim()) query.set("search", agentSearch.trim());
+      if (selectedFilter !== "All") {
+        query.set("status", selectedFilter.toLowerCase().replace("-", ""));
+      }
+      const rangeDays = { "Last 7 days": 7, "Last 30 days": 30, "Last 90 days": 90 }[selectedRange];
+      if (rangeDays) {
+        const joinedTo = new Date();
+        const joinedFrom = new Date(joinedTo);
+        joinedFrom.setDate(joinedFrom.getDate() - rangeDays);
+        query.set("joinedFrom", joinedFrom.toISOString().slice(0, 10));
+        query.set("joinedTo", joinedTo.toISOString().slice(0, 10));
+      }
+
+      const response = await get(`/v1/users?${query.toString()}`);
       console.log("=== Full Response ===", response);
       console.log("Response type:", typeof response);
       console.log("Response keys:", response ? Object.keys(response) : "null");
@@ -102,12 +169,8 @@ const Agents = () => {
       if (!agentsList || agentsList.length === 0) {
         console.warn("⚠ No agents found in response");
         setAgentsData([]);
-        setAgentsStats([
-          { title: "Total Agents", value: "0", percent: "12 %", type: "down" },
-          { title: "Active Agents", value: "0", percent: "20.5 %", type: "up" },
-          { title: "In-Active Agents", value: "0", percent: "12 %", type: "down" },
-          { title: "New Agents", value: "0", percent: "20.5 %", type: "up" },
-        ]);
+        setTotalResults(0);
+        setTotalPages(0);
         setIsLoading(false);
         return;
       }
@@ -128,6 +191,8 @@ const Agents = () => {
 
       console.log("✓ Transformed data:", transformed);
       setAgentsData(transformed);
+      setTotalResults(response?.totalResults ?? response?.data?.totalResults ?? agentsList.length);
+      setTotalPages(response?.totalPages ?? response?.data?.totalPages ?? 1);
 
       // Calculate statistics
       const total = agentsList.length;
@@ -142,12 +207,6 @@ const Agents = () => {
 
       console.log(`✓ Stats: Total=${total}, Active=${active}, Inactive=${inactive}, New=${newCount}`);
 
-      setAgentsStats([
-        { title: "Total Agents", value: total.toString(), percent: "12 %", type: "down" },
-        { title: "Active Agents", value: active.toString(), percent: "20.5 %", type: "up" },
-        { title: "In-Active Agents", value: inactive.toString(), percent: "12 %", type: "down" },
-        { title: "New Agents", value: newCount.toString(), percent: "20.5 %", type: "up" },
-      ]);
     } catch (error) {
       console.error("❌ Failed to fetch agents:", error);
       console.error("Error details:", error.message);
@@ -177,7 +236,8 @@ const Agents = () => {
       await del(`/v1/users/${userId}`);
       toast.success("Agent deleted successfully");
       setAgentToDelete(null);
-      await fetchAgents();
+      await fetchAgents(currentPage, pageSize, sortBy);
+      await fetchAgentStats();
     } catch (error) {
       toast.error(
         error.response?.data?.message || error.message || "Failed to delete agent",
@@ -200,18 +260,7 @@ const Agents = () => {
     setShowFilter(false);
   };
 
-  // Filter agents based on search and status filter
-  const filteredAgentsData = agentsData.filter((row) => {
-    const matchesSearch =
-      !agentSearch ||
-      row.name.toLowerCase().includes(agentSearch.toLowerCase());
-
-    const matchesFilter =
-      selectedFilter === "All" ||
-      row.status === selectedFilter;
-
-    return matchesSearch && matchesFilter;
-  });
+  const filteredAgentsData = agentsData;
 
   return (
     <Container>
@@ -233,7 +282,10 @@ const Agents = () => {
             <select
               className="form-select"
               value={selectedFilter}
-              onChange={(e) => setSelectedFilter(e.target.value)}
+              onChange={(e) => {
+                setSelectedFilter(e.target.value);
+                setCurrentPage(1);
+              }}
             >
               <option>All</option>
               <option>Active</option>
@@ -245,7 +297,10 @@ const Agents = () => {
             <select
               className="form-select"
               value={selectedRange}
-              onChange={(e) => setSelectedRange(e.target.value)}
+              onChange={(e) => {
+                setSelectedRange(e.target.value);
+                setCurrentPage(1);
+              }}
             >
               <option>Last 7 days</option>
               <option>Last 30 days</option>
@@ -269,15 +324,7 @@ const Agents = () => {
             <CardTitle>{item.title}</CardTitle>
 
             <CardFooter>
-              <CardValue>{item.value}</CardValue>
-
-              <Badge type={item.type}>
-                {item.percent}
-                <img
-                  src={item.type === "up" ? GreenArrow : RedArrow}
-                  alt="trend"
-                />
-              </Badge>
+              <CardValue>{item.value ?? "—"}</CardValue>
             </CardFooter>
           </StatCard>
         ))}
@@ -286,7 +333,10 @@ const Agents = () => {
       <TableToolbar
         searchPlaceholder="Search Agents"
         searchValue={agentSearch}
-        onSearchChange={setAgentSearch}
+        onSearchChange={(value) => {
+          setAgentSearch(value);
+          setCurrentPage(1);
+        }}
         filterText="Filter"
         onFilterClick={handleFilterOpen}
         actionText="New Agent"
@@ -297,8 +347,14 @@ const Agents = () => {
       <ReusableTable
         columns={agentsTableColumns}
         data={filteredAgentsData}
-        rowsPerPage={7}
-        totalResults={filteredAgentsData.length}
+        rowsPerPage={pageSize}
+        totalResults={totalResults}
+        totalPages={totalPages}
+        currentPage={currentPage}
+        server={true}
+        onPageChange={setCurrentPage}
+        isLoading={isLoading}
+        alwaysShowPagination
         onRowClick={handleRowClick}
         onDelete={setAgentToDelete}
       />

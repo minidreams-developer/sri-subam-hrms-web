@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import ReusableTable from "../../../components/ReusableTable";
@@ -9,6 +9,8 @@ import Button from "../../../components/Button";
 import TableToolbar from "../../../components/TableToolbar";
 import PlusIcon from "../../../assets/images/DashboardImages/plus-large_svgrepo.com.svg";
 import Filter from "../../../components/filter";
+import { del, get } from "../../../helpers/api_helper";
+import { toast } from "react-toastify";
 
 const employmentStats = [
   { title: "Total Employees", value: "300", percent: "12 %", type: "down" },
@@ -83,7 +85,23 @@ const employmentTableData = [
   },
 ];
 
-const EmploymentList = () => {
+const normalizeEmployeeStatus = (employee) => {
+  const rawStatus = employee?.isActive ?? employee?.status;
+  if (rawStatus === true) return "Active";
+  if (rawStatus === false) return "In-Active";
+
+  const normalized = String(rawStatus ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/[\s_-]+/g, "");
+
+  if (["inactive", "false", "disabled"].includes(normalized)) return "In-Active";
+  if (["active", "true", "enabled"].includes(normalized)) return "Active";
+  if (normalized === "relieved") return "Relieved";
+  return rawStatus || "N/A";
+};
+
+const EmploymentList = ({ agentId }) => {
   const navigate = useNavigate();
   const [selectedFilter, setSelectedFilter] = useState("All");
   const [selectedRange, setSelectedRange] = useState("Last 7 days");
@@ -91,7 +109,62 @@ const EmploymentList = () => {
   const [employeeDept, setEmployeeDept] = useState("All Department");
   const [employeeShift, setEmployeeShift] = useState("All Shifts");
   const [showFilter, setShowFilter] = useState(false);
-  const [employees, setEmployees] = useState(employmentTableData);
+  const [employees, setEmployees] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalResults, setTotalResults] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+
+  useEffect(() => {
+    if (!agentId) {
+      setEmployees([]);
+      return;
+    }
+    const timeoutId = window.setTimeout(() => fetchEmployees(currentPage), employeeSearch.trim() ? 350 : 0);
+    return () => window.clearTimeout(timeoutId);
+  }, [agentId, currentPage, employeeSearch]);
+
+  const fetchEmployees = async (page = 1) => {
+    setIsLoading(true);
+    try {
+      const query = new URLSearchParams({
+        contractAgent: agentId,
+        page: String(page),
+        limit: "10",
+      });
+      if (employeeSearch.trim()) query.set("search", employeeSearch.trim());
+      const response = await get(`/v1/users?${query.toString()}`);
+      const list = Array.isArray(response)
+        ? response
+        : response?.results || response?.data?.results || (Array.isArray(response?.data) ? response.data : []) || response?.users || [];
+      const rows = list.map((employee) => {
+        const work = employee.workInformation || {};
+        const department = work.department || employee.department;
+        const shift = work.shiftId || work.shift || employee.shift;
+        const joinedDate = work.joinedDate || employee.dateOfJoining;
+        return {
+          id: employee._id || employee.id,
+          employeeId: employee.employeeId || "N/A",
+          name: employee.name || employee.employeeName || "N/A",
+          designation: work.designation || employee.designation || "N/A",
+          department: typeof department === "object" ? department?.departmentName || department?.name || "N/A" : department || "N/A",
+          shift: typeof shift === "object" ? shift?.shiftName || shift?.name || "N/A" : shift || "N/A",
+          joinedDate: joinedDate ? new Date(joinedDate).toLocaleDateString("en-GB") : "N/A",
+          status: normalizeEmployeeStatus(employee),
+        };
+      });
+      setEmployees(rows);
+      setTotalResults(response?.totalResults ?? response?.data?.totalResults ?? rows.length);
+      setTotalPages(response?.totalPages ?? response?.data?.totalPages ?? (rows.length ? 1 : 0));
+    } catch (error) {
+      setEmployees([]);
+      setTotalResults(0);
+      setTotalPages(0);
+      toast.error(error.response?.data?.message || "Failed to fetch agent employees");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleViewEmployee = (employee) => {
     navigate("/admin/peopleHub/employees/employeeProfile", {
@@ -99,17 +172,19 @@ const EmploymentList = () => {
     });
   };
 
-  const handleDeleteEmployee = (employee) => {
+  const handleDeleteEmployee = async (employee) => {
     const shouldDelete = window.confirm(
       `Are you sure you want to delete ${employee.name}?`,
     );
 
     if (shouldDelete) {
-      setEmployees((currentEmployees) =>
-        currentEmployees.filter(
-          (item) => item.employeeId !== employee.employeeId,
-        ),
-      );
+      try {
+        await del(`/v1/users/${employee.id}`);
+        toast.success("Employee deleted successfully");
+        await fetchEmployees(currentPage);
+      } catch (error) {
+        toast.error(error.response?.data?.message || "Failed to delete employee");
+      }
     }
   };
 
@@ -159,8 +234,7 @@ const EmploymentList = () => {
   const filteredEmploymentData = employees.filter((row) => {
     const m1 = employeeDept === "All Department" || row.department === employeeDept;
     const m2 = employeeShift === "All Shifts" || row.shift === employeeShift;
-    const m3 = !employeeSearch || row.name.toLowerCase().includes(employeeSearch.toLowerCase());
-    return m1 && m2 && m3;
+    return m1 && m2;
   });
 
   return (
@@ -221,7 +295,10 @@ const EmploymentList = () => {
       <TableToolbar
         searchPlaceholder="Search Employee"
         searchValue={employeeSearch}
-        onSearchChange={setEmployeeSearch}
+        onSearchChange={(value) => {
+          setEmployeeSearch(value);
+          setCurrentPage(1);
+        }}
         select1Options={["All Department", "HR", "IT", "Sales", "Design", "PP", "DT", "Rotational", "Dev", "MT"]}
         select1Value={employeeDept}
         onSelect1Change={setEmployeeDept}
@@ -238,8 +315,14 @@ const EmploymentList = () => {
       <ReusableTable
         columns={employmentTableColumns}
         data={filteredEmploymentData}
-        rowsPerPage={20}
-        totalResults={filteredEmploymentData.length}
+        rowsPerPage={10}
+        totalResults={totalResults}
+        totalPages={totalPages}
+        currentPage={currentPage}
+        server={true}
+        onPageChange={setCurrentPage}
+        isLoading={isLoading}
+        alwaysShowPagination
         onView={handleViewEmployee}
         onEdit={handleEditEmployee}
         onDelete={handleDeleteEmployee}

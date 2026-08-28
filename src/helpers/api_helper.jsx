@@ -102,7 +102,8 @@ axiosApi.interceptors.response.use(
 // this API client. The counter handles multiple simultaneous requests.
 axiosApi.interceptors.request.use(
   (config) => {
-    startRequest();
+    config._trackGlobalLoading = config.skipGlobalLoading !== true;
+    if (config._trackGlobalLoading) startRequest();
     return config;
   },
   (error) => Promise.reject(error)
@@ -110,11 +111,11 @@ axiosApi.interceptors.request.use(
 
 axiosApi.interceptors.response.use(
   (response) => {
-    finishRequest();
+    if (response.config?._trackGlobalLoading) finishRequest();
     return response;
   },
   (error) => {
-    finishRequest();
+    if (error.config?._trackGlobalLoading) finishRequest();
     return Promise.reject(error);
   }
 );

@@ -64,7 +64,7 @@ const PersonalInfo = forwardRef((_, ref) => {
   const fetchBranches = async () => {
     setBranchesLoading(true);
     try {
-      const response = await get(`${BRANCHES}?page=1&limit=100`);
+      const response = await get(`${BRANCHES}?page=1&limit=100`, { skipGlobalLoading: true });
       
       // Handle different response structures
       let branchList = [];
@@ -95,7 +95,7 @@ const PersonalInfo = forwardRef((_, ref) => {
   const generateEmployeeId = async () => {
     setEmployeeIdLoading(true);
     try {
-      const response = await get(GENERATE_EMPLOYEE_ID);
+      const response = await get(GENERATE_EMPLOYEE_ID, { skipGlobalLoading: true });
       console.log("Employee ID generated:", response);
       
       // Handle different response structures

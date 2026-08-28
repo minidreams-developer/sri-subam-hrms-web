@@ -142,6 +142,16 @@ const CreateAgent = () => {
           salaryDisbursementType: commissionData.salaryDisbursementType?.value || "monthly",
         },
 
+        salaryDetails: {
+          basicSalary: Number(commissionData.basicSalary) || 0,
+          annualCTC: Number(commissionData.ctcAnnual) || 0,
+          monthlyCTC: Number(commissionData.monthlyCTC) || 0,
+          houseRentAllowance: Number(commissionData.hra) || 0,
+          conveyanceAllowance: Number(commissionData.conveyanceAllowance) || 0,
+          specialAllowance: Number(commissionData.specialAllowance) || 0,
+          otherFixedAllowance: Number(commissionData.otherFixedAllowances) || 0,
+        },
+
         bankDetails: [
           {
             accountHolderName: commissionData.accHolderName,

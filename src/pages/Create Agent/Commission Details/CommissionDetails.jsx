@@ -10,6 +10,13 @@ const CommissionDetails = forwardRef((_, ref) => {
     commissionPercentage: "10",
     allowance: "5000",
     salaryDisbursementType: { value: "monthly", label: "Monthly" },
+    ctcAnnual: "600000",
+    monthlyCTC: "50000",
+    basicSalary: "30000",
+    hra: "12000",
+    conveyanceAllowance: "3000",
+    specialAllowance: "5000",
+    otherFixedAllowances: "0",
     accHolderName: "Test Agent",
     bank: "State Bank of India",
     accNumber: String(Date.now()).slice(-12),
@@ -69,6 +76,39 @@ const CommissionDetails = forwardRef((_, ref) => {
                 isSearchable
               />
             </SelectWrapper>
+          </Col>
+        </Row>
+      </Section>
+
+      <Section>
+        <SectionTitle>Salary Details</SectionTitle>
+        <Row>
+          <Col>
+            <InputComponent label="Annual CTC" placeholder="Enter Annual CTC" value={formData.ctcAnnual} onChange={(e) => handleChange("ctcAnnual", e.target.value)} labelMargin="0 0 0.625rem 0" />
+          </Col>
+          <Col>
+            <InputComponent label="Monthly CTC" placeholder="Enter Monthly CTC" value={formData.monthlyCTC} onChange={(e) => handleChange("monthlyCTC", e.target.value)} labelMargin="0 0 0.625rem 0" />
+          </Col>
+        </Row>
+        <Row>
+          <Col>
+            <InputComponent label="Basic Salary" placeholder="Enter Basic Salary" value={formData.basicSalary} onChange={(e) => handleChange("basicSalary", e.target.value)} labelMargin="0 0 0.625rem 0" />
+          </Col>
+          <Col>
+            <InputComponent label="House Rent Allowance" placeholder="Enter HRA" value={formData.hra} onChange={(e) => handleChange("hra", e.target.value)} labelMargin="0 0 0.625rem 0" />
+          </Col>
+        </Row>
+        <Row>
+          <Col>
+            <InputComponent label="Conveyance Allowance" placeholder="Enter Conveyance Allowance" value={formData.conveyanceAllowance} onChange={(e) => handleChange("conveyanceAllowance", e.target.value)} labelMargin="0 0 0.625rem 0" />
+          </Col>
+          <Col>
+            <InputComponent label="Special Allowance" placeholder="Enter Special Allowance" value={formData.specialAllowance} onChange={(e) => handleChange("specialAllowance", e.target.value)} labelMargin="0 0 0.625rem 0" />
+          </Col>
+        </Row>
+        <Row>
+          <Col>
+            <InputComponent label="Other Fixed Allowances" placeholder="Enter Other Fixed Allowances" value={formData.otherFixedAllowances} onChange={(e) => handleChange("otherFixedAllowances", e.target.value)} labelMargin="0 0 0.625rem 0" />
           </Col>
         </Row>
       </Section>

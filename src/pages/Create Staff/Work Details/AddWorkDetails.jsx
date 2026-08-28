@@ -19,7 +19,7 @@ const createPrefilledWorkData = () => {
     designation: { value: "developer", label: "Developer" },
     team: null,
     branch: null,
-    contractAgent: { value: "agent_1", label: "Agent 1" },
+    contractAgent: null,
     reportingPerson: null,
     attendanceType: { value: "bio_metric", label: "Bio Metric" },
     totalYearsOfExperience: "3",
@@ -57,6 +57,7 @@ const AddWorkDetails = forwardRef(({ onNext, onBack }, ref) => {
   const [usersLoading, setUsersLoading] = useState(false);
   const [teamsLoading, setTeamsLoading] = useState(false);
   const [branchesLoading, setBranchesLoading] = useState(false);
+  const [contractAgentsLoading, setContractAgentsLoading] = useState(false);
 
   // Options states
   const [departmentOptions, setDepartmentOptions] = useState([]);
@@ -64,6 +65,7 @@ const AddWorkDetails = forwardRef(({ onNext, onBack }, ref) => {
   const [reportingPersonOptions, setReportingPersonOptions] = useState([]);
   const [teamOptions, setTeamOptions] = useState([]);
   const [branchOptions, setBranchOptions] = useState([]);
+  const [contractAgentOptions, setContractAgentOptions] = useState([]);
 
   // Fetch data on component mount
   useEffect(() => {
@@ -72,12 +74,37 @@ const AddWorkDetails = forwardRef(({ onNext, onBack }, ref) => {
     fetchUsers();
     fetchTeams();
     fetchBranches();
+    fetchContractAgents();
   }, []);
+
+  const fetchContractAgents = async () => {
+    setContractAgentsLoading(true);
+    try {
+      const response = await get("/v1/users?role=agent&page=1&limit=10&sortBy=createdAt:desc", { skipGlobalLoading: true });
+      const agentData = Array.isArray(response)
+        ? response
+        : response?.results || response?.data?.results || response?.data || response?.users || [];
+      const agents = Array.isArray(agentData) ? agentData : [];
+      const options = agents.map((agent) => ({
+        value: agent._id || agent.id,
+        label: agent.name || agent.employeeName || agent.email || "Unknown Agent",
+      })).filter((option) => option.value);
+      setContractAgentOptions(options);
+      if (options.length) {
+        setFormData((prev) => ({ ...prev, contractAgent: prev.contractAgent || options[0] }));
+      }
+    } catch (error) {
+      console.error("Error fetching contract agents:", error);
+      toast.error("Failed to fetch contract agents");
+    } finally {
+      setContractAgentsLoading(false);
+    }
+  };
 
   const fetchDepartments = async () => {
     setDepartmentsLoading(true);
     try {
-      const response = await get(`${DEPARTMENTS}?page=1&limit=100`);
+      const response = await get(`${DEPARTMENTS}?page=1&limit=100`, { skipGlobalLoading: true });
       let departments = [];
       if (Array.isArray(response)) {
         departments = response;
@@ -104,7 +131,7 @@ const AddWorkDetails = forwardRef(({ onNext, onBack }, ref) => {
   const fetchShifts = async () => {
     setShiftsLoading(true);
     try {
-      const response = await get(`${GET_SHIFTS}?page=1&limit=100`);
+      const response = await get(`${GET_SHIFTS}?page=1&limit=100`, { skipGlobalLoading: true });
       let shifts = [];
       if (Array.isArray(response)) {
         shifts = response;
@@ -131,7 +158,7 @@ const AddWorkDetails = forwardRef(({ onNext, onBack }, ref) => {
   const fetchUsers = async () => {
     setUsersLoading(true);
     try {
-      const response = await get(`${GET_ALL_EMPLOYEES}?page=1&limit=100`);
+      const response = await get(`${GET_ALL_EMPLOYEES}?page=1&limit=100`, { skipGlobalLoading: true });
       let users = [];
       if (Array.isArray(response)) {
         users = response;
@@ -159,7 +186,7 @@ const AddWorkDetails = forwardRef(({ onNext, onBack }, ref) => {
   const fetchTeams = async () => {
     setTeamsLoading(true);
     try {
-      const response = await get(`${TEAMS}?page=1&limit=100`);
+      const response = await get(`${TEAMS}?page=1&limit=100`, { skipGlobalLoading: true });
       let teams = [];
       if (Array.isArray(response)) {
         teams = response;
@@ -185,7 +212,7 @@ const AddWorkDetails = forwardRef(({ onNext, onBack }, ref) => {
   const fetchBranches = async () => {
     setBranchesLoading(true);
     try {
-      const response = await get(`${BRANCHES}?page=1&limit=100`);
+      const response = await get(`${BRANCHES}?page=1&limit=100`, { skipGlobalLoading: true });
       let branches = [];
       if (Array.isArray(response)) {
         branches = response;
@@ -226,11 +253,6 @@ const AddWorkDetails = forwardRef(({ onNext, onBack }, ref) => {
     { value: "manager", label: "Manager" },
     { value: "developer", label: "Developer" },
     { value: "designer", label: "Designer" },
-  ];
-
-  const contractAgentOptions = [
-    { value: "agent_1", label: "Agent 1" },
-    { value: "agent_2", label: "Agent 2" },
   ];
 
   const attendanceTypeOptions = [
@@ -346,6 +368,7 @@ const AddWorkDetails = forwardRef(({ onNext, onBack }, ref) => {
                 placeholder="Select Agent"
                 styles={customSelectStyles}
                 isSearchable
+                isLoading={contractAgentsLoading}
               />
             </SelectWrapper>
           </Col>

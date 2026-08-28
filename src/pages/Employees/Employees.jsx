@@ -1,9 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import styled from "styled-components";
 import ReusableTable from "../../components/ReusableTable";
-import GreenArrow from "../../assets/images/dashboardImages/green.svg";
-import RedArrow from "../../assets/images/dashboardImages/red.svg";
 import theme from "../../theme/theme";
 import Button from "../../components/Button";
 import TableToolbar from "../../components/TableToolbar";
@@ -14,16 +12,24 @@ import { del, get } from "../../helpers/api_helper";
 import { GET_EMPLOYEES_BY_ROLE, GET_STAFF_BY_ROLE, DEPARTMENTS, GET_SHIFTS } from "../../helpers/url_helper";
 import { toast } from "react-toastify";
 import DeleteConfirmationModal from "../../components/DeleteConfirmationModal";
-import {
-  dashboardStats,
-  employeeTableColumns,
-  staffTableColumns,
-} from "../../utils/data";
+import { employeeTableColumns, staffTableColumns } from "../../utils/data";
+
+const emptyStats = (role) => {
+  const pluralLabel = role === "employee" ? "Employees" : "Staff";
+  const singularLabel = role === "employee" ? "Employee" : "Staff";
+  return [
+    { title: `Total ${pluralLabel}`, value: null },
+    { title: `Active ${pluralLabel}`, value: null },
+    { title: `In-Active ${pluralLabel}`, value: null },
+    { title: `New ${singularLabel}`, value: null },
+  ];
+};
 
 const Employees = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const stats = dashboardStats;
+  const [stats, setStats] = useState(() => emptyStats("employee"));
+  const statsRequestId = useRef(0);
 
   const [selectedDepartment, setSelectedDepartment] = useState("All");
   const [selectedRange, setSelectedRange] = useState("Last 7 days");
@@ -61,6 +67,58 @@ const Employees = () => {
     // Fetch departments and shifts on component mount
     fetchDepartmentsAndShifts();
   }, [location.state]);
+
+  const fetchUserStats = async () => {
+    const requestId = ++statsRequestId.current;
+    const role = activeTab === "Employee" ? "employee" : "staff";
+    setStats(emptyStats(role));
+    try {
+      const query = new URLSearchParams({ role });
+
+      if (selectedDepartment !== "All") {
+        query.set("status", selectedDepartment === "Active" ? "active" : "inactive");
+      }
+
+      const rangeDays = {
+        "Last 7 days": 7,
+        "Last 30 days": 30,
+        "Last 90 days": 90,
+      }[selectedRange];
+      if (rangeDays) {
+        const joinedTo = new Date();
+        const joinedFrom = new Date(joinedTo);
+        joinedFrom.setDate(joinedFrom.getDate() - rangeDays);
+        query.set("joinedFrom", joinedFrom.toISOString().slice(0, 10));
+        query.set("joinedTo", joinedTo.toISOString().slice(0, 10));
+      }
+
+      const response = await get(`/v1/users/count?${query.toString()}`);
+      if (requestId !== statsRequestId.current) return;
+      const root = response?.data ?? response;
+      const counts = root?.counts ?? root?.statusCounts ?? root;
+      const valueOf = (keys, fallback = 0) => {
+        for (const key of keys) {
+          if (counts?.[key] !== undefined && counts?.[key] !== null) return counts[key];
+        }
+        return fallback;
+      };
+
+      setStats([
+        { title: `Total ${role === "employee" ? "Employees" : "Staff"}`, value: String(valueOf(["total", "totalCount", "count", "totalEmployees", "totalStaff"])) },
+        { title: `Active ${role === "employee" ? "Employees" : "Staff"}`, value: String(valueOf(["active", "activeCount", "activeEmployees", "activeStaff"])) },
+        { title: `In-Active ${role === "employee" ? "Employees" : "Staff"}`, value: String(valueOf(["inactive", "inActive", "inactiveCount", "inActiveCount", "inactiveEmployees", "inactiveStaff"])) },
+        { title: `New ${role === "employee" ? "Employee" : "Staff"}`, value: String(valueOf(["new", "newCount", "newEmployee", "newEmployees", "newStaff"])) },
+      ]);
+    } catch (error) {
+      if (requestId !== statsRequestId.current) return;
+      console.error("Fetch user counts error:", error);
+      toast.error(error.response?.data?.message || "Failed to load status counts");
+    }
+  };
+
+  useEffect(() => {
+    fetchUserStats();
+  }, [activeTab, selectedDepartment, selectedRange]);
 
   // Fetch data based on active tab
   useEffect(() => {
@@ -274,6 +332,7 @@ const Employees = () => {
       await del(`${GET_EMPLOYEES_BY_ROLE}/${employeeId}`);
       toast.success("Employee deleted successfully");
       setEmployeeToDelete(null);
+      fetchUserStats();
 
       // If the final row on this page was deleted, return to the previous page.
       if (employees.length === 1 && currentPage > 1) {
@@ -303,6 +362,7 @@ const Employees = () => {
       await del(`${GET_EMPLOYEES_BY_ROLE}/${staffId}`);
       toast.success("Staff deleted successfully");
       setStaffToDelete(null);
+      fetchUserStats();
 
       if (staff.length === 1 && currentPage > 1) {
         setCurrentPage((page) => page - 1);
@@ -464,15 +524,7 @@ const Employees = () => {
             <CardTitle>{item.title}</CardTitle>
 
             <CardFooter>
-              <CardValue>{item.value}</CardValue>
-
-              <Badge type={item.type}>
-                {item.percent}
-                <img
-                  src={item.type === "up" ? GreenArrow : RedArrow}
-                  alt="trend"
-                />
-              </Badge>
+              <CardValue>{item.value ?? "—"}</CardValue>
             </CardFooter>
           </StatCard>
         ))}
@@ -485,6 +537,8 @@ const Employees = () => {
         ]}
         active={activeTab}
         onChange={(tab) => {
+          const role = tab === "Employee" ? "employee" : "staff";
+          setStats(emptyStats(role));
           setActiveTab(tab);
           setCurrentPage(1);
         }}

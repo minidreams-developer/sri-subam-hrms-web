@@ -64,7 +64,7 @@ const PersonalInfo = forwardRef((_, ref) => {
   const generateStaffId = async () => {
     setStaffIdLoading(true);
     try {
-      const response = await get(GENERATE_STAFF_ID);
+      const response = await get(GENERATE_STAFF_ID, { skipGlobalLoading: true });
       console.log("Staff ID generated:", response);
       
       // Handle different response structures
