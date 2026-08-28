@@ -12,8 +12,7 @@ import { FaTimes } from "react-icons/fa";
 import deleteIcon from "../../assets/images/shift/delete.svg";
 import Switch from "react-switch";
 import CalenderInput from "../../components/CalenderInput";
-import { post, get, patch } from "../../helpers/api_helper";
-import { CREATE_SHIFT, GENERATE_SHIFT_ID, UPDATE_SHIFT, GET_SHIFT_DETAILS } from "../../helpers/url_helper";
+import { createShift, generateShiftId as requestShiftId, getShift, updateShift } from "../../services/apiServices";
 import { toast } from "react-toastify";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
@@ -62,7 +61,7 @@ const AddShift = () => {
     setIsGeneratingId(true);
     try {
       console.log("Fetching shift code from GET /v1/shifts/generate-id");
-      const response = await get(GENERATE_SHIFT_ID);
+      const response = await requestShiftId();
       console.log("Shift code generated:", response);
 
       if (response?.shiftCode) {
@@ -83,8 +82,7 @@ const AddShift = () => {
   const fetchShiftDetails = async () => {
     setIsGeneratingId(true);
     try {
-      const url = GET_SHIFT_DETAILS.replace(":shiftId", shiftId);
-      const response = await get(url);
+      const response = await getShift(shiftId);
       console.log("Shift details fetched:", response);
 
       // Populate form with shift data
@@ -337,16 +335,15 @@ const AddShift = () => {
       let response;
       if (isEditMode && shiftId) {
         // Use PATCH for update
-        const url = UPDATE_SHIFT.replace(":shiftId", shiftId);
-        console.log("Updating shift with URL:", url);
+        console.log("Updating shift:", shiftId);
         console.log("Shift ID:", shiftId);
-        response = await patch(url, payload);
+        response = await updateShift(shiftId, payload);
         console.log("Shift update response:", response);
         toast.success("Shift updated successfully!");
       } else {
         // Use POST for create
         console.log("Creating new shift...");
-        response = await post(CREATE_SHIFT, payload);
+        response = await createShift(payload);
         console.log("Shift creation response:", response);
         toast.success("Shift created successfully!");
       }

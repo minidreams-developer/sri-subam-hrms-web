@@ -7,8 +7,7 @@ import TableToolbar from "../../components/TableToolbar";
 import DotIcon from "../../assets/images/Overtime/actionDot.svg";
 import Button from "../../components/Button";
 import Filter from "../../components/filter";
-import { get } from "../../helpers/api_helper";
-import { GET_PAYROLL, DEPARTMENTS, GET_SHIFTS } from "../../helpers/url_helper";
+import { getDepartments, getPayroll, getShifts } from "../../services/apiServices";
 import { toast } from "react-toastify";
 
 const Payroll = () => {
@@ -44,7 +43,7 @@ const Payroll = () => {
   const fetchPayrollData = async () => {
     setLoading(true);
     try {
-      const response = await get(`${GET_PAYROLL}?page=${currentPage}&limit=${pageSize}`);
+      const response = await getPayroll({ page: currentPage, limit: pageSize });
       console.log("Payroll data fetched:", response);
       
       let records = [];
@@ -103,7 +102,7 @@ const Payroll = () => {
   const handleFilterApply = (queryParams) => {
     console.log("Applied filter query params:", queryParams);
     // Build the API URL with query parameters (per user-filters.md spec)
-    let url = GET_PAYROLL;
+    let url = "/v1/payroll";
     
     // Add filter parameters
     if (queryParams.departmentId) {
@@ -144,7 +143,7 @@ const Payroll = () => {
     // Fetch departments
     setLoadingDepts(true);
     try {
-      const deptResponse = await get(DEPARTMENTS);
+      const deptResponse = await getDepartments();
       console.log("Departments response:", deptResponse);
       
       // Handle different response structures
@@ -168,7 +167,7 @@ const Payroll = () => {
     // Fetch shifts
     setLoadingShifts(true);
     try {
-      const shiftResponse = await get(GET_SHIFTS);
+      const shiftResponse = await getShifts();
       console.log("Shifts response:", shiftResponse);
       
       // Handle different response structures
@@ -193,7 +192,7 @@ const Payroll = () => {
   const fetchPayrollDataWithFilters = async (url) => {
     setLoading(true);
     try {
-      const response = await get(url);
+      const response = await getPayroll(Object.fromEntries(new URL(url, window.location.origin).searchParams));
       console.log("Filtered payroll data fetched:", response);
       
       let records = [];

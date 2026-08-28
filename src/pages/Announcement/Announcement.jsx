@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import styled from "styled-components";
-import axios from "axios";
+import { createAnnouncement, deleteAnnouncement, getAnnouncements, updateAnnouncement } from "../../services/apiServices";
 import { toast } from "react-toastify";
 import { FiEdit2, FiPlus, FiTrash2 } from "react-icons/fi";
 import { useOutletContext } from "react-router-dom";
@@ -101,15 +101,8 @@ const Announcement = () => {
         setAnnouncementsLoading(true);
         setAnnouncementsError(null);
         
-        const baseUrl = `${import.meta.env.VITE_API_BASE_URL}/v1/announcements`;
-        const apiUrl = `${baseUrl}?status=${encodeURIComponent(filter.toLowerCase())}`;
-        console.log("🔗 Fetching announcements from:", apiUrl);
-        
-        const response = await axios.get(apiUrl, {
-          headers: {
-            "Content-Type": "application/json"
-          }
-        });
+        const responseData = await getAnnouncements({ status: filter.toLowerCase() });
+        const response = { data: responseData };
 
         console.log("✅ Announcements fetched successfully:", response.data);
         
@@ -242,16 +235,9 @@ const Announcement = () => {
       };
 
       console.log("📤 Submitting announcement payload:", JSON.stringify(payload, null, 2));
-      const apiUrl = `${import.meta.env.VITE_API_BASE_URL}/v1/announcements`;
-      console.log("🔗 API URL:", apiUrl);
-
       const response = editingAnnouncement
-        ? await axios.patch(`${apiUrl}/${editingAnnouncement.id}`, payload, {
-            headers: { "Content-Type": "application/json" }
-          })
-        : await axios.post(apiUrl, payload, {
-            headers: { "Content-Type": "application/json" }
-          });
+        ? { data: await updateAnnouncement(editingAnnouncement.id, payload) }
+        : { data: await createAnnouncement(payload) };
 
       console.log("✅ Announcement published successfully:", response.data);
       toast.success(editingAnnouncement ? "Announcement updated successfully!" : "Announcement published successfully!");
@@ -269,13 +255,7 @@ const Announcement = () => {
       // Refresh announcements list
       const fetchAnnouncements = async () => {
         try {
-          const baseUrl = `${import.meta.env.VITE_API_BASE_URL}/v1/announcements`;
-          const apiUrl = `${baseUrl}?status=${encodeURIComponent(filter.toLowerCase())}`;
-          const response = await axios.get(apiUrl, {
-            headers: {
-              "Content-Type": "application/json"
-            }
-          });
+          const response = { data: await getAnnouncements({ status: filter.toLowerCase() }) };
 
           const results = response.data?.results || [];
           const transformedAnnouncements = (Array.isArray(results) ? results : []).map((announcement) => {
@@ -351,7 +331,7 @@ const Announcement = () => {
 
     setDeletingId(announcement.id);
     try {
-      await axios.delete(`${import.meta.env.VITE_API_BASE_URL}/v1/announcements/${announcement.id}`);
+      await deleteAnnouncement(announcement.id);
       setAnnouncements((current) => current.filter((item) => item.id !== announcement.id));
       toast.success("Announcement deleted successfully!");
     } catch (error) {

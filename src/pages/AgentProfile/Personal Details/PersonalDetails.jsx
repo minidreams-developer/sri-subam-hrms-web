@@ -9,7 +9,7 @@ import CardDetails from "../../../components/CardDetails";
 import CardDetailsAlt from "../../../components/CardDetailsAlt";
 import FileUploadComponent from "../../../components/FileUploadComponent";
 import Button from "../../../components/Button";
-import { patch } from "../../../helpers/api_helper";
+import { updateUser } from "../../../services/apiServices";
 import { toast } from "react-toastify";
 
 export const PersonalDetails = ({ agent, onAgentUpdated }) => {
@@ -58,7 +58,7 @@ export const PersonalDetails = ({ agent, onAgentUpdated }) => {
         address: [{ ...address, addressLine1: form.address1, addressLine2: form.address2,
           city: form.city, state: form.state, pincode: form.zipCode }],
       };
-      const response = await patch(`/v1/users/${id}`, payload);
+      const response = await updateUser(id, payload);
       const updated = response?.data?.user || response?.data || response?.user || response;
       onAgentUpdated?.({ ...fallback, ...payload, ...(updated || {}) });
       setEditing(false);

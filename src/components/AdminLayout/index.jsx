@@ -2,11 +2,11 @@ import React, { useState, useEffect } from "react";
 import styled from "styled-components";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { MdMenu, MdKeyboardArrowUp, MdKeyboardArrowDown } from "react-icons/md";
-import { FiBell } from "react-icons/fi";
+import { FiBell, FiLogOut } from "react-icons/fi";
 import theme from "../../theme/theme";
 import SidebarItems from "../SidebarItem";
 import SearchInputComponent from "../SearchInputComponent";
-import { getStoredAuthUser } from "../../helpers/auth_helper";
+import { clearAuthData, getStoredAuthUser } from "../../helpers/auth_helper";
 import MainLogo from "../../assets/images/DashboardImages/main_logo.svg";
 import sampleProfile from "../../assets/images/employee/sampleProfile.jpg";
 
@@ -166,8 +166,20 @@ const AdminLayout = () => {
   const [headerTitle, setHeaderTitle] = useState("");
   const [headerBackAction, setHeaderBackAction] = useState(null);
   const [globalSearch, setGlobalSearch] = useState("");
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
+  const [logoutConfirmationOpen, setLogoutConfirmationOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
+
+  const handleLogout = () => {
+    clearAuthData();
+    navigate("/login", { replace: true });
+  };
+
+  const requestLogout = () => {
+    setAccountMenuOpen(false);
+    setLogoutConfirmationOpen(true);
+  };
 
   const closeMobileSidebar = () => {
     if (window.innerWidth <= 1024) setSidebarOpen(false);
@@ -372,19 +384,57 @@ const AdminLayout = () => {
               <FiBell />
             </NotificationButton>
             <HeaderDivider />
-            <RightCover>
-              <Profile src={sampleProfile} alt="profile" />
-              <TextWrap>
-                <Name>{user?.name || user?.username || "Manoj Kumar"}</Name>
-                <Role>{user?.role || "Admin"}</Role>
-              </TextWrap>
-            </RightCover>
+            <AccountMenuWrapper>
+              <RightCover
+                type="button"
+                onClick={() => setAccountMenuOpen((open) => !open)}
+                aria-expanded={accountMenuOpen}
+                aria-haspopup="menu"
+              >
+                <Profile src={sampleProfile} alt="profile" />
+                <TextWrap>
+                  <Name>{user?.name || user?.username || "Manoj Kumar"}</Name>
+                  <Role>{user?.role || "Admin"}</Role>
+                </TextWrap>
+                <MdKeyboardArrowDown />
+              </RightCover>
+              {accountMenuOpen && (
+                <AccountDropdown role="menu">
+                  <AccountDropdownButton type="button" role="menuitem" onClick={requestLogout}>
+                    <FiLogOut />
+                    Logout
+                  </AccountDropdownButton>
+                </AccountDropdown>
+              )}
+            </AccountMenuWrapper>
           </HeaderActions>
         </Header>
         <Content>
           <Outlet context={{ setHeaderTitle, setHeaderBackAction }} />
         </Content>
       </MainContent>
+      {logoutConfirmationOpen && (
+        <ModalBackdrop role="presentation" onMouseDown={() => setLogoutConfirmationOpen(false)}>
+          <ConfirmationModal
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="logout-title"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <ModalIcon><FiLogOut /></ModalIcon>
+            <ModalTitle id="logout-title">Confirm logout</ModalTitle>
+            <ModalMessage>Are you sure you want to log out of HRMS?</ModalMessage>
+            <ModalActions>
+              <CancelButton type="button" onClick={() => setLogoutConfirmationOpen(false)}>
+                Cancel
+              </CancelButton>
+              <ConfirmLogoutButton type="button" onClick={handleLogout} autoFocus>
+                Logout
+              </ConfirmLogoutButton>
+            </ModalActions>
+          </ConfirmationModal>
+        </ModalBackdrop>
+      )}
     </LayoutContainer>
   );
 };
@@ -729,15 +779,136 @@ const SubHead = styled.p`
   margin: 0 0 0 0;
 `;
 
-const RightCover = styled.div`
+const AccountMenuWrapper = styled.div`
+  position: relative;
+`;
+
+const RightCover = styled.button`
   display: flex;
   align-items: center;
   gap: 0.688rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
 
   @media (max-width: 480px) {
     > div {
       display: none;
     }
+  }
+`;
+
+const AccountDropdown = styled.div`
+  position: absolute;
+  top: calc(100% + 12px);
+  right: 0;
+  z-index: 1100;
+  min-width: 170px;
+  padding: 6px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.15);
+`;
+
+const AccountDropdownButton = styled.button`
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #c62828;
+  font-family: "Inter", sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:hover {
+    background: #fff5f5;
+  }
+
+  svg {
+    width: 18px;
+    height: 18px;
+  }
+
+`;
+
+const ModalBackdrop = styled.div`
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(15, 23, 42, 0.48);
+`;
+
+const ConfirmationModal = styled.div`
+  width: min(400px, 100%);
+  padding: 28px;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.25);
+  text-align: center;
+`;
+
+const ModalIcon = styled.div`
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 16px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #fff1f1;
+  color: #c62828;
+  font-size: 22px;
+`;
+
+const ModalTitle = styled.h2`
+  margin: 0 0 8px;
+  color: ${theme.colors.textColor};
+  font: 600 20px/1.4 "Inter", sans-serif;
+`;
+
+const ModalMessage = styled.p`
+  margin: 0 0 24px;
+  color: ${theme.colors.secondaryTextColor};
+  font: 400 14px/1.6 "Inter", sans-serif;
+`;
+
+const ModalActions = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+`;
+
+const ModalButton = styled.button`
+  min-width: 96px;
+  padding: 10px 16px;
+  border-radius: 6px;
+  font: 600 14px/1.4 "Inter", sans-serif;
+  cursor: pointer;
+`;
+
+const CancelButton = styled(ModalButton)`
+  border: 1px solid #d1d5db;
+  background: #fff;
+  color: ${theme.colors.textColor};
+`;
+
+const ConfirmLogoutButton = styled(ModalButton)`
+  border: 1px solid #c62828;
+  background: #c62828;
+  color: #fff;
+
+  &:hover {
+    background: #a91f1f;
   }
 `;
 

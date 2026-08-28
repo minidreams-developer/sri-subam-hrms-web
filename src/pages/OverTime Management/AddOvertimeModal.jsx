@@ -3,12 +3,7 @@ import styled from "styled-components";
 import { toast } from "react-toastify";
 import Button from "../../components/Button";
 import theme from "../../theme/theme";
-import { get, post } from "../../helpers/api_helper";
-import {
-  CREATE_OVERTIME,
-  DEPARTMENTS,
-  GET_ALL_EMPLOYEES,
-} from "../../helpers/url_helper";
+import { createOvertime, getDepartments, getUsers } from "../../services/apiServices";
 import calendarIcon from "../../assets/images/DashboardImages/calendar_svgrepo.com.svg";
 import clockIcon from "../../assets/images/Leavemanage/clock-circle.svg";
 
@@ -37,8 +32,8 @@ const AddOvertimeModal = ({ isOpen, onClose, onAdded }) => {
     const loadOptions = async () => {
       try {
         const [departmentResponse, employeeResponse] = await Promise.all([
-          get(DEPARTMENTS),
-          get(`${GET_ALL_EMPLOYEES}?page=1&limit=100`),
+          getDepartments(),
+          getUsers({ page: 1, limit: 100 }),
         ]);
         setDepartments(asList(departmentResponse));
         setEmployees(asList(employeeResponse));
@@ -83,7 +78,7 @@ const AddOvertimeModal = ({ isOpen, onClose, onAdded }) => {
     try {
       const startTime = new Date(`${form.overtimeDate}T${form.startTime}:00`);
       const endTime = new Date(`${form.overtimeDate}T${form.endTime}:00`);
-      await post(CREATE_OVERTIME, {
+      await createOvertime({
         department: form.department,
         employee: form.employee,
         OvertimeDate: new Date(`${form.overtimeDate}T00:00:00`).toISOString(),

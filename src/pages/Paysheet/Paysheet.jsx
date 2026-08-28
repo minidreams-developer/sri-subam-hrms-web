@@ -11,13 +11,7 @@ import GreenArrow from "../../assets/images/DashboardImages/green.svg";
 import RedArrow from "../../assets/images/DashboardImages/red.svg";
 import Filter from "../../components/filter";
 import AddPayroll from "./AddPayroll";
-import { get } from "../../helpers/api_helper";
-import {
-  GET_PAYSHEET_QUICK_STATS,
-  GET_PAYSHEET_PAYROLL_OVERVIEW,
-  GET_PAYSHEET_PAYROLL_BREAKDOWN,
-  GET_PAYSHEET_LIST,
-} from "../../helpers/url_helper";
+import { getPaysheetBreakdown, getPaysheetOverview, getPaysheetQuickStats, getPaysheets } from "../../services/apiServices";
 import { toast } from "react-toastify";
 
 const Paysheet = () => {
@@ -51,25 +45,25 @@ const Paysheet = () => {
       const year = getCurrentYear();
 
       // Fetch quick stats
-      const quickStats = await get(`${GET_PAYSHEET_QUICK_STATS}?month=${month}&year=${year}`);
+      const quickStats = await getPaysheetQuickStats({ month, year });
       if (quickStats) {
         setQuickStatsData(quickStats.quickStats);
       }
 
       // Fetch payroll overview
-      const payrollOverview = await get(`${GET_PAYSHEET_PAYROLL_OVERVIEW}?year=${year}`);
+      const payrollOverview = await getPaysheetOverview({ year });
       if (payrollOverview) {
         setPayrollOverviewData(payrollOverview);
       }
 
       // Fetch payroll breakdown
-      const payrollBreakdown = await get(`${GET_PAYSHEET_PAYROLL_BREAKDOWN}?month=${month}&year=${year}`);
+      const payrollBreakdown = await getPaysheetBreakdown({ month, year });
       if (payrollBreakdown) {
         setPayrollBreakdownData(payrollBreakdown.payrollBreakdown);
       }
 
       // Fetch payroll list
-      const payrollList = await get(`${GET_PAYSHEET_LIST}?month=${month}&year=${year}&page=${currentPage}&limit=10`);
+      const payrollList = await getPaysheets({ month, year, page: currentPage, limit: 10 });
       if (payrollList) {
         setPayrollListData(payrollList.results || []);
         setTotalPages(payrollList.totalPages || 1);
@@ -85,46 +79,20 @@ const Paysheet = () => {
   const handleFilterApply = (queryParams) => {
     console.log("Applied filter query params:", queryParams);
     // Build the API URL with query parameters (per user-filters.md spec)
-    let url = `${GET_PAYSHEET_LIST}?month=${getCurrentMonth()}&year=${getCurrentYear()}`;
-    
-    // Add filter parameters
-    if (queryParams.departmentId) {
-      url += `&departmentId=${queryParams.departmentId}`;
-    }
-    if (queryParams.designation) {
-      url += `&designation=${encodeURIComponent(queryParams.designation)}`;
-    }
-    if (queryParams.joinedFrom) {
-      url += `&joinedFrom=${queryParams.joinedFrom}`;
-    }
-    if (queryParams.joinedTo) {
-      url += `&joinedTo=${queryParams.joinedTo}`;
-    }
-    if (queryParams.status) {
-      url += `&status=${queryParams.status}`;
-    }
-    if (queryParams.shiftId) {
-      url += `&shiftId=${queryParams.shiftId}`;
-    }
-    if (queryParams.sortBy) {
-      url += `&sortBy=${queryParams.sortBy}`;
-    }
-    
-    // Add pagination
-    url += `&page=${queryParams.page || 1}&limit=${queryParams.limit || 10}`;
+    const params = { month: getCurrentMonth(), year: getCurrentYear(), ...queryParams, page: queryParams.page || 1, limit: queryParams.limit || 10 };
     
     setAppliedFilters(queryParams);
     setShowFilter(false);
     setCurrentPage(1);
     
     // Fetch filtered payroll list data
-    fetchPayrollListWithFilters(url);
+    fetchPayrollListWithFilters(params);
   };
 
-  const fetchPayrollListWithFilters = async (url) => {
+  const fetchPayrollListWithFilters = async (params) => {
     setLoading(true);
     try {
-      const payrollList = await get(url);
+      const payrollList = await getPaysheets(params);
       console.log("Filtered payroll list data:", payrollList);
       if (payrollList) {
         setPayrollListData(payrollList.results || []);

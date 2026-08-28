@@ -6,8 +6,7 @@ import ReusableTable from "../../components/ReusableTable";
 import PlusIcon from "../../assets/images/DashboardImages/plus-large_svgrepo.com.svg";
 import TableToolbar from "../../components/TableToolbar";
 import BranchDetailsSidebar from "./BranchDetailsSidebar";
-import { get } from "../../helpers/api_helper";
-import { BRANCHES } from "../../helpers/url_helper";
+import { getBranches } from "../../services/apiServices";
 import { toast } from "react-toastify";
 import PageLoader from "../../components/PageLoader";
 import { HiBuildingOffice2 } from "react-icons/hi2";
@@ -34,7 +33,7 @@ const Branches = () => {
   const fetchBranches = async (page = 1, limit = 10, sort = "createdAt:desc") => {
     setIsLoading(true);
     try {
-      const response = await get(`${BRANCHES}?page=${page}&limit=${limit}&sortBy=${sort}`);
+      const response = await getBranches({ page, limit, sortBy: sort });
       console.log("Branches fetched:", response);
       
       // Handle different response structures

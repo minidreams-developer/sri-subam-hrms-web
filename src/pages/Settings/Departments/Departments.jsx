@@ -6,8 +6,7 @@ import AddDepartmentModal from "../../../components/AddDepartmentModal";
 import PlusIcon from "../../../assets/images/DashboardImages/plus-large_svgrepo.com.svg";
 import EditIcon from "../../../assets/images/employee/editIcon.svg";
 import DeleteIcon from "../../../assets/images/employee/Cross.svg";
-import { get, del } from "../../../helpers/api_helper";
-import { DEPARTMENTS, DELETE_DEPARTMENT } from "../../../helpers/url_helper";
+import { deleteDepartment, getDepartments } from "../../../services/apiServices";
 import { toast } from "react-toastify";
 
 const Departments = () => {
@@ -29,12 +28,7 @@ const Departments = () => {
   const fetchDepartments = async (page = 1, searchQuery = "") => {
     setIsLoading(true);
     try {
-      let url = `${DEPARTMENTS}?page=${page}&limit=${itemsPerPage}`;
-      if (searchQuery) {
-        url += `&search=${encodeURIComponent(searchQuery)}`;
-      }
-      
-      const response = await get(url);
+      const response = await getDepartments({ page, limit: itemsPerPage, search: searchQuery });
       console.log("Departments response:", response);
 
       // Extract pagination info from response
@@ -150,8 +144,7 @@ const Departments = () => {
     // Confirmation dialog before delete
     if (window.confirm("Are you sure you want to delete this department?")) {
       try {
-        const url = DELETE_DEPARTMENT.replace(":departmentId", departmentId);
-        await del(url);
+        await deleteDepartment(departmentId);
         toast.success("Department deleted successfully!");
         // Refresh the departments list
         setCurrentPage(1);

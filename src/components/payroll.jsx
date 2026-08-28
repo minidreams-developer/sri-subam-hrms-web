@@ -4,7 +4,7 @@ import { useState } from "react";
 import EditIcon from "../assets/images/employee/editIcon.svg";
 import CardDetails from "./CardDetails";
 import PayrollIcon from "./Frame 1000009178 - Copy.svg";
-import { patch } from "../helpers/api_helper";
+import { updateUser } from "../services/apiServices";
 import { toast } from "react-toastify";
 
 const money = (value) => value === "" || value == null ? "N/A" : Number(value).toLocaleString("en-IN");
@@ -55,7 +55,7 @@ const PayrollComponent = ({ employee, onEmployeeUpdated }) => {
       : { currentMonthSalary: { ...currentSalary, ...numericForm } };
     setSaving(true);
     try {
-      const response = await patch(`/v1/users/${employeeId}`, payload);
+      const response = await updateUser(employeeId, payload);
       const updated = response?.data || response?.user || response;
       onEmployeeUpdated?.({ ...employee, ...payload, ...(updated || {}) });
       setEditor(null);

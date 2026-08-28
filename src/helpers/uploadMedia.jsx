@@ -1,12 +1,11 @@
-import { postFormData } from "../helpers/api_helper";
-import { MEDIA } from "../helpers/url_helper";
+import { uploadMediaFile } from "../services/apiServices";
 
 export const uploadMedia = async (file, onProgress) => {
     const formData = new FormData();
     formData.append("upload", file);
   
     try {
-      const response = await postFormData(MEDIA, formData, onProgress);
+      const response = await uploadMediaFile(formData, onProgress);
       if (response?.data?.link?.[0]) {
         return response.data.link[0];
       } else {

@@ -7,7 +7,7 @@ import TableToolbar from "../../components/TableToolbar";
 import PlusIcon from "../../assets/images/DashboardImages/plus-large_svgrepo.com.svg";
 import Filter from "../../components/filter";
 import ReusableTable from "../../components/ReusableTable";
-import { del, get } from "../../helpers/api_helper";
+import { deleteUser, getUserCount, getUsers } from "../../services/apiServices";
 import { toast } from "react-toastify";
 import DeleteConfirmationModal from "../../components/DeleteConfirmationModal";
 
@@ -86,7 +86,7 @@ const Agents = () => {
         query.set("joinedTo", joinedTo.toISOString().slice(0, 10));
       }
 
-      const response = await get(`/v1/users/count?${query.toString()}`);
+      const response = await getUserCount(Object.fromEntries(query));
       if (requestId !== statsRequestId.current) return;
       const root = response?.data ?? response;
       const counts = root?.counts ?? root?.statusCounts ?? root;
@@ -133,7 +133,7 @@ const Agents = () => {
         query.set("joinedTo", joinedTo.toISOString().slice(0, 10));
       }
 
-      const response = await get(`/v1/users?${query.toString()}`);
+      const response = await getUsers(Object.fromEntries(query));
       console.log("=== Full Response ===", response);
       console.log("Response type:", typeof response);
       console.log("Response keys:", response ? Object.keys(response) : "null");
@@ -233,7 +233,7 @@ const Agents = () => {
 
     setIsDeleting(true);
     try {
-      await del(`/v1/users/${userId}`);
+      await deleteUser(userId);
       toast.success("Agent deleted successfully");
       setAgentToDelete(null);
       await fetchAgents(currentPage, pageSize, sortBy);

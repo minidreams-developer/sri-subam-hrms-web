@@ -9,8 +9,7 @@ import AttendanceStreak from "../../assets/images/Badges/AttendanceStreak.svg";
 import ZeroAbsenceChamp from "../../assets/images/Badges/ZeroAbsenceChamp.svg";
 import PerfectMonth from "../../assets/images/Badges/PerfectMonth.svg";
 import NeverLate from "../../assets/images/Badges/NeverLate.svg";
-import { get } from "../../helpers/api_helper";
-import { GET_LEADERBOARD, DEPARTMENTS, GET_SHIFTS } from "../../helpers/url_helper";
+import { getDepartments, getLeaderboard, getShifts } from "../../services/apiServices";
 import { toast } from "react-toastify";
 
 const Leaderboard = () => {
@@ -46,7 +45,7 @@ const Leaderboard = () => {
     // Fetch departments
     setLoadingDepts(true);
     try {
-      const deptResponse = await get(DEPARTMENTS);
+      const deptResponse = await getDepartments();
       console.log("Departments response:", deptResponse);
       
       // Handle different response structures
@@ -70,7 +69,7 @@ const Leaderboard = () => {
     // Fetch shifts
     setLoadingShifts(true);
     try {
-      const shiftResponse = await get(GET_SHIFTS);
+      const shiftResponse = await getShifts();
       console.log("Shifts response:", shiftResponse);
       
       // Handle different response structures
@@ -95,7 +94,7 @@ const Leaderboard = () => {
   const fetchLeaderboard = async (page = 1, limit = 10) => {
     setIsLoading(true);
     try {
-      const response = await get(`${GET_LEADERBOARD}?page=${page}&limit=${limit}&sortBy=totalPoints:desc`);
+      const response = await getLeaderboard({ page, limit, sortBy: "totalPoints:desc" });
       console.log("Leaderboard API Response:", response);
 
       let leaderboardList = [];

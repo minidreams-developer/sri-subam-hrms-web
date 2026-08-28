@@ -4,8 +4,7 @@ import styled from "styled-components";
 import TableToolbar from "../../../components/TableToolbar";
 import ReusableTable from "../../../components/ReusableTable";
 import PlusIcon from "../../../assets/images/DashboardImages/plus-large_svgrepo.com.svg";
-import { del, get } from "../../../helpers/api_helper";
-import { DELETE_ROLE, GET_ROLES } from "../../../helpers/url_helper";
+import { deleteRole, getRoles } from "../../../services/apiServices";
 import { toast } from "react-toastify";
 import theme from "../../../theme/theme";
 
@@ -18,7 +17,7 @@ const Roles = () => {
   const fetchRoles = async () => {
     try {
       setLoading(true);
-      const response = await get(GET_ROLES);
+      const response = await getRoles();
       if (response?.results) {
         setRolesData(response.results);
       } else if (Array.isArray(response)) {
@@ -89,7 +88,7 @@ const Roles = () => {
     if (!window.confirm(`Delete the ${role.name || "selected"} role?`)) return;
 
     try {
-      await del(DELETE_ROLE.replace(":roleId", roleId));
+      await deleteRole(roleId);
       setRolesData((current) =>
         current.filter((item) => (item.id || item._id) !== roleId),
       );

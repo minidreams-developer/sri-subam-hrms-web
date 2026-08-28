@@ -1,8 +1,7 @@
 import React, { useCallback, useEffect, useState, useRef } from "react";
 import styled from "styled-components";
 import theme from "../theme/theme";
-import { get } from "../helpers/api_helper";
-import { BY_CART } from "../helpers/url_helper";
+import { searchCart } from "../services/apiServices";
 import { debounce } from "lodash";
 import { Spinner } from "reactstrap";
 
@@ -48,7 +47,7 @@ const AutoSuggest = ({
 
     try {
       setLoading(true);
-      const response = await get(`${BY_CART}=${query}`);
+      const response = await searchCart(query);
       console.log("API Response:", response);
 
       if (response?.data && Array.isArray(response?.data)) {

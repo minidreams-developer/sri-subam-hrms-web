@@ -5,8 +5,7 @@ import InputComponent from "../../components/InputComponent";
 import Select from "react-select";
 import { customSelectStyles } from "../../theme/reactSelectStyles";
 import Button from "../../components/Button";
-import { get, post } from "../../helpers/api_helper";
-import { GET_ALL_EMPLOYEES, CREATE_PAYROLL } from "../../helpers/url_helper";
+import { createPayroll, getUser, getUsers } from "../../services/apiServices";
 import { toast } from "react-toastify";
 
 // Utility function to format currency
@@ -44,7 +43,7 @@ const AddPayroll = ({ onClose, onSubmit }) => {
   const fetchEmployees = async () => {
     setEmployeesLoading(true);
     try {
-      const response = await get(`${GET_ALL_EMPLOYEES}?page=1&limit=100`);
+      const response = await getUsers({ page: 1, limit: 100 });
       let employees = [];
       if (Array.isArray(response)) {
         employees = response;
@@ -80,7 +79,7 @@ const AddPayroll = ({ onClose, onSubmit }) => {
     setIsFetchingDetails(true);
     try {
       // Fetch detailed employee data from /v1/users/{userId}
-      const employeeData = await get(`/v1/users/${option.value}`);
+      const employeeData = await getUser(option.value);
 
       if (employeeData) {
         // Extract CTC information
@@ -214,7 +213,7 @@ const AddPayroll = ({ onClose, onSubmit }) => {
       console.log("Submitting payroll data:", payloadData);
 
       // Call API
-      const response = await post(CREATE_PAYROLL, payloadData);
+      const response = await createPayroll(payloadData);
       
       console.log("Payroll created successfully:", response);
       toast.success("Payroll created successfully!");

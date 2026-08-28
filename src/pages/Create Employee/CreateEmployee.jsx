@@ -7,8 +7,7 @@ import PersonalInfo from "./PersonalInfo/PersonalInfo";
 import AddWorkDetails from "./Work Details/AddWorkDetails";
 import Documents from "./Documents/Documents";
 import Button from "../../components/Button";
-import { patchFormData, post } from "../../helpers/api_helper";
-import { EMPLOYEE_REGISTRATION } from "../../helpers/url_helper";
+import { createEmployee, updateUserFormData } from "../../services/apiServices";
 import { buildDocumentFormData } from "../../helpers/registration_form_data";
 import { toast } from "react-toastify";
 
@@ -160,7 +159,7 @@ const CreateEmployee = () => {
 
       console.log("Payload:", payload);
 
-      const response = await post(EMPLOYEE_REGISTRATION, payload);
+      const response = await createEmployee(payload);
       console.log("Response:", response);
 
       const selectedDocuments = [
@@ -172,10 +171,7 @@ const CreateEmployee = () => {
 
       if (selectedDocuments.length) {
         if (!employeeId) throw new Error("Employee created, but its ID was not returned for document upload");
-        await patchFormData(
-          `/v1/users/${employeeId}`,
-          buildDocumentFormData(documentsData),
-        );
+        await updateUserFormData(employeeId, buildDocumentFormData(documentsData));
       }
 
       toast.success("Employee created successfully!");

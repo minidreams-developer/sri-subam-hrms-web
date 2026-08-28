@@ -3,8 +3,7 @@ import styled from "styled-components";
 import SampleProfile from "../../../assets/images/employee/sampleProfile.jpg";
 import EditIcon from "../../../assets/images/employee/edit-05_svgrepo.com.svg";
 import theme from "../../../theme/theme";
-import { get } from "../../../helpers/api_helper";
-import { GET_ORGANIZATIONS } from "../../../helpers/url_helper";
+import { getOrganizations } from "../../../services/apiServices";
 import { toast } from "react-toastify";
 
 const GeneralSettings = () => {
@@ -14,7 +13,7 @@ const GeneralSettings = () => {
   const fetchOrganizationData = async () => {
     try {
       setLoading(true);
-      const response = await get(GET_ORGANIZATIONS);
+      const response = await getOrganizations();
       // Handle API response with results array
       if (response && response.results && Array.isArray(response.results) && response.results.length > 0) {
         const org = response.results[0];

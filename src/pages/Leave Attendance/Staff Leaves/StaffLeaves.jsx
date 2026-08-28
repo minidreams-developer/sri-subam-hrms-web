@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import ReusableTable from "../../../components/ReusableTable";
-import { del, get } from "../../../helpers/api_helper";
-import { GET_LEAVE_REQUESTS } from "../../../helpers/url_helper";
+import { deleteLeaveRequest, getLeaveRequests } from "../../../services/apiServices";
 import TableToolbar from "../../../components/TableToolbar";
 import PlusIcon from "../../../assets/images/DashboardImages/plus-large_svgrepo.com.svg";
 import { toast } from "react-toastify";
@@ -33,9 +32,7 @@ const StaffLeaves = () => {
     const fetchStaffLeaves = async () => {
       try {
         setLoading(true);
-        const response = await get(
-          `${GET_LEAVE_REQUESTS}?page=${currentPage}&limit=${pageSize}`
-        );
+        const response = await getLeaveRequests({ page: currentPage, limit: pageSize });
 
         const results = response.results || response.data || [];
         // Filter out Permission type leaves
@@ -126,7 +123,7 @@ const StaffLeaves = () => {
         loading={loading}
         onView={(row) => navigate("/admin/time-hub/leaveAttendance/edit-Leave", { state: { leave: row.raw, leaveId: row.id, returnTo: "/admin/time-hub/leaveAttendance", returnTab: "Staffs Leaves", readOnly: true } })}
         onEdit={(row) => navigate("/admin/time-hub/leaveAttendance/edit-Leave", { state: { leave: row.raw, leaveId: row.id, returnTo: "/admin/time-hub/leaveAttendance", returnTab: "Staffs Leaves" } })}
-        onDelete={async (row) => { if (!window.confirm("Delete this leave request?")) return; try { await del(`${GET_LEAVE_REQUESTS}/${row.id}`); setStaffLeaveData((items) => items.filter((item) => item.id !== row.id)); toast.success("Leave request deleted"); } catch (error) { toast.error(error.response?.data?.message || "Failed to delete leave request"); } }}
+        onDelete={async (row) => { if (!window.confirm("Delete this leave request?")) return; try { await deleteLeaveRequest(row.id); setStaffLeaveData((items) => items.filter((item) => item.id !== row.id)); toast.success("Leave request deleted"); } catch (error) { toast.error(error.response?.data?.message || "Failed to delete leave request"); } }}
       />
     </>
   );

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import styled from "styled-components";
 import { useNavigate, useParams } from "react-router-dom";
-import axios from "axios";
+import { getContractor } from "../../services/apiServices";
 import { toast } from "react-toastify";
 import {
   FiChevronDown, FiChevronLeft, FiChevronRight, FiDownload,
@@ -45,7 +45,7 @@ const ContractorDetails = () => {
   useEffect(() => {
     const load = async () => {
       try {
-        const { data } = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/v1/contractors/${id}`);
+        const data = await getContractor(id);
         setContractor(data);
       } catch (error) {
         toast.error(error.response?.data?.message || "Failed to load contractor details");

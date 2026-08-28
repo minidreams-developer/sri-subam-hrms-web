@@ -5,8 +5,7 @@ import InputComponent from "../../components/InputComponent";
 import Button from "../../components/Button";
 import UploadIconSvg from "../../assets/images/Common/upload.svg";
 import { toast } from "react-toastify";
-import { post } from "../../helpers/api_helper";
-import { CREATE_ORGANIZATION } from "../../helpers/url_helper";
+import { createOrganization } from "../../services/apiServices";
 
 const OrganizationDetails = () => {
   const [formData, setFormData] = useState({
@@ -68,7 +67,7 @@ const OrganizationDetails = () => {
         (key) => !payload[key] && key !== "address" && delete payload[key]
       );
 
-      const response = await post(CREATE_ORGANIZATION, payload);
+      const response = await createOrganization(payload);
       toast.success("Organization details saved successfully!");
       console.log("API response:", response);
     } catch (error) {

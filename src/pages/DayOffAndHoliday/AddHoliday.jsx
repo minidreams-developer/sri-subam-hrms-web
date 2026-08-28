@@ -7,8 +7,7 @@ import { customSelectStyles } from "../../theme/reactSelectStyles";
 import InputComponent from "../../components/InputComponent";
 import CalenderInput from "../../components/CalenderInput";
 import Button from "../../components/Button";
-import { patch, post } from "../../helpers/api_helper";
-import { CREATE_HOLIDAY } from "../../helpers/url_helper";
+import { createHoliday, updateHoliday } from "../../services/apiServices";
 import { toast } from "react-toastify";
 
 const AddHoliday = () => {
@@ -86,7 +85,7 @@ const AddHoliday = () => {
 
       // Submit to API
       const holidayId = editHoliday?.id || editHoliday?._id;
-      const response = editHoliday ? await patch(`${CREATE_HOLIDAY}/${holidayId}`, payload) : await post(CREATE_HOLIDAY, payload);
+      const response = editHoliday ? await updateHoliday(holidayId, payload) : await createHoliday(payload);
 
       if (response) {
         toast.success(`Holiday ${editHoliday ? "updated" : "created"} successfully`);

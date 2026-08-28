@@ -9,8 +9,7 @@ import { Label } from "reactstrap";
 import CalenderInput from "../../../components/CalenderInput";
 import TimeInputComponent from "../../../components/TimeInputComponent";
 import Button from "../../../components/Button";
-import { get, post } from "../../../helpers/api_helper";
-import { GET_ALL_EMPLOYEES, CREATE_ATTENDANCE, DEPARTMENTS, GET_SHIFTS } from "../../../helpers/url_helper";
+import { createAttendance, getDepartments, getShifts, getUsers } from "../../../services/apiServices";
 import { toast } from "react-toastify";
 
 const AddAttendance = () => {
@@ -49,7 +48,7 @@ const AddAttendance = () => {
     const fetchEmployees = async () => {
       try {
         setFetchingEmployees(true);
-        const response = await get(`${GET_ALL_EMPLOYEES}?page=1&limit=100`);
+        const response = await getUsers({ page: 1, limit: 100 });
         const employeeList = response.results || response.data || response.users || [];
         const formattedEmployees = employeeList.map((emp) => ({
           value: emp._id || emp.id,
@@ -75,7 +74,7 @@ const AddAttendance = () => {
     const fetchDepartments = async () => {
       try {
         setFetchingDepartments(true);
-        const response = await get(`${DEPARTMENTS}?page=1&limit=100`);
+        const response = await getDepartments({ page: 1, limit: 100 });
         const departmentList = response.results || response.data || [];
         const formattedDepartments = departmentList.map((dept) => ({
           value: dept._id || dept.id,
@@ -99,7 +98,7 @@ const AddAttendance = () => {
     const fetchShifts = async () => {
       try {
         setFetchingShifts(true);
-        const response = await get(`${GET_SHIFTS}?page=1&limit=100`);
+        const response = await getShifts({ page: 1, limit: 100 });
         const shiftList = response.results || response.data || [];
         const formattedShifts = shiftList.map((shift) => ({
           value: shift._id || shift.id,
@@ -199,7 +198,7 @@ const AddAttendance = () => {
         remarks: remarks || null,
       };
 
-      const response = await post(CREATE_ATTENDANCE, payload);
+      const response = await createAttendance(payload);
 
       if (response) {
         toast.success("Attendance recorded successfully");

@@ -5,8 +5,7 @@ import Button from "./Button";
 import InputComponent from "./InputComponent";
 import Select from "react-select";
 import { customSelectStyles } from "../theme/reactSelectStyles";
-import { post, get, patch } from "../helpers/api_helper";
-import { GENERATE_DEPARTMENT_ID, CREATE_DEPARTMENT, GET_ALL_EMPLOYEES, GET_DEPARTMENT, UPDATE_DEPARTMENT } from "../helpers/url_helper";
+import { createDepartment, generateDepartmentId as requestDepartmentId, getDepartment, getUsers, updateDepartment } from "../services/apiServices";
 import { toast } from "react-toastify";
 
 const AddDepartmentModal = ({ isOpen, onClose, onSave, isEditMode = false, editingDepartmentId = null }) => {
@@ -45,7 +44,7 @@ const AddDepartmentModal = ({ isOpen, onClose, onSave, isEditMode = false, editi
     setIsFetchingUsers(true);
     try {
       console.log("Fetching users from GET /v1/users");
-      const response = await get(GET_ALL_EMPLOYEES);
+      const response = await getUsers();
       console.log("Users fetched:", response);
 
       // Map users to dropdown options
@@ -80,8 +79,7 @@ const AddDepartmentModal = ({ isOpen, onClose, onSave, isEditMode = false, editi
   const fetchDepartmentData = async (departmentId) => {
     setIsLoading(true);
     try {
-      const url = GET_DEPARTMENT.replace(":departmentId", departmentId);
-      const response = await get(url);
+      const response = await getDepartment(departmentId);
       console.log("Department data fetched:", response);
 
       // Handle different response structures
@@ -123,7 +121,7 @@ const AddDepartmentModal = ({ isOpen, onClose, onSave, isEditMode = false, editi
     setIsGeneratingId(true);
     try {
       console.log("Fetching department code from GET /v1/departments/generate-id");
-      const response = await get(GENERATE_DEPARTMENT_ID);
+      const response = await requestDepartmentId();
       console.log("Department code generated:", response);
       
       if (response?.departmentCode) {
@@ -169,12 +167,11 @@ const AddDepartmentModal = ({ isOpen, onClose, onSave, isEditMode = false, editi
       let response;
       if (isEditMode && editingDepartmentId) {
         // Update existing department
-        const url = UPDATE_DEPARTMENT.replace(":departmentId", editingDepartmentId);
-        response = await patch(url, payload);
+        response = await updateDepartment(editingDepartmentId, payload);
         toast.success("Department updated successfully!");
       } else {
         // Create new department
-        response = await post(CREATE_DEPARTMENT, payload);
+        response = await createDepartment(payload);
         toast.success("Department created successfully!");
       }
 

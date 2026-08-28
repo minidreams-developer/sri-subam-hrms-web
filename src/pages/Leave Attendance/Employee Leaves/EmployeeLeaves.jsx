@@ -3,8 +3,7 @@ import { useNavigate } from "react-router-dom";
 import ReusableTable from "../../../components/ReusableTable";
 import TableToolbar from "../../../components/TableToolbar";
 import PlusIcon from "../../../assets/images/DashboardImages/plus-large_svgrepo.com.svg";
-import { del, get } from "../../../helpers/api_helper";
-import { GET_LEAVE_REQUESTS } from "../../../helpers/url_helper";
+import { deleteLeaveRequest, getLeaveRequests } from "../../../services/apiServices";
 import { toast } from "react-toastify";
 
 const EmployeeLeaves = () => {
@@ -33,9 +32,7 @@ const EmployeeLeaves = () => {
     const fetchLeaveRequests = async () => {
       try {
         setLoading(true);
-        const response = await get(
-          `${GET_LEAVE_REQUESTS}?page=${currentPage}&limit=${pageSize}`
-        );
+        const response = await getLeaveRequests({ page: currentPage, limit: pageSize });
 
         const results = response.results || response.data || [];
         const transformedData = results.map((leave) => ({
@@ -121,7 +118,7 @@ const EmployeeLeaves = () => {
         loading={loading}
         onView={(row) => navigate("/admin/time-hub/leaveAttendance/edit-Leave", { state: { leave: row.raw, leaveId: row.id, returnTo: "/admin/time-hub/leaveAttendance", returnTab: "Employee Leaves", readOnly: true } })}
         onEdit={(row) => navigate("/admin/time-hub/leaveAttendance/edit-Leave", { state: { leave: row.raw, leaveId: row.id, returnTo: "/admin/time-hub/leaveAttendance", returnTab: "Employee Leaves" } })}
-        onDelete={async (row) => { if (!window.confirm("Delete this leave request?")) return; try { await del(`${GET_LEAVE_REQUESTS}/${row.id}`); setLeaveData((items) => items.filter((item) => item.id !== row.id)); toast.success("Leave request deleted"); } catch (error) { toast.error(error.response?.data?.message || "Failed to delete leave request"); } }}
+        onDelete={async (row) => { if (!window.confirm("Delete this leave request?")) return; try { await deleteLeaveRequest(row.id); setLeaveData((items) => items.filter((item) => item.id !== row.id)); toast.success("Leave request deleted"); } catch (error) { toast.error(error.response?.data?.message || "Failed to delete leave request"); } }}
       />
     </>
   );

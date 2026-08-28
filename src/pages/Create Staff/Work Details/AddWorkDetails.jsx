@@ -5,8 +5,7 @@ import CalenderInput from "../../../components/CalenderInput";
 import InputComponent from "../../../components/InputComponent";
 import Select from "react-select";
 import { customSelectStyles } from "../../../theme/reactSelectStyles";
-import { get } from "../../../helpers/api_helper";
-import { DEPARTMENTS, GET_SHIFTS, GET_ALL_EMPLOYEES, TEAMS, BRANCHES } from "../../../helpers/url_helper";
+import { getBranches, getDepartments, getShifts, getTeams, getUsers } from "../../../services/apiServices";
 import { toast } from "react-toastify";
 
 const createPrefilledWorkData = () => {
@@ -80,7 +79,7 @@ const AddWorkDetails = forwardRef(({ onNext, onBack }, ref) => {
   const fetchContractAgents = async () => {
     setContractAgentsLoading(true);
     try {
-      const response = await get("/v1/users?role=agent&page=1&limit=10&sortBy=createdAt:desc", { skipGlobalLoading: true });
+      const response = await getUsers({ role: "agent", page: 1, limit: 10, sortBy: "createdAt:desc" }, { skipGlobalLoading: true });
       const agentData = Array.isArray(response)
         ? response
         : response?.results || response?.data?.results || response?.data || response?.users || [];
@@ -104,7 +103,7 @@ const AddWorkDetails = forwardRef(({ onNext, onBack }, ref) => {
   const fetchDepartments = async () => {
     setDepartmentsLoading(true);
     try {
-      const response = await get(`${DEPARTMENTS}?page=1&limit=100`, { skipGlobalLoading: true });
+      const response = await getDepartments({ page: 1, limit: 100 }, { skipGlobalLoading: true });
       let departments = [];
       if (Array.isArray(response)) {
         departments = response;
@@ -131,7 +130,7 @@ const AddWorkDetails = forwardRef(({ onNext, onBack }, ref) => {
   const fetchShifts = async () => {
     setShiftsLoading(true);
     try {
-      const response = await get(`${GET_SHIFTS}?page=1&limit=100`, { skipGlobalLoading: true });
+      const response = await getShifts({ page: 1, limit: 100 }, { skipGlobalLoading: true });
       let shifts = [];
       if (Array.isArray(response)) {
         shifts = response;
@@ -158,7 +157,7 @@ const AddWorkDetails = forwardRef(({ onNext, onBack }, ref) => {
   const fetchUsers = async () => {
     setUsersLoading(true);
     try {
-      const response = await get(`${GET_ALL_EMPLOYEES}?page=1&limit=100`, { skipGlobalLoading: true });
+      const response = await getUsers({ page: 1, limit: 100 }, { skipGlobalLoading: true });
       let users = [];
       if (Array.isArray(response)) {
         users = response;
@@ -186,7 +185,7 @@ const AddWorkDetails = forwardRef(({ onNext, onBack }, ref) => {
   const fetchTeams = async () => {
     setTeamsLoading(true);
     try {
-      const response = await get(`${TEAMS}?page=1&limit=100`, { skipGlobalLoading: true });
+      const response = await getTeams({ page: 1, limit: 100 }, { skipGlobalLoading: true });
       let teams = [];
       if (Array.isArray(response)) {
         teams = response;
@@ -212,7 +211,7 @@ const AddWorkDetails = forwardRef(({ onNext, onBack }, ref) => {
   const fetchBranches = async () => {
     setBranchesLoading(true);
     try {
-      const response = await get(`${BRANCHES}?page=1&limit=100`, { skipGlobalLoading: true });
+      const response = await getBranches({ page: 1, limit: 100 }, { skipGlobalLoading: true });
       let branches = [];
       if (Array.isArray(response)) {
         branches = response;

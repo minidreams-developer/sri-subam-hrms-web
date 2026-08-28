@@ -9,8 +9,7 @@ import ReusableTable from "./ReusableTable";
 import SearchInputComponent from "./SearchInputComponent";
 import FilterIcon from "../assets/images/DashboardImages/filtericon.svg";
 import Filter from "./filter";
-import { get } from "../helpers/api_helper";
-import { ATTENDANCE_RECORDS, DEPARTMENTS, GET_SHIFTS } from "../helpers/url_helper";
+import { getAttendance, getDepartments, getShifts } from "../services/apiServices";
 import { toast } from "react-toastify";
 
 const Attendance = () => {
@@ -47,7 +46,7 @@ const Attendance = () => {
   const fetchAttendanceData = async () => {
     try {
       setLoading(true);
-      const response = await get(`${ATTENDANCE_RECORDS}?page=${currentPage}&limit=${rowsPerPage}`);
+      const response = await getAttendance({ page: currentPage, limit: rowsPerPage });
       
       const records = response.results || [];
       
@@ -153,7 +152,7 @@ const Attendance = () => {
     // Fetch departments
     setLoadingDepts(true);
     try {
-      const deptResponse = await get(DEPARTMENTS);
+      const deptResponse = await getDepartments();
       console.log("Departments response:", deptResponse);
       
       // Handle different response structures
@@ -177,7 +176,7 @@ const Attendance = () => {
     // Fetch shifts
     setLoadingShifts(true);
     try {
-      const shiftResponse = await get(GET_SHIFTS);
+      const shiftResponse = await getShifts();
       console.log("Shifts response:", shiftResponse);
       
       // Handle different response structures

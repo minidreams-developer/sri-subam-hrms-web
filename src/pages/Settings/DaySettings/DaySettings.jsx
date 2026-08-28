@@ -4,8 +4,7 @@ import theme from "../../../theme/theme";
 import DaySettingsComponent from "../../../components/daysettings";
 import ReusableTable from "../../../components/ReusableTable";
 import { toast } from "react-toastify";
-import { post, patch, get } from "../../../helpers/api_helper";
-import { DAY_SETTINGS, UPDATE_DAY_SETTINGS } from "../../../helpers/url_helper";
+import { createDaySettings, getDaySettings, updateDaySettings } from "../../../services/apiServices";
 
 const DaySettings = () => {
   const [daySettings, setDaySettings] = useState({
@@ -25,7 +24,7 @@ const DaySettings = () => {
   const fetchDaySettingsData = async () => {
     try {
       setIsLoadingTable(true);
-      const response = await get(DAY_SETTINGS);
+      const response = await getDaySettings();
       
       // Extract results array from paginated response
       let data = [];
@@ -108,12 +107,11 @@ const DaySettings = () => {
       
       // If we have an ID and a date (editing for one day), use PATCH
       if (daySettings.id && data.selectedDateForOneDay) {
-        const updateUrl = UPDATE_DAY_SETTINGS.replace(":id", daySettings.id);
-        response = await patch(updateUrl, payload);
+        response = await updateDaySettings(daySettings.id, payload);
         toast.success("Day settings updated successfully for the selected date!");
       } else {
         // Otherwise use POST for initial creation
-        response = await post(DAY_SETTINGS, payload);
+        response = await createDaySettings(payload);
         // Store the ID from response for future edits
         if (response?.id) {
           setDaySettings((prev) => ({ ...prev, id: response.id }));

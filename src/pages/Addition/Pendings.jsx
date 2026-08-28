@@ -5,8 +5,7 @@ import ReusableTable from "../../components/ReusableTable";
 import ProfileImage from "../../assets/images/employee/sampleProfile.jpg";
 import ApproveIcon from "../../assets/images/Badges/approve.svg";
 import CancelIcon from "../../assets/images/Badges/cancel.svg";
-import { get } from "../../helpers/api_helper";
-import { GET_ADJUSTMENTS_PENDING } from "../../helpers/url_helper";
+import { getPendingAdjustments } from "../../services/apiServices";
 import { toast } from "react-toastify";
 
 const Pendings = ({ searchQuery, selectedMonth }) => {
@@ -19,7 +18,7 @@ const Pendings = ({ searchQuery, selectedMonth }) => {
       _setLoading(true);
       
       // Call API without month/year parameters
-      const response = await get(GET_ADJUSTMENTS_PENDING);
+      const response = await getPendingAdjustments();
       
       console.log("Full API Response:", response);
       

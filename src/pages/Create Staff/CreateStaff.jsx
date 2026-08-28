@@ -7,8 +7,7 @@ import PersonalInfo from "./PersonalInfo/PersonalInfo";
 import Documents from "./Documents/Documents";
 import AddWorkDetails from "./Work Details/AddWorkDetails";
 import Button from "../../components/Button";
-import { get, patchFormData, post } from "../../helpers/api_helper";
-import { STAFF_REGISTRATION } from "../../helpers/url_helper";
+import { createEmployee, getUsers, updateUserFormData } from "../../services/apiServices";
 import { buildDocumentFormData } from "../../helpers/registration_form_data";
 import { toast } from "react-toastify";
 
@@ -191,7 +190,7 @@ const CreateStaff = () => {
 
       console.log("Payload:", payload);
 
-      const response = await post(STAFF_REGISTRATION, payload);
+      const response = await createEmployee(payload);
       console.log("Response:", response);
 
       const selectedDocuments = [
@@ -202,15 +201,12 @@ const CreateStaff = () => {
 
       if (selectedDocuments.length) {
         if (!staffUserId) {
-          const usersResponse = await get(`/v1/users?email=${encodeURIComponent(payload.email)}&limit=10`);
+          const usersResponse = await getUsers({ email: payload.email, limit: 10 });
           const createdStaff = findUserByEmail(usersResponse, payload.email);
           staffUserId = createdStaff?.id || createdStaff?._id;
         }
         if (!staffUserId) throw new Error("Staff created, but its ID was not returned for document upload");
-        await patchFormData(
-          `/v1/users/${staffUserId}`,
-          buildDocumentFormData(documentsData),
-        );
+        await updateUserFormData(staffUserId, buildDocumentFormData(documentsData));
         toast.success(`${selectedDocuments.length} document${selectedDocuments.length > 1 ? "s" : ""} uploaded`);
       }
 

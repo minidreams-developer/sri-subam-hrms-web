@@ -8,8 +8,7 @@ import Button from "../../components/Button";
 import Select from "react-select";
 import { customSelectStyles } from "../../theme/reactSelectStyles";
 import { IoArrowBack } from "react-icons/io5";
-import { post, get, patch } from "../../helpers/api_helper";
-import { CREATE_BRANCH, GENERATE_BRANCH_ID, DEPARTMENTS, GET_SHIFTS, GET_ALL_EMPLOYEES } from "../../helpers/url_helper";
+import { createBranch, generateBranchId, getDepartments, getShifts, getUsers, updateBranch } from "../../services/apiServices";
 import { toast } from "react-toastify";
 import { stateDistrictMap, stateOptions } from "../../utils/statesAndDistricts";
 
@@ -69,7 +68,7 @@ const CreateBranch = () => {
 
   const generateBranchNumber = async () => {
     try {
-      const response = await get(GENERATE_BRANCH_ID);
+      const response = await generateBranchId();
       console.log("Branch number generated:", response);
       
       // Handle different response structures
@@ -94,7 +93,7 @@ const CreateBranch = () => {
   const fetchDepartments = async () => {
     setDepartmentsLoading(true);
     try {
-      const response = await get(DEPARTMENTS);
+      const response = await getDepartments();
       console.log("Departments fetched:", response);
       
       // Handle different response structures
@@ -125,7 +124,7 @@ const CreateBranch = () => {
   const fetchShifts = async () => {
     setShiftsLoading(true);
     try {
-      const response = await get(GET_SHIFTS);
+      const response = await getShifts();
       console.log("Shifts fetched:", response);
       
       // Handle different response structures
@@ -157,7 +156,7 @@ const CreateBranch = () => {
     setUsersLoading(true);
     try {
       // Fetch with a large limit to get all employees (or implement pagination)
-      const response = await get(`${GET_ALL_EMPLOYEES}?page=1&limit=100`);
+      const response = await getUsers({ page: 1, limit: 100 });
       console.log("Users fetched:", response);
       
       // Handle different response structures
@@ -290,8 +289,8 @@ const CreateBranch = () => {
         return;
       }
       const response = isEditMode
-        ? await patch(`${CREATE_BRANCH}/${branchId}`, payload)
-        : await post(CREATE_BRANCH, payload);
+        ? await updateBranch(branchId, payload)
+        : await createBranch(payload);
 
       if (response) {
         toast.success(isEditMode ? "Branch updated successfully!" : "Branch created successfully!");

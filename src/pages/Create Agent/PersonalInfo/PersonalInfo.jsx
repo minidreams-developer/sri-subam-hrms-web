@@ -6,8 +6,7 @@ import CalenderInput from "../../../components/CalenderInput";
 import Select from "react-select";
 import { customSelectStyles } from "../../../theme/reactSelectStyles";
 import UploadIcon from "../../../assets/images/employee/upload2.svg";
-import { get } from "../../../helpers/api_helper";
-import { GENERATE_AGENT_ID, BRANCHES } from "../../../helpers/url_helper";
+import { generateAgentId as requestAgentId, getBranches } from "../../../services/apiServices";
 import { stateDistrictMap, stateOptions } from "../../../utils/statesAndDistricts";
 import { toast } from "react-toastify";
 
@@ -64,7 +63,7 @@ const PersonalInfo = forwardRef((_, ref) => {
     const generateAgentId = async () => {
       setIsGeneratingId(true);
       try {
-        const response = await get(GENERATE_AGENT_ID);
+        const response = await requestAgentId();
         const agentId =
           (typeof response === "string" && response) ||
           response?.agentId ||
@@ -91,7 +90,7 @@ const PersonalInfo = forwardRef((_, ref) => {
     const fetchBranches = async () => {
       setBranchesLoading(true);
       try {
-        const response = await get(`${BRANCHES}?page=1&limit=100`);
+        const response = await getBranches({ page: 1, limit: 100 });
         
         // Handle different response structures
         let branchList = [];

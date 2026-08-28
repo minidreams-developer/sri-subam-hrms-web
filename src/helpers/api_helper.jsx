@@ -1,29 +1,19 @@
 import axios from "axios";
-// import { refreshToken } from "./jwt-token-access/accessToken";
-// import getAccessToken from "./jwt-token-access/accessToken";
 import {
-  clearAuthData,
-  getStoredAuthUser,
-  handleTokenRefresh,
-} from "./auth_helper";
+  clearAuthSession,
+  getAccessToken,
+  getRefreshToken,
+  refreshAuthSession,
+} from "./authSession";
 
-//calling refreshAccessToken checks the expiration. if it is expired get a new token
-// refreshToken();
-//pass new generated access token here
-// const token = getAccessToken();
-// console.log("token", token);
-
-//apply base url for axios
-const API_URL = import.meta.env.VITE_API_BASE_URL ;
-
-const axiosApi = axios.create({
-  baseURL: API_URL,
-  headers: {
-    "Content-Type": "application/json",
-  },
+const api = axios.create({
+  baseURL: import.meta.env.VITE_API_BASE_URL,
+  timeout: Number(import.meta.env.VITE_API_TIMEOUT) || 10000,
+  headers: { Accept: "application/json" },
 });
 
 let activeRequestCount = 0;
+let refreshPromise = null;
 const loadingListeners = new Set();
 
 const notifyLoadingListeners = () => {
@@ -31,14 +21,20 @@ const notifyLoadingListeners = () => {
   loadingListeners.forEach((listener) => listener(isLoading));
 };
 
-const startRequest = () => {
-  activeRequestCount += 1;
+const finishRequest = (config) => {
+  if (!config?._trackGlobalLoading || config._loadingFinished) return;
+  config._loadingFinished = true;
+  activeRequestCount = Math.max(0, activeRequestCount - 1);
   notifyLoadingListeners();
 };
 
-const finishRequest = () => {
-  activeRequestCount = Math.max(0, activeRequestCount - 1);
-  notifyLoadingListeners();
+const getNewAccessToken = () => {
+  if (!refreshPromise) {
+    refreshPromise = refreshAuthSession().finally(() => {
+      refreshPromise = null;
+    });
+  }
+  return refreshPromise;
 };
 
 export const subscribeApiLoading = (listener) => {
@@ -47,152 +43,62 @@ export const subscribeApiLoading = (listener) => {
   return () => loadingListeners.delete(listener);
 };
 
-axiosApi.interceptors.request.use(
-  async (config) => {
-    const authUser = getStoredAuthUser();
-    const accessToken = authUser?.tokens?.access?.token;
-
-    // Set the token in the request headers
-    if (accessToken) {
-      config.headers.Authorization = `Bearer ${accessToken}`;
-    }
-
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
-
-axiosApi.interceptors.response.use(
-  (response) => response,
-  async (error) => {
-    const originalRequest = error.config;
-
-    // If error is 401 and we haven't already tried to refresh
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true;
-
-      try {
-        // Try to refresh the token
-        const refreshSuccess = await handleTokenRefresh();
-
-        if (refreshSuccess) {
-          // Retry the original request with new token
-          const authUser = getStoredAuthUser();
-          const newAccessToken = authUser?.tokens?.access?.token;
-
-          if (newAccessToken) {
-            originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
-          }
-
-          return axiosApi(originalRequest);
-        }
-      } catch (refreshError) {
-        console.error("Token refresh failed:", refreshError);
-        clearAuthData();
-        window.location.href = "/"; // Redirect to login
-        return Promise.reject(refreshError);
-      }
-    }
-
-    return Promise.reject(error);
-  }
-);
-
-// Keep a single global loading state in sync with every request made through
-// this API client. The counter handles multiple simultaneous requests.
-axiosApi.interceptors.request.use(
+api.interceptors.request.use(
   (config) => {
     config._trackGlobalLoading = config.skipGlobalLoading !== true;
-    if (config._trackGlobalLoading) startRequest();
+    config._loadingFinished = false;
+    if (config._trackGlobalLoading) {
+      activeRequestCount += 1;
+      notifyLoadingListeners();
+    }
+
+    const token = getAccessToken();
+    if (token) config.headers.Authorization = `Bearer ${token}`;
+    if (import.meta.env.DEV) console.debug("API request", config.method?.toUpperCase(), config.url);
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => Promise.reject(error),
 );
 
-axiosApi.interceptors.response.use(
+api.interceptors.response.use(
   (response) => {
-    if (response.config?._trackGlobalLoading) finishRequest();
+    finishRequest(response.config);
     return response;
   },
-  (error) => {
-    if (error.config?._trackGlobalLoading) finishRequest();
+  async (error) => {
+    const originalRequest = error.config;
+    finishRequest(originalRequest);
+
+    const isLoginRequest = originalRequest?.url?.includes("/auth/login");
+    const isRefreshRequest = originalRequest?.url?.includes("/auth/refresh-tokens");
+    if (
+      error.response?.status === 401 &&
+      originalRequest &&
+      !isLoginRequest &&
+      !isRefreshRequest &&
+      !originalRequest._retry
+    ) {
+      originalRequest._retry = true;
+      if (getRefreshToken()) {
+        try {
+          const accessToken = await getNewAccessToken();
+          if (accessToken) {
+            originalRequest.headers = originalRequest.headers || {};
+            originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+            return api(originalRequest);
+          }
+        } catch (refreshError) {
+          if (import.meta.env.DEV) console.error("Token refresh failed", refreshError);
+        }
+      }
+
+      clearAuthSession();
+      if (window.location.pathname !== "/") window.location.replace("/");
+    }
+
+    if (import.meta.env.DEV) console.error("API error", error.response?.status, error.response?.data);
     return Promise.reject(error);
-  }
+  },
 );
 
-export async function get(url, config = {}) {
-  return await axiosApi
-    .get(url, { ...config })
-    .then((response) => response.data);
-}
-
-export async function post(url, data, config = {}) {
-  const headers = {
-    "Content-Type": "application/json",
-    ...config.headers,
-  };
-  return axiosApi
-    .post(url, data, { ...config, headers })
-    .then((response) => response.data);
-}
-
-export async function postFormData(url, formData, config = {}, onProgress) {
-  // Override the axios instance's application/json default. Otherwise axios
-  // serializes FormData as JSON and the API receives malformed array/object
-  // values instead of multipart fields and files.
-  config = {
-    ...config,
-    headers: {
-      "Content-Type": "multipart/form-data",
-      ...config.headers,
-    },
-    onUploadProgress: (progressEvent) => {
-      if (progressEvent.total) {
-        const percentCompleted = Math.round(
-          (progressEvent.loaded * 100) / progressEvent.total
-        );
-        if (onProgress) onProgress(percentCompleted);
-      }
-    },
-  };
-
-  // Make the POST request using axios
-  return axiosApi.post(url, formData, config).then((response) => response.data);
-}
-
-export async function put(url, data, config = {}) {
-  return axiosApi
-    .put(url, { ...data }, { ...config })
-    .then((response) => response.data);
-}
-
-export async function patch(url, data, config = {}) {
-  return axiosApi
-    .patch(url, { ...data }, { ...config })
-    .then((response) => response.data);
-}
-
-export async function patchFormData(url, formData, config = {}, onProgress) {
-  return axiosApi
-    .patch(url, formData, {
-      ...config,
-      headers: {
-        "Content-Type": "multipart/form-data",
-        ...config.headers,
-      },
-      onUploadProgress: (progressEvent) => {
-        if (progressEvent.total && onProgress) {
-          onProgress(Math.round((progressEvent.loaded * 100) / progressEvent.total));
-        }
-      },
-    })
-    .then((response) => response.data);
-}
-
-export async function del(url, config = {}) {
-  return await axiosApi
-    .delete(url, { ...config })
-    .then((response) => response.data);
-}
-
-//-------------------------------------------------------------------------------------
+export default api;

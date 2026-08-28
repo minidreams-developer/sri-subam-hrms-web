@@ -9,8 +9,7 @@ import { Label } from "reactstrap";
 import CalenderInput from "../../components/CalenderInput";
 import TimeInputComponent from "../../components/TimeInputComponent";
 import Button from "../../components/Button";
-import { get, post } from "../../helpers/api_helper";
-import { GET_ALL_EMPLOYEES, CREATE_ATTENDANCE, DEPARTMENTS } from "../../helpers/url_helper";
+import { createAttendance, getDepartments, getUsers } from "../../services/apiServices";
 import { toast } from "react-toastify";
 
 function AddAttendanceComponent() {
@@ -54,7 +53,7 @@ function AddAttendanceComponent() {
         setFetchingEmployees(true);
         // Using GET /v1/users to fetch all users (employees and staff)
         // API maximum limit is 100
-        const response = await get(`${GET_ALL_EMPLOYEES}?page=1&limit=100`);
+        const response = await getUsers({ page: 1, limit: 100 });
         
         // Handle different response structures
         let employeeList = [];
@@ -93,7 +92,7 @@ function AddAttendanceComponent() {
     const fetchDepartments = async () => {
       try {
         setFetchingDepartments(true);
-        const response = await get(`${DEPARTMENTS}?page=1&limit=100`);
+        const response = await getDepartments({ page: 1, limit: 100 });
         const departmentList = response.results || response.data || [];
         const formattedDepartments = departmentList.map((dept) => ({
           value: dept._id || dept.id,
@@ -183,7 +182,7 @@ function AddAttendanceComponent() {
         remarks: remarks || null,
       };
 
-      const response = await post(CREATE_ATTENDANCE, payload);
+      const response = await createAttendance(payload);
 
       if (response) {
         toast.success("Attendance recorded successfully");

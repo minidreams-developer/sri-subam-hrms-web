@@ -8,8 +8,7 @@ import DetailsSidebar from "../../components/DetailsSidebar";
 import CardDetails from "../../components/CardDetails";
 import EditIcon from "../../assets/images/employee/editIcon.svg";
 import { MdDelete } from "react-icons/md";
-import { get } from "../../helpers/api_helper";
-import { GET_ADJUSTMENTS } from "../../helpers/url_helper";
+import { getAdjustments } from "../../services/apiServices";
 import { toast } from "react-toastify";
 
 const fallbackAdjustments = [
@@ -43,7 +42,7 @@ const Adjustments = ({ searchQuery, selectedMonth }) => {
       _setLoading(true);
       
       // Call API without month/year parameters
-      const response = await get(GET_ADJUSTMENTS);
+      const response = await getAdjustments();
       
       console.log("Full API Response:", response);
       

@@ -6,8 +6,7 @@ import CalenderInput from "../../../components/CalenderInput";
 import Select from "react-select";
 import { customSelectStyles } from "../../../theme/reactSelectStyles";
 import UploadIcon from "../../../assets/images/employee/upload2.svg";
-import { get } from "../../../helpers/api_helper";
-import { GENERATE_STAFF_ID } from "../../../helpers/url_helper";
+import { generateStaffId as requestStaffId } from "../../../services/apiServices";
 import { stateDistrictMap, stateOptions } from "../../../utils/statesAndDistricts";
 import { toast } from "react-toastify";
 
@@ -64,7 +63,7 @@ const PersonalInfo = forwardRef((_, ref) => {
   const generateStaffId = async () => {
     setStaffIdLoading(true);
     try {
-      const response = await get(GENERATE_STAFF_ID, { skipGlobalLoading: true });
+      const response = await requestStaffId({ skipGlobalLoading: true });
       console.log("Staff ID generated:", response);
       
       // Handle different response structures

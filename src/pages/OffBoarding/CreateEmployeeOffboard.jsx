@@ -14,8 +14,13 @@ import FileUploadComponent from "../../components/FileUploadComponent";
 import AddNewFieldModal from "../../components/AddNewFieldModal";
 import MinusIcon from "../../assets/images/employee/minus.svg";
 import ConfirmationModal from "../../components/ConfirmationModal";
-import { get, post } from "../../helpers/api_helper";
-import { GENERATE_EMPLOYEE_ID, GET_ALL_EMPLOYEES, DEPARTMENTS, TEAMS, CREATE_OFFBOARD } from "../../helpers/url_helper";
+import {
+  createOffboard,
+  generateEmployeeId as requestEmployeeId,
+  getDepartments,
+  getTeams,
+  getUsers,
+} from "../../services/apiServices";
 import { toast } from "react-toastify";
 
 const CreateEmployeeOffboard = () => {
@@ -93,7 +98,7 @@ const CreateEmployeeOffboard = () => {
   const fetchEmployeeIds = async () => {
     setEmployeeSearchLoading(true);
     try {
-      const response = await get(`${GET_ALL_EMPLOYEES}?page=1&limit=100`);
+      const response = await getUsers({ page: 1, limit: 100 });
       console.log("Employee IDs fetched:", response);
 
       let employees = [];
@@ -143,28 +148,45 @@ const CreateEmployeeOffboard = () => {
 
       if (!employee) {
         // Fallback: search by employee ID if data not in option
-        const response = await get(`/v1/users/?empId=${empId}`);
+        const response = await getUsers({ empId });
         console.log("Employee search response:", response);
 
         // Handle different response structures
         if (Array.isArray(response) && response.length > 0) {
           employee = response[0];
-        } else if (response?.results && Array.isArray(response.results) && response.results.length > 0) {
+        } else if (
+          response?.results &&
+          Array.isArray(response.results) &&
+          response.results.length > 0
+        ) {
           employee = response.results[0];
-        } else if (response?.data && Array.isArray(response.data) && response.data.length > 0) {
+        } else if (
+          response?.data &&
+          Array.isArray(response.data) &&
+          response.data.length > 0
+        ) {
           employee = response.data[0];
-        } else if (response?.users && Array.isArray(response.users) && response.users.length > 0) {
+        } else if (
+          response?.users &&
+          Array.isArray(response.users) &&
+          response.users.length > 0
+        ) {
           employee = response.users[0];
-        } else if (response && typeof response === "object" && !Array.isArray(response)) {
+        } else if (
+          response &&
+          typeof response === "object" &&
+          !Array.isArray(response)
+        ) {
           employee = response;
         }
       }
 
       if (employee) {
         // Extract employee name
-        const employeeName = employee.firstName && employee.lastName
-          ? `${employee.firstName} ${employee.lastName}`
-          : employee.name || employee.employeeName || "N/A";
+        const employeeName =
+          employee.firstName && employee.lastName
+            ? `${employee.firstName} ${employee.lastName}`
+            : employee.name || employee.employeeName || "N/A";
 
         // Set employee in form
         setFormData((prev) => ({
@@ -174,26 +196,48 @@ const CreateEmployeeOffboard = () => {
             label: employeeName,
           },
           // Auto-populate other fields if available
-          department: employee.department ? {
-            value: employee.department.id || employee.department._id || employee.department,
-            label: employee.department.departmentName || employee.department.name || employee.department,
-          } : null,
+          department: employee.department
+            ? {
+                value:
+                  employee.department.id ||
+                  employee.department._id ||
+                  employee.department,
+                label:
+                  employee.department.departmentName ||
+                  employee.department.name ||
+                  employee.department,
+              }
+            : null,
           designation: employee.designation || employee.position || "",
-          team: employee.team ? {
-            value: employee.team.id || employee.team._id || employee.team,
-            label: employee.team.teamName || employee.team.name || employee.team,
-          } : null,
-          reportingPerson: employee.reportingPerson ? {
-            value: employee.reportingPerson.id || employee.reportingPerson._id || employee.reportingPerson,
-            label: employee.reportingPerson.firstName && employee.reportingPerson.lastName
-              ? `${employee.reportingPerson.firstName} ${employee.reportingPerson.lastName}`
-              : employee.reportingPerson.name || employee.reportingPerson,
-          } : null,
-          dateOfJoining: employee.dateOfJoining ? new Date(employee.dateOfJoining) : null,
-          employmentType: employee.employmentType ? {
-            value: employee.employmentType.toLowerCase(),
-            label: employee.employmentType,
-          } : null,
+          team: employee.team
+            ? {
+                value: employee.team.id || employee.team._id || employee.team,
+                label:
+                  employee.team.teamName || employee.team.name || employee.team,
+              }
+            : null,
+          reportingPerson: employee.reportingPerson
+            ? {
+                value:
+                  employee.reportingPerson.id ||
+                  employee.reportingPerson._id ||
+                  employee.reportingPerson,
+                label:
+                  employee.reportingPerson.firstName &&
+                  employee.reportingPerson.lastName
+                    ? `${employee.reportingPerson.firstName} ${employee.reportingPerson.lastName}`
+                    : employee.reportingPerson.name || employee.reportingPerson,
+              }
+            : null,
+          dateOfJoining: employee.dateOfJoining
+            ? new Date(employee.dateOfJoining)
+            : null,
+          employmentType: employee.employmentType
+            ? {
+                value: employee.employmentType.toLowerCase(),
+                label: employee.employmentType,
+              }
+            : null,
         }));
 
         toast.success("Employee found successfully");
@@ -203,7 +247,9 @@ const CreateEmployeeOffboard = () => {
       }
     } catch (error) {
       console.error("Error searching employee:", error);
-      toast.error(error?.response?.data?.message || "Failed to search employee");
+      toast.error(
+        error?.response?.data?.message || "Failed to search employee",
+      );
       setFormData((prev) => ({ ...prev, employee: null }));
     }
   };
@@ -211,9 +257,9 @@ const CreateEmployeeOffboard = () => {
   const generateEmployeeId = async () => {
     setEmployeeIdLoading(true);
     try {
-      const response = await get(GENERATE_EMPLOYEE_ID);
+      const response = await requestEmployeeId();
       console.log("Employee ID generated:", response);
-      
+
       // Handle different response structures
       let employeeId = "";
       if (typeof response === "string") {
@@ -225,7 +271,7 @@ const CreateEmployeeOffboard = () => {
       } else if (response?.id) {
         employeeId = response.id;
       }
-      
+
       setFormData((prev) => ({ ...prev, employeeId }));
     } catch (error) {
       console.error("Error generating employee ID:", error);
@@ -238,11 +284,11 @@ const CreateEmployeeOffboard = () => {
   const fetchEmployees = async () => {
     setEmployeesLoading(true);
     try {
-      const response = await get(`${GET_ALL_EMPLOYEES}?page=1&limit=100`);
+      const response = await getUsers({ page: 1, limit: 100 });
       console.log("Employees fetched:", response);
-      
+
       let employees = [];
-      
+
       // Handle different response structures
       if (Array.isArray(response)) {
         employees = response;
@@ -253,15 +299,16 @@ const CreateEmployeeOffboard = () => {
       } else if (response?.users && Array.isArray(response.users)) {
         employees = response.users;
       }
-      
+
       // Map employees to dropdown options
       const options = employees.map((emp) => ({
         value: emp.id || emp._id,
-        label: emp.firstName && emp.lastName 
-          ? `${emp.firstName} ${emp.lastName}` 
-          : emp.name || emp.employeeName || "N/A",
+        label:
+          emp.firstName && emp.lastName
+            ? `${emp.firstName} ${emp.lastName}`
+            : emp.name || emp.employeeName || "N/A",
       }));
-      
+
       setEmployeeOptions(options);
     } catch (error) {
       console.error("Error fetching employees:", error);
@@ -274,11 +321,11 @@ const CreateEmployeeOffboard = () => {
   const fetchDepartments = async () => {
     setDepartmentsLoading(true);
     try {
-      const response = await get(`${DEPARTMENTS}?page=1&limit=100`);
+      const response = await getDepartments({ page: 1, limit: 100 });
       console.log("Departments fetched:", response);
-      
+
       let departments = [];
-      
+
       // Handle different response structures
       if (Array.isArray(response)) {
         departments = response;
@@ -287,13 +334,13 @@ const CreateEmployeeOffboard = () => {
       } else if (response?.data && Array.isArray(response.data)) {
         departments = response.data;
       }
-      
+
       // Map departments to dropdown options
       const options = departments.map((dept) => ({
         value: dept.id || dept._id,
         label: dept.departmentName || dept.name || "N/A",
       }));
-      
+
       setDepartmentOptions(options);
     } catch (error) {
       console.error("Error fetching departments:", error);
@@ -306,11 +353,11 @@ const CreateEmployeeOffboard = () => {
   const fetchTeams = async () => {
     setTeamsLoading(true);
     try {
-      const response = await get(`${TEAMS}?page=1&limit=100`);
+      const response = await getTeams({ page: 1, limit: 100 });
       console.log("Teams fetched:", response);
-      
+
       let teams = [];
-      
+
       // Handle different response structures
       if (Array.isArray(response)) {
         teams = response;
@@ -319,13 +366,13 @@ const CreateEmployeeOffboard = () => {
       } else if (response?.data && Array.isArray(response.data)) {
         teams = response.data;
       }
-      
+
       // Map teams to dropdown options
       const options = teams.map((team) => ({
         value: team.id || team._id,
         label: team.teamName || team.name || "N/A",
       }));
-      
+
       setTeamOptions(options);
     } catch (error) {
       console.error("Error fetching teams:", error);
@@ -338,11 +385,11 @@ const CreateEmployeeOffboard = () => {
   const fetchUsers = async () => {
     setUsersLoading(true);
     try {
-      const response = await get(`${GET_ALL_EMPLOYEES}?page=1&limit=100`);
+      const response = await getUsers({ page: 1, limit: 100 });
       console.log("Users fetched:", response);
-      
+
       let users = [];
-      
+
       // Handle different response structures
       if (Array.isArray(response)) {
         users = response;
@@ -353,15 +400,16 @@ const CreateEmployeeOffboard = () => {
       } else if (response?.users && Array.isArray(response.users)) {
         users = response.users;
       }
-      
+
       // Map users to dropdown options
       const options = users.map((user) => ({
         value: user.id || user._id,
-        label: user.firstName && user.lastName 
-          ? `${user.firstName} ${user.lastName}` 
-          : user.name || user.email || "N/A",
+        label:
+          user.firstName && user.lastName
+            ? `${user.firstName} ${user.lastName}`
+            : user.name || user.email || "N/A",
       }));
-      
+
       setUserOptions(options);
     } catch (error) {
       console.error("Error fetching users:", error);
@@ -439,7 +487,10 @@ const CreateEmployeeOffboard = () => {
   };
 
   const addAsset = () => {
-    setAssets([...assets, { asset: null, condition: null, returnStatus: null }]);
+    setAssets([
+      ...assets,
+      { asset: null, condition: null, returnStatus: null },
+    ]);
   };
 
   const removeAsset = (index) => {
@@ -464,7 +515,7 @@ const CreateEmployeeOffboard = () => {
   const handleConfirmation = (data) => {
     console.log("Confirmation data:", data);
     console.log("Form data:", formData, assets, documents);
-    
+
     // Submit the offboarding data to the API
     submitOffboardingData();
     setIsConfirmationModalOpen(false);
@@ -492,7 +543,9 @@ const CreateEmployeeOffboard = () => {
         exitInformation: {
           exitType: formData.exitType?.value || "",
           exitReason: formData.exitReason?.value || "",
-          resignationSubmitionDate: formatDateToString(formData.resignationDate),
+          resignationSubmitionDate: formatDateToString(
+            formData.resignationDate,
+          ),
           lastWorkingDate: formatDateToString(formData.lastWorkingDate),
           noticePeriod: formData.noticePeriod?.value || "",
           actualNoticePeriod: formData.actualNoticeServed?.value || "",
@@ -522,35 +575,35 @@ const CreateEmployeeOffboard = () => {
       console.log("Submitting offboarding payload:", payload);
 
       // Submit to API
-      const response = await post(CREATE_OFFBOARD, payload);
+      const response = await createOffboard(payload);
       console.log("Offboarding record created:", response);
-      
+
       toast.success("Offboarding record created successfully");
-      
+
       // Navigate to offboarding list page
       setTimeout(() => {
         navigate("/admin/peopleHub/off-boarding");
       }, 1500);
     } catch (error) {
       console.error("Error submitting offboarding data:", error);
-      toast.error(error?.response?.data?.message || "Failed to create offboarding record");
+      toast.error(
+        error?.response?.data?.message || "Failed to create offboarding record",
+      );
     }
   };
 
   // Document handlers
   const handleFileSelect = (id, file, keepOriginal) => {
     setDocuments((prev) =>
-      prev.map((doc) =>
-        doc.id === id ? { ...doc, file, keepOriginal } : doc
-      )
+      prev.map((doc) => (doc.id === id ? { ...doc, file, keepOriginal } : doc)),
     );
   };
 
   const handleFileRemove = (id) => {
     setDocuments((prev) =>
       prev.map((doc) =>
-        doc.id === id ? { ...doc, file: null, keepOriginal: false } : doc
-      )
+        doc.id === id ? { ...doc, file: null, keepOriginal: false } : doc,
+      ),
     );
   };
 
@@ -566,7 +619,7 @@ const CreateEmployeeOffboard = () => {
 
   const handleLabelChange = (id, newLabel) => {
     setDocuments((prev) =>
-      prev.map((doc) => (doc.id === id ? { ...doc, label: newLabel } : doc))
+      prev.map((doc) => (doc.id === id ? { ...doc, label: newLabel } : doc)),
     );
   };
 
@@ -600,7 +653,11 @@ const CreateEmployeeOffboard = () => {
               <Label>Employee ID</Label>
               <Select
                 options={employeeIdOptions}
-                value={employeeIdOptions.find((opt) => opt.value === formData.employeeId) || null}
+                value={
+                  employeeIdOptions.find(
+                    (opt) => opt.value === formData.employeeId,
+                  ) || null
+                }
                 onChange={(option) => handleEmployeeIdSearch(option)}
                 placeholder="Select Employee ID"
                 styles={customSelectStyles}
@@ -847,7 +904,9 @@ const CreateEmployeeOffboard = () => {
                   <Select
                     options={assetOptions}
                     value={asset.asset}
-                    onChange={(value) => handleAssetChange(index, "asset", value)}
+                    onChange={(value) =>
+                      handleAssetChange(index, "asset", value)
+                    }
                     placeholder="Select Asset"
                     styles={customSelectStyles}
                     isSearchable
@@ -860,7 +919,9 @@ const CreateEmployeeOffboard = () => {
                   <Select
                     options={conditionOptions}
                     value={asset.condition}
-                    onChange={(value) => handleAssetChange(index, "condition", value)}
+                    onChange={(value) =>
+                      handleAssetChange(index, "condition", value)
+                    }
                     placeholder="Select Type"
                     styles={customSelectStyles}
                     isSearchable
@@ -875,7 +936,9 @@ const CreateEmployeeOffboard = () => {
                   <Select
                     options={returnStatusOptions}
                     value={asset.returnStatus}
-                    onChange={(value) => handleAssetChange(index, "returnStatus", value)}
+                    onChange={(value) =>
+                      handleAssetChange(index, "returnStatus", value)
+                    }
                     placeholder="Select Status"
                     styles={customSelectStyles}
                     isSearchable
@@ -925,10 +988,7 @@ const CreateEmployeeOffboard = () => {
         <FnFWrapper>
           <CheckboxGroup
             title="Documents Return (Originals)"
-            options={[
-              "10th Marksheet",
-              "12th Marksheet",
-            ]}
+            options={["10th Marksheet", "12th Marksheet"]}
             defaultChecked={[]}
           />
         </FnFWrapper>
@@ -960,8 +1020,8 @@ const CreateEmployeeOffboard = () => {
                     onKeepOriginalChange={(checked) => {
                       setDocuments((prev) =>
                         prev.map((d) =>
-                          d.id === doc.id ? { ...d, keepOriginal: checked } : d
-                        )
+                          d.id === doc.id ? { ...d, keepOriginal: checked } : d,
+                        ),
                       );
                     }}
                   />
@@ -970,7 +1030,9 @@ const CreateEmployeeOffboard = () => {
                     label={doc.label}
                     isEditable={index >= 2}
                     showKeepOriginal={false}
-                    onLabelChange={(newLabel) => handleLabelChange(doc.id, newLabel)}
+                    onLabelChange={(newLabel) =>
+                      handleLabelChange(doc.id, newLabel)
+                    }
                     onFileSelect={(file, keepOriginal) =>
                       handleFileSelect(doc.id, file, keepOriginal)
                     }
@@ -1090,7 +1152,7 @@ const Label = styled.label`
 const Divider = styled.div`
   width: calc(100% + 2.5rem);
   height: 1px;
-  background-color: #E0E3E6;
+  background-color: #e0e3e6;
   margin: 0 0 2rem -1.25rem;
 `;
 
@@ -1151,7 +1213,8 @@ const AddMoreButton = styled.button`
   }
 
   img {
-    filter: brightness(0) saturate(100%) invert(37%) sepia(93%) saturate(1088%) hue-rotate(165deg) brightness(95%) contrast(101%);
+    filter: brightness(0) saturate(100%) invert(37%) sepia(93%) saturate(1088%)
+      hue-rotate(165deg) brightness(95%) contrast(101%);
   }
 `;
 
@@ -1213,4 +1276,3 @@ const ButtonWrapper = styled.div`
   width: 100%;
   margin-top: 2.5rem;
 `;
-

@@ -5,8 +5,7 @@ import * as Yup from "yup";
 import { MdClose } from "react-icons/md";
 import theme from "../../theme/theme";
 import InputComponent from "../../components/InputComponent";
-import { get, post } from "../../helpers/api_helper";
-import { GET_ALL_EMPLOYEES } from "../../helpers/url_helper";
+import { createPayroll, getUser, getUsers } from "../../services/apiServices";
 import { toast } from "react-toastify";
 
 // Validation schema with proper type checking
@@ -55,7 +54,7 @@ const AddPayrollSidebar = ({ open, onClose, onSuccess }) => {
   const fetchEmployees = async () => {
     setLoading(true);
     try {
-      const response = await get(GET_ALL_EMPLOYEES);
+      const response = await getUsers();
       
       if (!response?.results || !Array.isArray(response.results)) {
         throw new Error("Invalid employee data format");
@@ -151,7 +150,7 @@ const AddPayrollSidebar = ({ open, onClose, onSuccess }) => {
       console.log("Submitting payroll payload:", payload); // Debug log
 
       // Submit to API
-      const response = await post("/v1/payroll", payload);
+      const response = await createPayroll(payload);
       
       console.log("Payroll submission response:", response); // Debug log
 
@@ -184,7 +183,7 @@ const AddPayrollSidebar = ({ open, onClose, onSuccess }) => {
       setLoading(true);
       
       // Fetch detailed employee data from /v1/users/{userId}
-      const employeeData = await get(`/v1/users/${empId}`);
+      const employeeData = await getUser(empId);
       
       console.log("Fetched employee data:", employeeData); // Debug log
       

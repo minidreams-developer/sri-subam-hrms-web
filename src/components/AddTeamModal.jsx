@@ -5,8 +5,7 @@ import Button from "./Button";
 import InputComponent from "./InputComponent";
 import Select from "react-select";
 import { customSelectStyles } from "../theme/reactSelectStyles";
-import { get } from "../helpers/api_helper";
-import { GENERATE_TEAM_ID, DEPARTMENTS, GET_ALL_EMPLOYEES } from "../helpers/url_helper";
+import { generateTeamId as requestTeamId, getDepartments, getUsers } from "../services/apiServices";
 import { toast } from "react-toastify";
 
 const AddTeamModal = ({ isOpen, onClose, onSave, isLoading = false }) => {
@@ -36,7 +35,7 @@ const AddTeamModal = ({ isOpen, onClose, onSave, isLoading = false }) => {
   const fetchDepartments = async () => {
     setIsLoadingDepartments(true);
     try {
-      const response = await get(DEPARTMENTS);
+      const response = await getDepartments();
       console.log("Departments response:", response);
       
       // Handle different response structures
@@ -61,7 +60,7 @@ const AddTeamModal = ({ isOpen, onClose, onSave, isLoading = false }) => {
   const fetchTeamLeads = async () => {
     setIsLoadingTeamLeads(true);
     try {
-      const response = await get(GET_ALL_EMPLOYEES);
+      const response = await getUsers();
       console.log("Team leads response:", response);
       
       // Handle different response structures
@@ -86,7 +85,7 @@ const AddTeamModal = ({ isOpen, onClose, onSave, isLoading = false }) => {
   const generateTeamId = async () => {
     setIsGeneratingId(true);
     try {
-      const response = await get(GENERATE_TEAM_ID);
+      const response = await requestTeamId();
       console.log("Generated Team ID response:", response);
       
       // Handle different response structures

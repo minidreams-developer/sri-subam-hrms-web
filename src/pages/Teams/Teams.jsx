@@ -7,8 +7,7 @@ import { toast } from "react-toastify";
 import AddTeamModal from "../../components/AddTeamModal";
 import ReusableTable from "../../components/ReusableTable";
 import SearchInputComponent from "../../components/SearchInputComponent";
-import { del, get, post } from "../../helpers/api_helper";
-import { CREATE_TEAM, TEAMS } from "../../helpers/url_helper";
+import { createTeam as saveTeam, deleteTeam, getTeams } from "../../services/apiServices";
 import theme from "../../theme/theme";
 
 const listFrom = (response) => response?.results || response?.data?.results || response?.data || response || [];
@@ -30,7 +29,7 @@ const Teams = () => {
   const loadTeams = async () => {
     setLoading(true);
     try {
-      const response = await get(`${TEAMS}?page=1&limit=100`);
+      const response = await getTeams({ page: 1, limit: 100 });
       const list = listFrom(response);
       setTeams(Array.isArray(list) ? list : []);
     } catch (error) { toast.error(error.response?.data?.message || "Failed to load teams"); }
@@ -52,7 +51,7 @@ const Teams = () => {
   const createTeam = async (form) => {
     setSaving(true);
     try {
-      await post(CREATE_TEAM, { teamCode: form.teamId, teamId: form.teamId, teamName: form.name.trim(), name: form.name.trim(), department: form.department.value, teamLead: form.teamLead.value });
+      await saveTeam({ teamCode: form.teamId, teamId: form.teamId, teamName: form.name.trim(), name: form.name.trim(), department: form.department.value, teamLead: form.teamLead.value });
       toast.success("Team created successfully"); setModalOpen(false); await loadTeams();
     } catch (error) { toast.error(error.response?.data?.message || "Failed to create team"); }
     finally { setSaving(false); }
@@ -60,7 +59,7 @@ const Teams = () => {
   const openTeam = (row) => navigate("/admin/peopleHub/teams/teamDetails", { state: { teamId: row.id, team: row.raw } });
   const removeTeam = async (row) => {
     if (!window.confirm(`Delete ${row.name}?`)) return;
-    try { await del(`${TEAMS}/${row.id}`); toast.success("Team deleted successfully"); await loadTeams(); }
+    try { await deleteTeam(row.id); toast.success("Team deleted successfully"); await loadTeams(); }
     catch (error) { toast.error(error.response?.data?.message || "Failed to delete team"); }
   };
   const columns = [

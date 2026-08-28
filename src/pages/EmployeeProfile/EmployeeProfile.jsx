@@ -7,7 +7,7 @@ import { WorkDetails } from "./Work Details/WorkDetails";
 import { Attendance } from "./Attendance/Attendance";
 import PayrollComponent from "../../components/payroll";
 import Assets from "../../components/assets";
-import { get } from "../../helpers/api_helper";
+import { getUser } from "../../services/apiServices";
 import { toast } from "react-toastify";
 import { useLocation } from "react-router-dom";
 
@@ -29,7 +29,7 @@ const EmployeeProfile = () => {
   const fetchEmployee = async (employeeUserId) => {
     setLoading(true);
     try {
-      const response = await get(`/v1/users/${employeeUserId}`);
+      const response = await getUser(employeeUserId);
       const employee = response?.data?.user || response?.data || response?.user || response?.result || response;
       setSelectedEmployee(employee && !Array.isArray(employee) ? employee : null);
     } catch (error) {

@@ -7,7 +7,7 @@ import { PersonalDetails } from "../EmployeeProfile/Personal Details/PersonalDet
 import EmploymentList from "./EmploymentList/EmploymentList";
 import PayrollComponent from "../../components/payroll";
 import Assets from "../../components/assets";
-import { get } from "../../helpers/api_helper";
+import { getUser } from "../../services/apiServices";
 import { toast } from "react-toastify";
 
 const AgentProfile = () => {
@@ -22,7 +22,7 @@ const AgentProfile = () => {
     const fetchAgent = async () => {
       setLoading(true);
       try {
-        const response = await get(`/v1/users/${agentId}`);
+        const response = await getUser(agentId);
         const result = response?.data?.user || response?.data || response?.user || response?.result || response;
         setAgent(result && !Array.isArray(result) ? result : null);
       } catch (error) {

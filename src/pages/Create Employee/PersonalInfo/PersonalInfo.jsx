@@ -6,8 +6,7 @@ import CalenderInput from "../../../components/CalenderInput";
 import Select from "react-select";
 import { customSelectStyles } from "../../../theme/reactSelectStyles";
 import UploadIcon from "../../../assets/images/employee/upload2.svg";
-import { get } from "../../../helpers/api_helper";
-import { GENERATE_EMPLOYEE_ID, BRANCHES } from "../../../helpers/url_helper";
+import { generateEmployeeId as requestEmployeeId, getBranches } from "../../../services/apiServices";
 import { stateDistrictMap, stateOptions } from "../../../utils/statesAndDistricts";
 import { toast } from "react-toastify";
 
@@ -64,7 +63,7 @@ const PersonalInfo = forwardRef((_, ref) => {
   const fetchBranches = async () => {
     setBranchesLoading(true);
     try {
-      const response = await get(`${BRANCHES}?page=1&limit=100`, { skipGlobalLoading: true });
+      const response = await getBranches({ page: 1, limit: 100 }, { skipGlobalLoading: true });
       
       // Handle different response structures
       let branchList = [];
@@ -95,7 +94,7 @@ const PersonalInfo = forwardRef((_, ref) => {
   const generateEmployeeId = async () => {
     setEmployeeIdLoading(true);
     try {
-      const response = await get(GENERATE_EMPLOYEE_ID, { skipGlobalLoading: true });
+      const response = await requestEmployeeId({ skipGlobalLoading: true });
       console.log("Employee ID generated:", response);
       
       // Handle different response structures

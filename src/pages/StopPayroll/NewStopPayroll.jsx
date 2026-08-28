@@ -7,8 +7,7 @@ import CalenderInput from "../../components/CalenderInput";
 import Button from "../../components/Button";
 import Select from "react-select";
 import { customSelectStyles } from "../../theme/reactSelectStyles";
-import { get, post } from "../../helpers/api_helper";
-import { GET_ALL_EMPLOYEES, STOP_PAYROLL } from "../../helpers/url_helper";
+import { getUsers, stopPayroll } from "../../services/apiServices";
 import { toast } from "react-toastify";
 
 const NewStopPayroll = () => {
@@ -47,7 +46,7 @@ const NewStopPayroll = () => {
   const fetchEmployees = async () => {
     setLoadingEmployees(true);
     try {
-      const response = await get(GET_ALL_EMPLOYEES);
+      const response = await getUsers();
       console.log("Employees fetched:", response);
       
       let employees = [];
@@ -196,12 +195,11 @@ const NewStopPayroll = () => {
 
       // Replace :employeeId in endpoint with actual employee ID
       const employeeId = formData.employee?.value || formData.employeeId;
-      const endpoint = STOP_PAYROLL.replace(":employeeId", employeeId);
 
       setSubmitting(true);
 
       // Call POST API
-      const response = await post(endpoint, payload);
+      const response = await stopPayroll(employeeId, payload);
 
       // Handle success response
       toast.success("Stop Payroll created successfully");

@@ -10,8 +10,7 @@ import TableToolbar from "../../components/TableToolbar";
 import PlusIcon from "../../assets/images/DashboardImages/plus-large_svgrepo.com.svg";
 import TabSwitcher from "../../components/TabSwitcher";
 import ProfileImage from "../../assets/images/employee/sampleProfile.jpg";
-import { get } from "../../helpers/api_helper";
-import { GET_OFFBOARDS, DEPARTMENTS } from "../../helpers/url_helper";
+import { getDepartments, getOffboards } from "../../services/apiServices";
 import { toast } from "react-toastify";
 import Filter from "../../components/filter";
 import {
@@ -24,7 +23,13 @@ const offboardingStats = [
   { title: "Pending Clearance", value: "8", percent: "12 %", type: "down" },
   { title: "FnF Pending", value: "5", percent: "20.5 %", type: "up" },
   { title: "Completed", value: "40", percent: "20.5 %", type: "up" },
-  { title: "Avg Exit Time", value: "18", suffix: "Days", percent: "20.5 %", type: "up" },
+  {
+    title: "Avg Exit Time",
+    value: "18",
+    suffix: "Days",
+    percent: "20.5 %",
+    type: "up",
+  },
 ];
 
 const OffBoarding = () => {
@@ -39,7 +44,7 @@ const OffBoarding = () => {
   const [staffSearch, setStaffSearch] = useState("");
   const [staffRole, setStaffRole] = useState("All Roles");
   const [showFilter, setShowFilter] = useState(false);
-  
+
   // API state
   const [offboardingData, setOffboardingData] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -56,18 +61,19 @@ const OffBoarding = () => {
 
   const fetchDepartments = async () => {
     try {
-      const deptResponse = await get(DEPARTMENTS);
+      const deptResponse = await getDepartments();
       console.log("Departments response:", deptResponse);
-      
+
       // Handle different response structures
-      const deptList = deptResponse?.results || deptResponse?.data || deptResponse || [];
-      
+      const deptList =
+        deptResponse?.results || deptResponse?.data || deptResponse || [];
+
       // Transform to dropdown options
       const deptOptions = deptList.map((dept) => ({
         value: dept.departmentName || dept.name || "N/A",
         label: dept.departmentName || dept.name || "N/A",
       }));
-      
+
       setDepartmentOptions(deptOptions);
       console.log("Department options:", deptOptions);
     } catch (error) {
@@ -87,11 +93,14 @@ const OffBoarding = () => {
   const fetchOffboardingRecords = async () => {
     setLoading(true);
     try {
-      const response = await get(`${GET_OFFBOARDS}?page=${currentPage}&limit=${pageSize}`);
+      const response = await getOffboards({
+        page: currentPage,
+        limit: pageSize,
+      });
       console.log("Offboarding records fetched:", response);
-      
+
       let records = [];
-      
+
       // Handle different response structures
       if (Array.isArray(response)) {
         records = response;
@@ -102,20 +111,25 @@ const OffBoarding = () => {
       } else if (response?.data && Array.isArray(response.data)) {
         records = response.data;
       }
-      
+
       setOffboardingData(records);
     } catch (error) {
       console.error("Error fetching offboarding records:", error);
-      
+
       // Check if it's a backend parsing error
-      if (error?.response?.status === 400 && error?.response?.data?.message?.includes("Cast to ObjectId")) {
+      if (
+        error?.response?.status === 400 &&
+        error?.response?.data?.message?.includes("Cast to ObjectId")
+      ) {
         console.error("Backend API Error: ObjectId parsing failed");
-        console.error("This indicates the backend is incorrectly parsing query parameters as MongoDB IDs");
+        console.error(
+          "This indicates the backend is incorrectly parsing query parameters as MongoDB IDs",
+        );
         toast.error("Backend API error: Please contact support");
       } else {
         toast.error("Failed to fetch offboarding records");
       }
-      
+
       setOffboardingData([]);
     } finally {
       setLoading(false);
@@ -123,7 +137,9 @@ const OffBoarding = () => {
   };
 
   const handleRowClick = (row) => {
-    navigate("/admin/peopleHub/off-boarding/EmployeeOffBoardingDetails", { state: { offboardId: row.id } });
+    navigate("/admin/peopleHub/off-boarding/EmployeeOffBoardingDetails", {
+      state: { offboardId: row.id },
+    });
   };
 
   const handleNewOffBoarding = () => {
@@ -131,15 +147,35 @@ const OffBoarding = () => {
   };
 
   const handleExport = () => {
-    const headings = ["Employee", "Department", "Exit Type", "LWD", "FnF", "Assets", "Status"];
+    const headings = [
+      "Employee",
+      "Department",
+      "Exit Type",
+      "LWD",
+      "FnF",
+      "Assets",
+      "Status",
+    ];
     const rows = filteredEmployeeData.map((row) => [
-      row.employee.name, row.department, row.exitType, row.lwd, row.fnf, row.assets, row.status,
+      row.employee.name,
+      row.department,
+      row.exitType,
+      row.lwd,
+      row.fnf,
+      row.assets,
+      row.status,
     ]);
     const csv = [headings, ...rows]
-      .map((row) => row.map((cell) => `"${String(cell ?? "").replaceAll('"', '""')}"`).join(","))
+      .map((row) =>
+        row
+          .map((cell) => `"${String(cell ?? "").replaceAll('"', '""')}"`)
+          .join(","),
+      )
       .join("\n");
     const link = document.createElement("a");
-    link.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+    link.href = URL.createObjectURL(
+      new Blob([csv], { type: "text/csv;charset=utf-8" }),
+    );
     link.download = "off-boarding.csv";
     link.click();
     URL.revokeObjectURL(link.href);
@@ -149,13 +185,24 @@ const OffBoarding = () => {
   const transformedEmployeeData = offboardingData.map((record) => ({
     id: record._id,
     employee: {
-      name: record.userId?.name || `${record.userId?.firstName || ""} ${record.userId?.lastName || ""}`.trim() || "N/A",
+      name:
+        record.userId?.name ||
+        `${record.userId?.firstName || ""} ${record.userId?.lastName || ""}`.trim() ||
+        "N/A",
       role: record.userId?.employeeId || "N/A",
       profileImage: record.userId?.profileImage || ProfileImage,
     },
-    department: record.userId?.department?.departmentName || record.userId?.department?.name || record.department?.name || record.department || "N/A",
+    department:
+      record.userId?.department?.departmentName ||
+      record.userId?.department?.name ||
+      record.department?.name ||
+      record.department ||
+      "N/A",
     exitType: record.exitInformation?.exitType || record.exitType || "N/A",
-    lwd: record.exitInformation?.lastWorkingDate || record.lastWorkingDate || "N/A",
+    lwd:
+      record.exitInformation?.lastWorkingDate ||
+      record.lastWorkingDate ||
+      "N/A",
     fnf: record.clearance?.fnf || record.fnf || "Pending",
     assets: record.clearance?.assets || record.assets || "Pending",
     status: record.status || (record.completedAt ? "Completed" : "Pending"),
@@ -166,7 +213,8 @@ const OffBoarding = () => {
     const m3 =
       !employeeSearch ||
       row.employee.name.toLowerCase().includes(employeeSearch.toLowerCase());
-    const departmentMatches = employeeDept === "All Department" || row.department === employeeDept;
+    const departmentMatches =
+      employeeDept === "All Department" || row.department === employeeDept;
     return m3 && departmentMatches;
   });
 
@@ -179,27 +227,31 @@ const OffBoarding = () => {
   });
 
   // Custom columns with employee renderer
-  const employeeColumnsWithRenderer = useMemo(() => offboardingEmployeeColumns.map((col) => {
-    if (col.accessor === "employee") {
-      return {
-        ...col,
-        render: (row) => (
-          <EmployeeCell>
-            <EmployeeAvatar
-              src={row.employee.profileImage || ProfileImage}
-              alt={row.employee.name}
-            />
-            <EmployeeInfo>
-              <EmployeeName>{row.employee.name}</EmployeeName>
-              <EmployeeRole>{row.employee.role}</EmployeeRole>
-            </EmployeeInfo>
-          </EmployeeCell>
-        ),
-      };
-    }
-    if (col.accessor === "action") return { ...col, align: "right" };
-    return col;
-  }), []);
+  const employeeColumnsWithRenderer = useMemo(
+    () =>
+      offboardingEmployeeColumns.map((col) => {
+        if (col.accessor === "employee") {
+          return {
+            ...col,
+            render: (row) => (
+              <EmployeeCell>
+                <EmployeeAvatar
+                  src={row.employee.profileImage || ProfileImage}
+                  alt={row.employee.name}
+                />
+                <EmployeeInfo>
+                  <EmployeeName>{row.employee.name}</EmployeeName>
+                  <EmployeeRole>{row.employee.role}</EmployeeRole>
+                </EmployeeInfo>
+              </EmployeeCell>
+            ),
+          };
+        }
+        if (col.accessor === "action") return { ...col, align: "right" };
+        return col;
+      }),
+    [],
+  );
 
   const staffColumnsWithRenderer = offboardingStaffColumns.map((col) => {
     if (col.accessor === "staff") {
@@ -268,7 +320,10 @@ const OffBoarding = () => {
             <CardTitle>{item.title}</CardTitle>
 
             <CardFooter>
-              <CardValue>{item.value}{item.suffix && <CardSuffix>{item.suffix}</CardSuffix>}</CardValue>
+              <CardValue>
+                {item.value}
+                {item.suffix && <CardSuffix>{item.suffix}</CardSuffix>}
+              </CardValue>
 
               <Badge type={item.type}>
                 {item.percent}
@@ -297,7 +352,10 @@ const OffBoarding = () => {
             searchPlaceholder="Search Employee"
             searchValue={employeeSearch}
             onSearchChange={setEmployeeSearch}
-            select1Options={["All Department", ...departmentOptions.map(d => d.value)]}
+            select1Options={[
+              "All Department",
+              ...departmentOptions.map((d) => d.value),
+            ]}
             select1Value={employeeDept}
             onSelect1Change={setEmployeeDept}
             filterText="Filter"
@@ -375,8 +433,12 @@ const StatsGrid = styled.div`
   gap: 1.25rem;
   margin-bottom: 1.25rem;
 
-  @media (max-width: 1200px) { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  @media (max-width: 760px) { grid-template-columns: 1fr; }
+  @media (max-width: 1200px) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  @media (max-width: 760px) {
+    grid-template-columns: 1fr;
+  }
 `;
 
 const StatCard = styled.div`

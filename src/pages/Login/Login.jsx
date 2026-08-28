@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import theme from "../../theme/theme";
 import HrmsLogo from "../../assets/images/DashboardImages/main_logo.svg";
@@ -8,9 +8,8 @@ import InputComponent from "../../components/InputComponent";
 import { Spinner } from "reactstrap";
 import { Formik, Form } from "formik";
 import * as Yup from "yup";
-import { post } from "../../helpers/api_helper";
-import { LOGIN } from "../../helpers/url_helper";
-import { setStoredAuthUser, fetchAndStoreUserPermissions } from "../../helpers/auth_helper";
+import { login } from "../../services/apiServices";
+import { setStoredAuthUser, fetchAndStoreUserPermissions, isAuthenticated } from "../../helpers/auth_helper";
 
 const validationSchema = Yup.object().shape({
   username: Yup.string().required("Username is required"),
@@ -27,7 +26,7 @@ export const Login = () => {
     setSubmitting(true);
 
     try {
-      const response = await post(LOGIN, {
+      const response = await login({
         email: values.username,
         password: values.password,
       });
@@ -53,7 +52,7 @@ export const Login = () => {
         }
         
         // Navigate to dashboard on success
-        navigate("/admin/dashboard");
+        navigate("/admin/dashboard", { replace: true });
       } else {
         setStatus("Invalid response from server");
       }
@@ -69,6 +68,10 @@ export const Login = () => {
       setSubmitting(false);
     }
   };
+
+  if (isAuthenticated()) {
+    return <Navigate to="/admin/dashboard" replace />;
+  }
 
   return (
     <ParentContainer>

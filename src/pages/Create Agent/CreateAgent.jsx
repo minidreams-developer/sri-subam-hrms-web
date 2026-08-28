@@ -8,8 +8,7 @@ import Documents from "./Documents/Documents";
 import CommissionDetails from "./Commission Details/CommissionDetails";
 import Button from "../../components/Button";
 import { toast } from "react-toastify";
-import { post } from "../../helpers/api_helper";
-import { CREATE_AGENT } from "../../helpers/url_helper";
+import { createEmployee } from "../../services/apiServices";
 
 const CreateAgent = () => {
   const navigate = useNavigate();
@@ -167,7 +166,7 @@ const CreateAgent = () => {
 
       console.log("Payload:", payload);
 
-      const response = await post(CREATE_AGENT, payload);
+      const response = await createEmployee(payload);
       console.log("Response:", response);
 
       toast.success("Agent created successfully!");

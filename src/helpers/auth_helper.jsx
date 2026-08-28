@@ -1,22 +1,21 @@
-import { post, get } from './api_helper'
-import { LOGIN, GET_ROLES } from './url_helper'
+import { getRoles, login } from '../services/apiServices'
+import {
+  clearAuthSession,
+  getAccessToken,
+  getStoredSession,
+  refreshAuthSession,
+  storeAuthTokens,
+} from './authSession'
 
 // Function to get stored auth user data
 export const getStoredAuthUser = () => {
-  try {
-    const authUser = localStorage.getItem('authUser')
-    return authUser ? JSON.parse(authUser) : null
-  } catch (error) {
-    console.error('Error parsing auth user:', error)
-    return null
-  }
+  return getStoredSession()
 }
 
 // Function to store auth user data
 export const setStoredAuthUser = (userData) => {
   try {
-    localStorage.setItem('authUser', JSON.stringify(userData))
-    return true
+    return Boolean(storeAuthTokens(userData, getStoredSession()))
   } catch (error) {
     console.error('Error storing auth user:', error)
     return false
@@ -25,46 +24,24 @@ export const setStoredAuthUser = (userData) => {
 
 // Function to clear auth data
 export const clearAuthData = () => {
-  localStorage.removeItem('authUser')
-  localStorage.removeItem('userPermissions')
+  clearAuthSession()
 }
 
 // Function to check if user is authenticated
 export const isAuthenticated = () => {
   const authUser = getStoredAuthUser()
-  if (!authUser?.tokens?.access?.token) return false
+  if (!getAccessToken()) return false
 
   const accessTokenExpiry = new Date(authUser.tokens.access.expires).getTime()
-  return accessTokenExpiry > Date.now()
+  return !Number.isFinite(accessTokenExpiry) || accessTokenExpiry > Date.now()
 }
 
 // Function to handle token refresh
 export const handleTokenRefresh = async () => {
-  const authUser = getStoredAuthUser()
-  const refreshToken = authUser?.tokens?.refresh?.token
-
-  if (!refreshToken) {
-    clearAuthData()
-    return false
-  }
-
   try {
-    const response = await post('/refresh-token', {
-      refresh_token: refreshToken,
-    })
-
-    if (response?.data?.tokens) {
-      // Update stored auth data with new tokens
-      const updatedAuthUser = {
-        ...authUser,
-        tokens: response.data.tokens,
-      }
-      setStoredAuthUser(updatedAuthUser)
-      return true
-    }
-    return false
+    return Boolean(await refreshAuthSession())
   } catch (error) {
-    console.error('Error refreshing token:', error)
+    if (import.meta.env.DEV) console.error('Error refreshing token:', error)
     clearAuthData()
     return false
   }
@@ -79,7 +56,7 @@ export const fetchAndStoreUserPermissions = async (userRole) => {
     }
 
     // Fetch all roles from API
-    const response = await get(GET_ROLES)
+    const response = await getRoles()
     console.log('Roles API Response:', response)
 
     let rolesList = []
@@ -121,7 +98,7 @@ export const fetchAndStoreUserPermissions = async (userRole) => {
 // Function to handle login
 export const handleLogin = async (email, password) => {
   try {
-    const response = await post(LOGIN, {
+    const response = await login({
       email,
       password,
     })

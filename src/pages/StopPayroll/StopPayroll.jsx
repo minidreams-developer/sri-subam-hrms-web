@@ -14,8 +14,7 @@ import DetailsSidebar from "../../components/DetailsSidebar";
 import CardDetails from "../../components/CardDetails";
 import EditIcon from "../../assets/images/employee/editIcon.svg";
 import Filter from "../../components/filter";
-import { get } from "../../helpers/api_helper";
-import { GET_STOPPED_PAYROLL, DEPARTMENTS, GET_SHIFTS } from "../../helpers/url_helper";
+import { getDepartments, getShifts, getStoppedPayroll } from "../../services/apiServices";
 import { toast } from "react-toastify";
 import {
   employeeStopPayroll,
@@ -87,7 +86,7 @@ const StopPayroll = () => {
   const fetchStoppedPayrollData = async () => {
     setLoading(true);
     try {
-      const response = await get(GET_STOPPED_PAYROLL);
+      const response = await getStoppedPayroll();
       console.log("Stopped Payroll data:", response);
       
       let data = [];
@@ -155,7 +154,7 @@ const StopPayroll = () => {
     // Fetch departments
     setLoadingDepts(true);
     try {
-      const deptResponse = await get(DEPARTMENTS);
+      const deptResponse = await getDepartments();
       console.log("Departments response:", deptResponse);
       
       // Handle different response structures
@@ -179,7 +178,7 @@ const StopPayroll = () => {
     // Fetch shifts
     setLoadingShifts(true);
     try {
-      const shiftResponse = await get(GET_SHIFTS);
+      const shiftResponse = await getShifts();
       console.log("Shifts response:", shiftResponse);
       
       // Handle different response structures

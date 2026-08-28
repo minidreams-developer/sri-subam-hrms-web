@@ -1,10 +1,9 @@
 import { useState } from "react";
 import styled from "styled-components";
 import { useNavigate } from "react-router-dom";
-import theme from "../../theme/theme";
 import deleteIcon from "../../assets/contractor/SVG.svg";
 import editIcon from "../../assets/contractor/SVG (1).svg";
-import axios from "axios";
+import { createContractor } from "../../services/apiServices";
 import { toast } from "react-toastify";
 
 const ContractorForm = () => {
@@ -292,14 +291,7 @@ const ContractorForm = () => {
       };
 
       console.log("📤 Submitting payload:", JSON.stringify(payload, null, 2));
-      const apiUrl = `${import.meta.env.VITE_API_BASE_URL}/v1/contractors/register`;
-      console.log("🔗 API URL:", apiUrl);
-
-      const response = await axios.post(apiUrl, payload, {
-        headers: {
-          "Content-Type": "application/json"
-        }
-      });
+      const response = { data: await createContractor(payload) };
 
       console.log("✅ Contractor registered successfully:", response.data);
       toast.success("Contractor registered successfully!");

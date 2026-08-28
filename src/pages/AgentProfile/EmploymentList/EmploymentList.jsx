@@ -9,7 +9,7 @@ import Button from "../../../components/Button";
 import TableToolbar from "../../../components/TableToolbar";
 import PlusIcon from "../../../assets/images/DashboardImages/plus-large_svgrepo.com.svg";
 import Filter from "../../../components/filter";
-import { del, get } from "../../../helpers/api_helper";
+import { deleteUser, getUsers } from "../../../services/apiServices";
 import { toast } from "react-toastify";
 
 const employmentStats = [
@@ -133,7 +133,7 @@ const EmploymentList = ({ agentId }) => {
         limit: "10",
       });
       if (employeeSearch.trim()) query.set("search", employeeSearch.trim());
-      const response = await get(`/v1/users?${query.toString()}`);
+      const response = await getUsers(Object.fromEntries(query));
       const list = Array.isArray(response)
         ? response
         : response?.results || response?.data?.results || (Array.isArray(response?.data) ? response.data : []) || response?.users || [];
@@ -179,7 +179,7 @@ const EmploymentList = ({ agentId }) => {
 
     if (shouldDelete) {
       try {
-        await del(`/v1/users/${employee.id}`);
+        await deleteUser(employee.id);
         toast.success("Employee deleted successfully");
         await fetchEmployees(currentPage);
       } catch (error) {

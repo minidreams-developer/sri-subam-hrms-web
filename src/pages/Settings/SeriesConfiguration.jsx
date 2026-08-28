@@ -7,8 +7,7 @@ import SearchInputComponent from "../../components/SearchInputComponent";
 import Button from "../../components/Button";
 import PlusIcon from "../../assets/images/DashboardImages/plus-large_svgrepo.com.svg";
 import { toast } from "react-toastify";
-import { get } from "../../helpers/api_helper";
-import { SERIES_CONFIGURATION } from "../../helpers/url_helper";
+import { getSeriesConfigurations } from "../../services/apiServices";
 
 const SeriesConfiguration = () => {
   const navigate = useNavigate();
@@ -23,7 +22,7 @@ const SeriesConfiguration = () => {
   const fetchSeriesData = async () => {
     setIsLoading(true);
     try {
-      const response = await get(SERIES_CONFIGURATION);
+      const response = await getSeriesConfigurations();
       
       // Extract results array from paginated response
       let data = [];

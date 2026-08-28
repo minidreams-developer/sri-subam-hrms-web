@@ -4,8 +4,7 @@ import theme from "../../../theme/theme";
 import DocIcon from "../../../assets/images/employee/document.svg";
 import EditIcon from "../../../assets/images/employee/editIcon.svg";
 import CardDetails from "../../../components/CardDetails";
-import { get, patch } from "../../../helpers/api_helper";
-import { DEPARTMENTS, GET_ALL_EMPLOYEES, GET_SHIFTS, TEAMS } from "../../../helpers/url_helper";
+import { getDepartments, getShifts, getTeams, getUsers, updateUser } from "../../../services/apiServices";
 import { toast } from "react-toastify";
 
 const fields = [
@@ -119,10 +118,10 @@ export const WorkDetails = ({ employee, onEmployeeUpdated }) => {
     const loadDropdownOptions = async () => {
       try {
         const [departments, teams, shifts, users] = await Promise.all([
-          get(`${DEPARTMENTS}?page=1&limit=100`),
-          get(`${TEAMS}?page=1&limit=100`),
-          get(`${GET_SHIFTS}?page=1&limit=100`),
-          get(`${GET_ALL_EMPLOYEES}?page=1&limit=100`),
+          getDepartments({ page: 1, limit: 100 }),
+          getTeams({ page: 1, limit: 100 }),
+          getShifts({ page: 1, limit: 100 }),
+          getUsers({ page: 1, limit: 100 }),
         ]);
         setDropdownOptions({
           department: listFromResponse(departments).map((item) => ({
@@ -210,7 +209,7 @@ export const WorkDetails = ({ employee, onEmployeeUpdated }) => {
 
     setSaving(true);
     try {
-      const response = await patch(`/v1/users/${employeeId}`, payload);
+      const response = await updateUser(employeeId, payload);
       const responseEmployee = response?.data || response?.user || response;
       const updatedEmployee = { ...employee, ...payload, ...(responseEmployee || {}) };
       setDetails(makeDetails(updatedEmployee));

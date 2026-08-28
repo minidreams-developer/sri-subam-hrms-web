@@ -15,14 +15,7 @@ import { FiTrendingUp, FiTrendingDown } from "react-icons/fi";
 import SearchInputComponent from "../../components/SearchInputComponent";
 import FilterIcon from "../../assets/images/DashboardImages/filtericon.svg";
 import Filter from "../../components/filter";
-import { get } from "../../helpers/api_helper";
-import {
-  GET_DASHBOARD,
-  GET_EMPLOYEES_BY_ROLE,
-  GET_STAFF_BY_ROLE,
-  DEPARTMENTS,
-  GET_SHIFTS,
-} from "../../helpers/url_helper";
+import { getDashboard, getDepartments, getShifts, getUsers } from "../../services/apiServices";
 import { toast } from "react-toastify";
 
 const Dashboard = () => {
@@ -53,7 +46,7 @@ const Dashboard = () => {
   const fetchDashboardData = async () => {
     setLoading(true);
     try {
-      const response = await get(GET_DASHBOARD);
+      const response = await getDashboard();
       console.log("Dashboard data:", response);
       setDashboardData(response);
     } catch (error) {
@@ -67,9 +60,7 @@ const Dashboard = () => {
   const fetchEmployeesAndStaff = async () => {
     try {
       // Fetch employees
-      const empResponse = await get(
-        `${GET_EMPLOYEES_BY_ROLE}?role=employee&limit=10`,
-      );
+      const empResponse = await getUsers({ role: "employee", limit: 10 });
       let empList = [];
       if (empResponse && Array.isArray(empResponse)) {
         empList = empResponse;
@@ -96,9 +87,7 @@ const Dashboard = () => {
       setEmployeesData(transformedEmployees);
 
       // Fetch staff
-      const staffResponse = await get(
-        `/v1/users?role=staff&page=1&limit=10&sortBy=createdAt:desc`,
-      );
+      const staffResponse = await getUsers({ role: "staff", page: 1, limit: 10, sortBy: "createdAt:desc" });
       let staffList = [];
       if (staffResponse && Array.isArray(staffResponse)) {
         staffList = staffResponse;
@@ -139,7 +128,7 @@ const Dashboard = () => {
     // Fetch departments
     setLoadingDepts(true);
     try {
-      const deptResponse = await get(DEPARTMENTS);
+      const deptResponse = await getDepartments();
       console.log("Departments response:", deptResponse);
 
       // Handle different response structures
@@ -164,7 +153,7 @@ const Dashboard = () => {
     // Fetch shifts
     setLoadingShifts(true);
     try {
-      const shiftResponse = await get(GET_SHIFTS);
+      const shiftResponse = await getShifts();
       console.log("Shifts response:", shiftResponse);
 
       // Handle different response structures
@@ -258,7 +247,7 @@ const Dashboard = () => {
   const handleFilterApply = (queryParams) => {
     console.log("Applied filter query params:", queryParams);
     // Build the API URL with query parameters
-    let url = `${GET_EMPLOYEES_BY_ROLE}?role=employee`;
+    let url = `/v1/users?role=employee`;
 
     // Add all filter parameters
     if (queryParams.departmentId) {
@@ -295,7 +284,7 @@ const Dashboard = () => {
 
   const fetchEmployeesAndStaffWithFilters = async (url) => {
     try {
-      const empResponse = await get(url);
+      const empResponse = await getUsers(Object.fromEntries(new URL(url, window.location.origin).searchParams));
       console.log("Filtered employees data:", empResponse);
 
       let empList = [];

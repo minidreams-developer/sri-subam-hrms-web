@@ -8,8 +8,7 @@ import ModuleAccessRow from "../../../components/ModuleAccessRow";
 import { MdDelete } from "react-icons/md";
 import Switch from "react-switch";
 import { toast } from "react-toastify";
-import { post, patch, get, del } from "../../../helpers/api_helper";
-import { CREATE_ROLE, UPDATE_ROLE, DELETE_ROLE, GET_ROLES } from "../../../helpers/url_helper";
+import { createRole, deleteRole, getRoles, updateRole } from "../../../services/apiServices";
 import { getStoredAuthUser } from "../../../helpers/auth_helper";
 
 const RolesConfig = () => {
@@ -76,7 +75,7 @@ const RolesConfig = () => {
   const fetchRoleData = async () => {
     try {
       setInitialLoading(true);
-      const response = await get(GET_ROLES);
+      const response = await getRoles();
       const rolesArray = Array.isArray(response) ? response : response?.results || [];
       const roleData = rolesArray.find(r => r.id === roleId || r._id === roleId);
 
@@ -215,11 +214,10 @@ const RolesConfig = () => {
 
       let response;
       if (isEditMode) {
-        const url = UPDATE_ROLE.replace(":roleId", roleId);
-        response = await patch(url, payload);
+        response = await updateRole(roleId, payload);
         toast.success("Role updated successfully!");
       } else {
-        response = await post(CREATE_ROLE, payload);
+        response = await createRole(payload);
         toast.success("Role created successfully!");
       }
 
@@ -246,8 +244,7 @@ const RolesConfig = () => {
 
     try {
       setLoading(true);
-      const url = DELETE_ROLE.replace(":roleId", roleId);
-      await del(url);
+      await deleteRole(roleId);
       toast.success("Role deleted successfully!");
       navigate("/admin/settings/roles");
     } catch (error) {

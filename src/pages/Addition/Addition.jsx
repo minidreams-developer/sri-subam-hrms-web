@@ -11,8 +11,7 @@ import PlusIcon from "../../assets/images/DashboardImages/plus-large_svgrepo.com
 import Adjustments from "./Adjustments";
 import Pendings from "./Pendings";
 import Filter from "../../components/filter";
-import { get } from "../../helpers/api_helper";
-import { GET_ADJUSTMENTS_QUICK_STATS } from "../../helpers/url_helper";
+import { getAdjustmentStats } from "../../services/apiServices";
 import { toast } from "react-toastify";
 
 const fallbackStats = [
@@ -43,7 +42,7 @@ const Addition = () => {
       _setLoadingStats(true);
       
       // Call API without month/year parameters
-      const response = await get(GET_ADJUSTMENTS_QUICK_STATS);
+      const response = await getAdjustmentStats();
       
       console.log("Quick stats response:", response);
       

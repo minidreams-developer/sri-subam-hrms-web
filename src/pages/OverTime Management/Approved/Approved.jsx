@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
 import TableToolbar from "../../../components/TableToolbar";
 import ReusableTable from "../../../components/ReusableTable";
-import { get } from "../../../helpers/api_helper";
-import { OVERTIME_RECORDS } from "../../../helpers/url_helper";
+import { getOvertimeRecords } from "../../../services/apiServices";
 import { toast } from "react-toastify";
 
 const Approved = ({ statusFilter = "approved", injectedRecords = [] }) => {
@@ -19,7 +18,7 @@ const Approved = ({ statusFilter = "approved", injectedRecords = [] }) => {
   const fetchOvertimeData = async () => {
     try {
       setLoading(true);
-      const response = await get(`${OVERTIME_RECORDS}?status=${statusFilter}&limit=100`);
+      const response = await getOvertimeRecords({ status: statusFilter, limit: 100 });
       
       const records = response.results || response.data || [];
       

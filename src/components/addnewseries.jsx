@@ -1,8 +1,7 @@
 import { useState } from "react";
 import styled from "styled-components";
 import theme from "../theme/theme";
-import { post } from "../helpers/api_helper";
-import { CREATE_SERIES_CONFIGURATION } from "../helpers/url_helper";
+import { createSeriesConfiguration } from "../services/apiServices";
 import { toast } from "react-toastify";
 
 const AddNewSeries = ({ onClose, onSave }) => {
@@ -69,7 +68,7 @@ const AddNewSeries = ({ onClose, onSave }) => {
       // Remove undefined values
       Object.keys(payload).forEach(key => payload[key] === undefined && delete payload[key]);
 
-      const response = await post(CREATE_SERIES_CONFIGURATION, payload);
+      const response = await createSeriesConfiguration(payload);
       
       toast.success("Series added successfully!");
       onSave(response);

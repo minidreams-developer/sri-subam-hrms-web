@@ -11,8 +11,7 @@ import DeleteIcon from "../../assets/images/employee/Cross.svg";
 import styled from "styled-components";
 import theme from "../../theme/theme";
 import { useNavigate } from "react-router-dom";
-import { get, patch, del } from "../../helpers/api_helper";
-import { GET_SHIFTS, GET_SHIFT_DETAILS, UPDATE_SHIFT, DELETE_SHIFT } from "../../helpers/url_helper";
+import { deleteShift, getShift, getShifts } from "../../services/apiServices";
 import { toast } from "react-toastify";
 
 const ShiftManagement = () => {
@@ -53,7 +52,7 @@ const ShiftManagement = () => {
   const fetchShifts = async (page = 1, limit = 10, sort = "createdAt:desc") => {
     try {
       setLoading(true);
-      const response = await get(`${GET_SHIFTS}?page=${page}&limit=${limit}&sortBy=${sort}`);
+      const response = await getShifts({ page, limit, sortBy: sort });
       console.log("Shifts fetched:", response);
       
       // Handle different response structures
@@ -140,8 +139,7 @@ const ShiftManagement = () => {
     // Confirmation dialog before delete
     if (window.confirm("Are you sure you want to delete this shift?")) {
       try {
-        const url = DELETE_SHIFT.replace(":shiftId", shiftId);
-        await del(url);
+        await deleteShift(shiftId);
         toast.success("Shift deleted successfully!");
         // Refresh the shifts list
         fetchShifts(currentPage, pageSize, sortBy);
@@ -196,8 +194,7 @@ const ShiftManagement = () => {
   const fetchShiftDetails = async (shiftId) => {
     setSidebarLoading(true);
     try {
-      const url = GET_SHIFT_DETAILS.replace(":shiftId", shiftId);
-      const response = await get(url);
+      const response = await getShift(shiftId);
       console.log("Shift details fetched:", response);
       
       // Handle different response structures

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
-import axios from "axios";
+import { getContractors } from "../../services/apiServices";
 import { toast } from "react-toastify";
 import deleteIcon from "../../assets/contractor/SVG.svg";
 import clockIcon from "../../assets/contractor/iconify-icon.svg";
@@ -29,14 +29,7 @@ const Contractors = () => {
         setLoading(true);
         setError(null);
         
-        const apiUrl = `${import.meta.env.VITE_API_BASE_URL}/v1/contractors`;
-        console.log("🔗 Fetching contractors from:", apiUrl);
-        
-        const response = await axios.get(apiUrl, {
-          headers: {
-            "Content-Type": "application/json"
-          }
-        });
+        const response = { data: await getContractors() };
 
         console.log("✅ Contractors fetched successfully:", response.data);
         

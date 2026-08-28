@@ -7,13 +7,7 @@ import CalenderInput from "../../components/CalenderInput";
 import Button from "../../components/Button";
 import Select from "react-select";
 import { customSelectStyles } from "../../theme/reactSelectStyles";
-import { post, get } from "../../helpers/api_helper";
-import { 
-  CREATE_ADJUSTMENT, 
-  DEPARTMENTS,
-  GET_TEAMS_LIST,
-  GET_ALL_EMPLOYEES
-} from "../../helpers/url_helper";
+import { createAdjustment, getDepartments, getTeams, getUser, getUsers } from "../../services/apiServices";
 import { toast } from "react-toastify";
 
 const AddAdjustment = () => {
@@ -113,7 +107,7 @@ const AddAdjustment = () => {
   const fetchEmployees = async () => {
     setEmployeesLoading(true);
     try {
-      const response = await get(`${GET_ALL_EMPLOYEES}?page=1&limit=100`);
+      const response = await getUsers({ page: 1, limit: 100 });
       let employees = [];
       if (Array.isArray(response)) {
         employees = response;
@@ -152,7 +146,7 @@ const AddAdjustment = () => {
     setIsFetchingEmployeeDetails(true);
     try {
       // Fetch detailed employee data
-      const employeeData = await get(`/v1/users/${option.value}`);
+      const employeeData = await getUser(option.value);
 
       if (employeeData) {
         const empDetails = {
@@ -185,7 +179,7 @@ const AddAdjustment = () => {
   const fetchDepartments = async () => {
     _setIsLoadingDepts(true);
     try {
-      const response = await get(DEPARTMENTS);
+      const response = await getDepartments();
       console.log("Departments response:", response);
       
       // Handle different response structures - same as AddTeamModal
@@ -220,7 +214,7 @@ const AddAdjustment = () => {
     try {
       // Fetch all teams from the API
       // The API does NOT support departmentId filtering - it rejects the parameter
-      const response = await get(GET_TEAMS_LIST);
+      const response = await getTeams();
       console.log("Teams response:", response);
       
       // Handle different response structures
@@ -436,7 +430,7 @@ const AddAdjustment = () => {
       console.log("Sending adjustment payload:", payload);
 
       // Make API call
-      const response = await post(CREATE_ADJUSTMENT, payload);
+      const response = await createAdjustment(payload);
       
       console.log("API Response:", response);
       toast.success("Adjustment created successfully!");

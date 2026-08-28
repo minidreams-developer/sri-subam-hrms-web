@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import styled from "styled-components";
 import { useNavigate, useLocation } from "react-router-dom";
-import axios from "axios";
+import { createWorkEntry, getBranches } from "../../services/apiServices";
 import { toast } from "react-toastify";
 import theme from "../../theme/theme";
 import deleteIcon from "../../assets/contractor/SVG.svg";
@@ -48,14 +48,7 @@ const AddWorkEntry = () => {
     const fetchBranches = async () => {
       try {
         setBranchesLoading(true);
-        const apiUrl = `${import.meta.env.VITE_API_BASE_URL}/v1/branches`;
-        console.log("🔗 Fetching branches from:", apiUrl);
-        
-        const response = await axios.get(apiUrl, {
-          headers: {
-            "Content-Type": "application/json"
-          }
-        });
+        const response = { data: await getBranches() };
 
         console.log("✅ Branches fetched successfully:", response.data);
         
@@ -180,14 +173,7 @@ const AddWorkEntry = () => {
       };
 
       console.log("📤 Submitting work entry payload:", JSON.stringify(payload, null, 2));
-      const apiUrl = `${import.meta.env.VITE_API_BASE_URL}/v1/log-work`;
-      console.log("🔗 API URL:", apiUrl);
-
-      const response = await axios.post(apiUrl, payload, {
-        headers: {
-          "Content-Type": "application/json"
-        }
-      });
+      const response = { data: await createWorkEntry(payload) };
 
       console.log("✅ Work entry logged successfully:", response.data);
       toast.success("Work entry saved successfully!");

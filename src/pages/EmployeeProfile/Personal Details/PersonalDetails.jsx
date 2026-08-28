@@ -7,7 +7,7 @@ import UploadIcon from "../../../assets/images/employee/upload.svg";
 import DocumentIcon from "../../../assets/images/employee/document.svg";
 import EyeIcon from "../../../assets/images/employee/eye.svg";
 import SampleProfile from "../../../assets/images/employee/sampleProfile.jpg";
-import { patch, patchFormData } from "../../../helpers/api_helper";
+import { updateUser, updateUserFormData } from "../../../services/apiServices";
 import { buildDocumentFormData } from "../../../helpers/registration_form_data";
 import DocumentUploadForm from "../../Create Employee/Documents/Documents";
 import { toast } from "react-toastify";
@@ -74,7 +74,7 @@ export const PersonalDetails = ({ employee, onEmployeeUpdated, entity = "employe
     setEmployeeStatus(getEmployeeStatus(employee));
   }, [employee?.status, employee?.isActive]);
 
-  const employeeUrl = () => `/v1/users/${employee?.id || employee?._id}`;
+  const employeeId = () => employee?.id || employee?._id;
   const openEditor = () => {
     setForm({
       name: details.fullName, employeeId: details.employeeId,
@@ -139,7 +139,7 @@ export const PersonalDetails = ({ employee, onEmployeeUpdated, entity = "employe
           mobileNumber: contact.phone ? Number(contact.phone) : null,
         })),
       };
-      const response = await patch(employeeUrl(), payload);
+      const response = await updateUser(employeeId(), payload);
       const updated = response?.data || response?.user || response;
       onEmployeeUpdated?.({ ...employee, ...form, ...payload, ...(updated || {}) });
       setEditing(false);
@@ -161,7 +161,7 @@ export const PersonalDetails = ({ employee, onEmployeeUpdated, entity = "employe
         reader.onerror = () => reject(new Error("Could not read the selected image"));
         reader.readAsDataURL(file);
       });
-      const response = await patch(employeeUrl(), { profilePic });
+      const response = await updateUser(employeeId(), { profilePic });
       const updated = response?.data || response?.user || response;
       onEmployeeUpdated?.({ ...employee, profilePic, ...(updated || {}) });
       toast.success("Profile picture updated successfully");
@@ -173,7 +173,7 @@ export const PersonalDetails = ({ employee, onEmployeeUpdated, entity = "employe
     setEmployeeStatus(nextStatus);
     setStatusSaving(true);
     try {
-      const response = await patch(employeeUrl(), { isActive: nextStatus });
+      const response = await updateUser(employeeId(), { isActive: nextStatus });
       const updated = response?.data || response?.user || response;
       onEmployeeUpdated?.({ ...employee, isActive: nextStatus, ...(updated || {}) });
       toast.success(`Employee status changed to ${nextStatus}`);
@@ -204,7 +204,7 @@ export const PersonalDetails = ({ employee, onEmployeeUpdated, entity = "employe
 
     setUploading(true);
     try {
-      const response = await patchFormData(employeeUrl(), buildDocumentFormData(documentsData));
+      const response = await updateUserFormData(employeeId(), buildDocumentFormData(documentsData));
       const updated = response?.data || response?.user || response;
       const serverDocuments = updated?.userDocuments || updated?.documents;
       if (serverDocuments) {
@@ -249,7 +249,7 @@ export const PersonalDetails = ({ employee, onEmployeeUpdated, entity = "employe
     setDocumentSaving(true);
     try {
       const field = employee?.userDocuments ? "userDocuments" : "documents";
-      const response = await patch(employeeUrl(), { [field]: remaining });
+      const response = await updateUser(employeeId(), { [field]: remaining });
       const updated = response?.data?.user || response?.data || response?.user || response;
       setUploadedDocuments([]);
       onEmployeeUpdated?.({ ...employee, [field]: remaining, ...(updated || {}) });
@@ -284,7 +284,7 @@ export const PersonalDetails = ({ employee, onEmployeeUpdated, entity = "employe
         keepOriginal: false,
         replaceDocumentId: oldDocument?.id || oldDocument?._id,
       }]));
-      const response = await patchFormData(employeeUrl(), formData);
+      const response = await updateUserFormData(employeeId(), formData);
       const updated = response?.data?.user || response?.data || response?.user || response;
       const replacement = { ...oldDocument, fileName: file.name, name: file.name, fileUrl: URL.createObjectURL(file) };
       const field = employee?.userDocuments ? "userDocuments" : "documents";

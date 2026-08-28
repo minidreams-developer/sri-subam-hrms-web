@@ -9,7 +9,7 @@ import { Label } from "reactstrap";
 import CalenderInput from "../../../components/CalenderInput";
 import TimeInputComponent from "../../../components/TimeInputComponent";
 import Button from "../../../components/Button";
-import { patch } from "../../../helpers/api_helper";
+import { updateLeaveRequest } from "../../../services/apiServices";
 import { toast } from "react-toastify";
 
 const EditLeave = () => {
@@ -48,7 +48,7 @@ const EditLeave = () => {
     if (!leaveId) return toast.error("Leave request ID is missing");
     setSaving(true);
     try {
-      await patch(`/v1/leave-requests/${leaveId}`, { employeeId: employee?.value || leave.employeeId?.id || leave.employeeId?._id || leave.employeeId, leaveType: leaveType?.value, singleDate: date, startDate: fromDate, endDate: toDate, startTime, endTime, remarks });
+      await updateLeaveRequest(leaveId, { employeeId: employee?.value || leave.employeeId?.id || leave.employeeId?._id || leave.employeeId, leaveType: leaveType?.value, singleDate: date, startDate: fromDate, endDate: toDate, startTime, endTime, remarks });
       toast.success("Leave request updated successfully");
       navigate(returnTo, { state: { activeTab: location.state?.returnTab } });
     } catch (error) { toast.error(error.response?.data?.message || "Failed to update leave request"); }

@@ -8,8 +8,7 @@ import TableToolbar from "../../components/TableToolbar";
 import PlusIcon from "../../assets/images/DashboardImages/plus-large_svgrepo.com.svg";
 import TabSwitcher from "../../components/TabSwitcher";
 import Filter from "../../components/filter";
-import { del, get } from "../../helpers/api_helper";
-import { GET_EMPLOYEES_BY_ROLE, GET_STAFF_BY_ROLE, DEPARTMENTS, GET_SHIFTS } from "../../helpers/url_helper";
+import { deleteUser, getDepartments, getShifts, getUserCount, getUsers } from "../../services/apiServices";
 import { toast } from "react-toastify";
 import DeleteConfirmationModal from "../../components/DeleteConfirmationModal";
 import { employeeTableColumns, staffTableColumns } from "../../utils/data";
@@ -92,7 +91,7 @@ const Employees = () => {
         query.set("joinedTo", joinedTo.toISOString().slice(0, 10));
       }
 
-      const response = await get(`/v1/users/count?${query.toString()}`);
+      const response = await getUserCount(Object.fromEntries(query));
       if (requestId !== statsRequestId.current) return;
       const root = response?.data ?? response;
       const counts = root?.counts ?? root?.statusCounts ?? root;
@@ -144,7 +143,7 @@ const Employees = () => {
     // Fetch departments
     setLoadingDepts(true);
     try {
-      const deptResponse = await get(DEPARTMENTS);
+      const deptResponse = await getDepartments();
       console.log("Departments response:", deptResponse);
       
       // Handle different response structures
@@ -168,7 +167,7 @@ const Employees = () => {
     // Fetch shifts
     setLoadingShifts(true);
     try {
-      const shiftResponse = await get(GET_SHIFTS);
+      const shiftResponse = await getShifts();
       console.log("Shifts response:", shiftResponse);
       
       // Handle different response structures
@@ -203,7 +202,7 @@ const Employees = () => {
       if (employeeDept !== "All Department") query.set("departmentId", employeeDept);
       if (employeeShift !== "All Shifts") query.set("shiftId", employeeShift);
 
-      const response = await get(`${GET_EMPLOYEES_BY_ROLE}?${query.toString()}`);
+      const response = await getUsers(Object.fromEntries(query));
       console.log("Employee API Response:", response);
       transformAndSetData(response, setEmployees, setTotalResults, setTotalPages);
     } catch (error) {
@@ -229,7 +228,7 @@ const Employees = () => {
       if (staffRole !== "All Roles") query.set("designation", staffRole);
       if (staffShift !== "All Shifts") query.set("shiftId", staffShift);
 
-      const response = await get(`/v1/users?${query.toString()}`);
+      const response = await getUsers(Object.fromEntries(query));
       console.log("Staff API Response:", response);
       transformAndSetData(response, setStaff, setTotalResults, setTotalPages);
     } catch (error) {
@@ -329,7 +328,7 @@ const Employees = () => {
 
     setIsDeleting(true);
     try {
-      await del(`${GET_EMPLOYEES_BY_ROLE}/${employeeId}`);
+      await deleteUser(employeeId);
       toast.success("Employee deleted successfully");
       setEmployeeToDelete(null);
       fetchUserStats();
@@ -359,7 +358,7 @@ const Employees = () => {
 
     setIsDeleting(true);
     try {
-      await del(`${GET_EMPLOYEES_BY_ROLE}/${staffId}`);
+      await deleteUser(staffId);
       toast.success("Staff deleted successfully");
       setStaffToDelete(null);
       fetchUserStats();
@@ -405,7 +404,7 @@ const Employees = () => {
   const handleFilterApply = (queryParams) => {
     console.log("Applied filter query params:", queryParams);
     // Build the API URL with query parameters based on user-filters.md spec
-    let url = `${GET_EMPLOYEES_BY_ROLE}?role=employee`;
+    let url = `/v1/users?role=employee`;
     
     // Add all filter parameters
     if (queryParams.departmentId) {
@@ -433,7 +432,6 @@ const Employees = () => {
     // Add pagination
     url += `&page=${queryParams.page || 1}&limit=${queryParams.limit || 10}`;
     
-    setAppliedFilters(queryParams);
     setShowFilter(false);
     setCurrentPage(1);
     
@@ -444,7 +442,7 @@ const Employees = () => {
   const fetchEmployeeDataWithFilters = async (url) => {
     setIsLoading(true);
     try {
-      const response = await get(url);
+      const response = await getUsers(Object.fromEntries(new URL(url, window.location.origin).searchParams));
       console.log("Filtered employees API Response:", response);
       transformAndSetData(response, setEmployees, setTotalResults, setTotalPages);
     } catch (error) {

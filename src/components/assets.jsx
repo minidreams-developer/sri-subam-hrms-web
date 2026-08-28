@@ -3,7 +3,7 @@ import styled from "styled-components";
 import { FiEdit3, FiList } from "react-icons/fi";
 import { IoAdd, IoClose } from "react-icons/io5";
 import { toast } from "react-toastify";
-import { get, patch, post } from "../helpers/api_helper";
+import { assignAsset, createAsset, getEmployeeAssets, updateAsset } from "../services/apiServices";
 
 const blank = { assetName:"", assetSerialNumber:"", assetType:"issued", assetDescription:"", assetContition:"new", assetStatus:"currently_using", issuedDate:"" };
 const label = (v) => v ? String(v).replace(/_/g," ").replace(/\b\w/g,c=>c.toUpperCase()) : "-";
@@ -15,7 +15,7 @@ export default function Assets({ employee }) {
   const [mode,setMode]=useState(null), [selected,setSelected]=useState(null), [form,setForm]=useState(blank), [reload,setReload]=useState(0);
 
   useEffect(()=>{ if(!employeeId){setAssets([]);return;} let live=true;
-    (async()=>{setLoading(true);try{const r=await get(`/v1/assets/employee/${employeeId}?page=1&limit=100&sortBy=createdAt:desc`);const p=r?.data??r;const rows=p?.results??p?.assets??p?.docs??p;if(live)setAssets(Array.isArray(rows)?rows:[]);}catch(e){if(live){setAssets([]);toast.error(e.response?.data?.message||e.message||"Failed to fetch employee assets");}}finally{if(live)setLoading(false);}})();
+    (async()=>{setLoading(true);try{const r=await getEmployeeAssets(employeeId,{page:1,limit:100,sortBy:"createdAt:desc"});const p=r?.data??r;const rows=p?.results??p?.assets??p?.docs??p;if(live)setAssets(Array.isArray(rows)?rows:[]);}catch(e){if(live){setAssets([]);toast.error(e.response?.data?.message||e.message||"Failed to fetch employee assets");}}finally{if(live)setLoading(false);}})();
     return()=>{live=false};
   },[employeeId,reload]);
 
@@ -26,8 +26,8 @@ export default function Assets({ employee }) {
   const close=()=>{if(!saving){setMode(null);setSelected(null)}};
   const change=({target:{name,value}})=>setForm(f=>({...f,[name]:value}));
   const save=async e=>{e.preventDefault();setSaving(true);const payload={...form,issuedDate:form.issuedDate?new Date(`${form.issuedDate}T00:00:00.000Z`).toISOString():undefined};try{
-    if(mode==="edit"){await patch(`/v1/assets/${selected._id||selected.id}`,payload);toast.success("Asset updated successfully");}
-    else{const r=await post("/v1/assets",payload);const a=r?.data?.asset||r?.asset||r?.data||r;const id=a?._id||a?.id;if(!id)throw new Error("Asset ID was not returned");await patch(`/v1/assets/${id}/assign/${employeeId}`,{issuedDate:payload.issuedDate});toast.success("Asset created and assigned successfully");}
+    if(mode==="edit"){await updateAsset(selected._id||selected.id,payload);toast.success("Asset updated successfully");}
+    else{const r=await createAsset(payload);const a=r?.data?.asset||r?.asset||r?.data||r;const id=a?._id||a?.id;if(!id)throw new Error("Asset ID was not returned");await assignAsset(id,employeeId,{issuedDate:payload.issuedDate});toast.success("Asset created and assigned successfully");}
     setMode(null);setSelected(null);setReload(x=>x+1);
   }catch(err){toast.error(err.response?.data?.message||err.message||"Failed to save asset");}finally{setSaving(false)}};
 

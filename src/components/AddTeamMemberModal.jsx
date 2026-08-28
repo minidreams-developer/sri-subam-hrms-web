@@ -4,8 +4,7 @@ import theme from "../theme/theme";
 import Button from "./Button";
 import Select from "react-select";
 import { customSelectStyles } from "../theme/reactSelectStyles";
-import { get } from "../helpers/api_helper";
-import { DEPARTMENTS, GET_ALL_EMPLOYEES } from "../helpers/url_helper";
+import { getDepartments, getUsers } from "../services/apiServices";
 import { toast } from "react-toastify";
 
 const AddTeamMemberModal = ({ isOpen, onClose, onSave, isLoading = false }) => {
@@ -18,7 +17,7 @@ const AddTeamMemberModal = ({ isOpen, onClose, onSave, isLoading = false }) => {
   const [users, setUsers] = useState([]);
   const [employeeOptions, setEmployeeOptions] = useState([]);
   const [departmentOptions, setDepartmentOptions] = useState([]);
-  useEffect(() => { if (!isOpen) return; Promise.all([get(`${GET_ALL_EMPLOYEES}?page=1&limit=100`), get(`${DEPARTMENTS}?page=1&limit=100`)]).then(([users, departments]) => {
+  useEffect(() => { if (!isOpen) return; Promise.all([getUsers({ page: 1, limit: 100 }), getDepartments({ page: 1, limit: 100 })]).then(([users, departments]) => {
     const userList = users?.results || users?.data?.results || users?.data || users || [];
     const departmentList = departments?.results || departments?.data?.results || departments?.data || departments || [];
     setUsers(Array.isArray(userList) ? userList : []);

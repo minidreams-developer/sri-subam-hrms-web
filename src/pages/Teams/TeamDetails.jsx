@@ -7,8 +7,7 @@ import { toast } from "react-toastify";
 import AddTeamMemberModal from "../../components/AddTeamMemberModal";
 import ReusableTable from "../../components/ReusableTable";
 import SearchInputComponent from "../../components/SearchInputComponent";
-import { get, patch } from "../../helpers/api_helper";
-import { GET_ALL_EMPLOYEES, TEAMS } from "../../helpers/url_helper";
+import { getTeam, getUsers, updateUser } from "../../services/apiServices";
 import theme from "../../theme/theme";
 
 const listFrom = (response) => response?.results || response?.data?.results || response?.data || response || [];
@@ -25,7 +24,7 @@ const TeamDetails = () => {
     if (!teamId) { setLoading(false); return; }
     setLoading(true);
     try {
-      const [teamResponse, usersResponse] = await Promise.all([get(`${TEAMS}/${teamId}`), get(`${GET_ALL_EMPLOYEES}?page=1&limit=100`)]);
+      const [teamResponse, usersResponse] = await Promise.all([getTeam(teamId), getUsers({ page: 1, limit: 100 })]);
       const detail = teamResponse?.data?.team || teamResponse?.data || teamResponse?.team || teamResponse;
       setTeam(detail);
       const embedded = detail?.members || detail?.teamMembers;
@@ -53,14 +52,14 @@ const TeamDetails = () => {
     setSaving(true);
     try {
       const user = employee.raw || {}; const workInformation = { ...(user.workInformation || {}), team: teamId };
-      await patch(`/v1/users/${employee.value}`, { workInformation, team: teamId });
+      await updateUser(employee.value, { workInformation, team: teamId });
       toast.success("Member added successfully"); setModalOpen(false); await load();
     } catch (error) { toast.error(error.response?.data?.message || "Failed to add member"); }
     finally { setSaving(false); }
   };
   const removeMember = async (row) => {
     if (!window.confirm(`Remove ${row.name} from this team?`)) return;
-    try { await patch(`/v1/users/${row.id}`, { workInformation: { ...(row.raw.workInformation || {}), team: null }, team: null }); toast.success("Member removed successfully"); await load(); }
+    try { await updateUser(row.id, { workInformation: { ...(row.raw.workInformation || {}), team: null }, team: null }); toast.success("Member removed successfully"); await load(); }
     catch (error) { toast.error(error.response?.data?.message || "Failed to remove member"); }
   };
 

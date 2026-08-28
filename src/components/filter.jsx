@@ -2,9 +2,6 @@ import { useState, useEffect } from "react";
 import styled from "styled-components";
 import theme from "../theme/theme";
 import { IoClose, IoSearch } from "react-icons/io5";
-import { get } from "../helpers/api_helper";
-import { GET_USERS, GET_DEPARTMENTS } from "../helpers/url_helper";
-import { toast } from "react-toastify";
 
 const Filter = ({ onClose, onApply }) => {
   const [filters, setFilters] = useState({
