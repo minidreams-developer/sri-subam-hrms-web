@@ -22,6 +22,7 @@ const Announcement = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingAnnouncement, setEditingAnnouncement] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
+  const [announcementToDelete, setAnnouncementToDelete] = useState(null);
   const [showSchedulePicker, setShowSchedulePicker] = useState(false);
   const [announcements, setAnnouncements] = useState([]);
   const [announcementsLoading, setAnnouncementsLoading] = useState(true);
@@ -327,12 +328,11 @@ const Announcement = () => {
   };
 
   const handleDelete = async (announcement) => {
-    if (!window.confirm(`Delete “${announcement.title}”?`)) return;
-
     setDeletingId(announcement.id);
     try {
       await deleteAnnouncement(announcement.id);
       setAnnouncements((current) => current.filter((item) => item.id !== announcement.id));
+      setAnnouncementToDelete(null);
       toast.success("Announcement deleted successfully!");
     } catch (error) {
       toast.error(error.response?.data?.message || error.response?.data?.error || error.message || "Failed to delete announcement");
@@ -514,7 +514,7 @@ const Announcement = () => {
                   <ActionButton type="button" onClick={() => handleEdit(announcement)} aria-label={`Edit ${announcement.title}`} title="Edit">
                     <FiEdit2 />
                   </ActionButton>
-                  <ActionButton type="button" $danger onClick={() => handleDelete(announcement)} disabled={deletingId === announcement.id} aria-label={`Delete ${announcement.title}`} title="Delete">
+                  <ActionButton type="button" $danger onClick={() => setAnnouncementToDelete(announcement)} disabled={deletingId === announcement.id} aria-label={`Delete ${announcement.title}`} title="Delete">
                     <FiTrash2 />
                   </ActionButton>
                 </CardActions>
@@ -552,6 +552,30 @@ const Announcement = () => {
           ))
         )}
       </AnnouncementsList>
+      {announcementToDelete && (
+        <DeleteModalBackdrop onMouseDown={() => !deletingId && setAnnouncementToDelete(null)}>
+          <DeleteModal
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-announcement-title"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <DeleteModalIcon><FiTrash2 /></DeleteModalIcon>
+            <DeleteModalTitle id="delete-announcement-title">Delete announcement?</DeleteModalTitle>
+            <DeleteModalMessage>
+              Are you sure you want to delete <strong>{announcementToDelete.title}</strong>? This action cannot be undone.
+            </DeleteModalMessage>
+            <DeleteModalActions>
+              <DeleteModalCancel type="button" onClick={() => setAnnouncementToDelete(null)} disabled={Boolean(deletingId)}>
+                Cancel
+              </DeleteModalCancel>
+              <DeleteModalConfirm type="button" onClick={() => handleDelete(announcementToDelete)} disabled={Boolean(deletingId)} autoFocus>
+                {deletingId ? "Deleting..." : "Delete"}
+              </DeleteModalConfirm>
+            </DeleteModalActions>
+          </DeleteModal>
+        </DeleteModalBackdrop>
+      )}
     </Container>
   );
 };
@@ -562,6 +586,82 @@ const Container = styled.div`
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
+`;
+
+const DeleteModalBackdrop = styled.div`
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(15, 23, 42, 0.48);
+`;
+
+const DeleteModal = styled.div`
+  width: min(420px, 100%);
+  box-sizing: border-box;
+  padding: 28px;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.25);
+  text-align: center;
+`;
+
+const DeleteModalIcon = styled.div`
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 16px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #fff1f1;
+  color: #dc2626;
+  font-size: 22px;
+`;
+
+const DeleteModalTitle = styled.h2`
+  margin: 0 0 8px;
+  color: ${theme.colors.textColor};
+  font: 600 20px/1.4 "Inter", sans-serif;
+`;
+
+const DeleteModalMessage = styled.p`
+  margin: 0 0 24px;
+  color: ${theme.colors.secondaryTextColor};
+  font: 400 14px/1.6 "Inter", sans-serif;
+
+  strong { color: ${theme.colors.textColor}; }
+`;
+
+const DeleteModalActions = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+`;
+
+const DeleteModalButton = styled.button`
+  min-width: 96px;
+  padding: 10px 16px;
+  border-radius: 6px;
+  font: 600 14px/1.4 "Inter", sans-serif;
+  cursor: pointer;
+
+  &:disabled { opacity: 0.6; cursor: not-allowed; }
+`;
+
+const DeleteModalCancel = styled(DeleteModalButton)`
+  border: 1px solid #d1d5db;
+  background: #fff;
+  color: ${theme.colors.textColor};
+`;
+
+const DeleteModalConfirm = styled(DeleteModalButton)`
+  border: 1px solid #dc2626;
+  background: #dc2626;
+  color: #fff;
+
+  &:hover:not(:disabled) { background: #b91c1c; }
 `;
 
 const NewAnnouncementPage = styled.div`
