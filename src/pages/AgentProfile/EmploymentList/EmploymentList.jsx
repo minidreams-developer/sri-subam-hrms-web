@@ -2,88 +2,13 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import ReusableTable from "../../../components/ReusableTable";
-import GreenArrow from "../../../assets/images/dashboardImages/green.svg";
-import RedArrow from "../../../assets/images/dashboardImages/red.svg";
 import theme from "../../../theme/theme";
 import Button from "../../../components/Button";
 import TableToolbar from "../../../components/TableToolbar";
 import PlusIcon from "../../../assets/images/DashboardImages/plus-large_svgrepo.com.svg";
 import Filter from "../../../components/filter";
-import { deleteUser, getUsers } from "../../../services/apiServices";
+import { deleteUser, getAgentMembers } from "../../../services/apiServices";
 import { toast } from "react-toastify";
-
-const employmentStats = [
-  { title: "Total Employees", value: "300", percent: "12 %", type: "down" },
-  { title: "Active Employees", value: "256", percent: "20.5 %", type: "up" },
-  { title: "In-Active Employees", value: "39", percent: "12 %", type: "down" },
-  { title: "New Employees", value: "03", percent: "20.5 %", type: "up" },
-];
-
-const employmentTableData = [
-  {
-    employeeId: "EMP001",
-    name: "Manoj Kumar",
-    designation: "UI/UX Designer",
-    department: "Design",
-    shift: "Shift 1",
-    joinedDate: "12-12-2025",
-    status: "Active",
-  },
-  {
-    employeeId: "EMP002",
-    name: "Adison Stanton",
-    designation: "Procurement",
-    department: "PP",
-    shift: "Shift 3",
-    joinedDate: "12-12-2025",
-    status: "In-Active",
-  },
-  {
-    employeeId: "EMP003",
-    name: "Cheyenne Workman",
-    designation: "Developer",
-    department: "DT",
-    shift: "Shift 4",
-    joinedDate: "12-12-2025",
-    status: "Relieved",
-  },
-  {
-    employeeId: "EMP004",
-    name: "Jocelyn Bergson",
-    designation: "Sales Manager",
-    department: "Rotational",
-    shift: "Shift 1",
-    joinedDate: "12-12-2025",
-    status: "Active",
-  },
-  {
-    employeeId: "EMP005",
-    name: "Nolan Dokidis",
-    designation: "UI/UX Designer",
-    department: "Dev",
-    shift: "Shift 1",
-    joinedDate: "12-12-2025",
-    status: "In-Active",
-  },
-  {
-    employeeId: "EMP006",
-    name: "Marilyn Press",
-    designation: "Front end Developer",
-    department: "MT",
-    shift: "Shift 2",
-    joinedDate: "12-12-2025",
-    status: "In-Active",
-  },
-  {
-    employeeId: "EMP007",
-    name: "Cheyenne Workman",
-    designation: "UI/UX Designer",
-    department: "Design",
-    shift: "Shift 3",
-    joinedDate: "12-12-2025",
-    status: "Active",
-  },
-];
 
 const normalizeEmployeeStatus = (employee) => {
   const rawStatus = employee?.isActive ?? employee?.status;
@@ -110,6 +35,13 @@ const EmploymentList = ({ agentId }) => {
   const [employeeShift, setEmployeeShift] = useState("All Shifts");
   const [showFilter, setShowFilter] = useState(false);
   const [employees, setEmployees] = useState([]);
+  const [summary, setSummary] = useState({
+    total: 0,
+    active: 0,
+    inActive: 0,
+    relieved: 0,
+    newToday: 0,
+  });
   const [isLoading, setIsLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalResults, setTotalResults] = useState(0);
@@ -122,18 +54,29 @@ const EmploymentList = ({ agentId }) => {
     }
     const timeoutId = window.setTimeout(() => fetchEmployees(currentPage), employeeSearch.trim() ? 350 : 0);
     return () => window.clearTimeout(timeoutId);
-  }, [agentId, currentPage, employeeSearch]);
+  }, [agentId, currentPage, employeeSearch, selectedFilter, selectedRange]);
 
   const fetchEmployees = async (page = 1) => {
     setIsLoading(true);
     try {
-      const query = new URLSearchParams({
-        contractAgent: agentId,
-        page: String(page),
-        limit: "10",
-      });
-      if (employeeSearch.trim()) query.set("search", employeeSearch.trim());
-      const response = await getUsers(Object.fromEntries(query));
+      const query = { page, limit: 10 };
+      if (employeeSearch.trim()) query.search = employeeSearch.trim();
+      if (selectedFilter !== "All") query.status = selectedFilter;
+
+      const rangeDays = {
+        "Last 7 days": 7,
+        "Last 30 days": 30,
+        "Last 90 days": 90,
+      }[selectedRange];
+      if (rangeDays) {
+        const joinedTo = new Date();
+        const joinedFrom = new Date(joinedTo);
+        joinedFrom.setDate(joinedFrom.getDate() - rangeDays);
+        query.joinedFrom = joinedFrom.toISOString().slice(0, 10);
+        query.joinedTo = joinedTo.toISOString().slice(0, 10);
+      }
+
+      const response = await getAgentMembers(agentId, query);
       const list = Array.isArray(response)
         ? response
         : response?.results || response?.data?.results || (Array.isArray(response?.data) ? response.data : []) || response?.users || [];
@@ -154,10 +97,18 @@ const EmploymentList = ({ agentId }) => {
         };
       });
       setEmployees(rows);
+      setSummary({
+        total: Number(response?.summary?.total) || 0,
+        active: Number(response?.summary?.active) || 0,
+        inActive: Number(response?.summary?.inActive) || 0,
+        relieved: Number(response?.summary?.relieved) || 0,
+        newToday: Number(response?.summary?.newToday) || 0,
+      });
       setTotalResults(response?.totalResults ?? response?.data?.totalResults ?? rows.length);
       setTotalPages(response?.totalPages ?? response?.data?.totalPages ?? (rows.length ? 1 : 0));
     } catch (error) {
       setEmployees([]);
+      setSummary({ total: 0, active: 0, inActive: 0, relieved: 0, newToday: 0 });
       setTotalResults(0);
       setTotalPages(0);
       toast.error(error.response?.data?.message || "Failed to fetch agent employees");
@@ -237,6 +188,14 @@ const EmploymentList = ({ agentId }) => {
     return m1 && m2;
   });
 
+  const employmentStats = [
+    { title: "Total Employees", value: summary.total },
+    { title: "Active Employees", value: summary.active },
+    { title: "In-Active Employees", value: summary.inActive },
+    { title: "Relieved Employees", value: summary.relieved },
+    { title: "New Employees Today", value: summary.newToday },
+  ];
+
   return (
     <Container>
       {showFilter && <Filter onClose={handleFilterClose} onApply={handleFilterApply} />}
@@ -247,18 +206,25 @@ const EmploymentList = ({ agentId }) => {
             <select
               className="form-select"
               value={selectedFilter}
-              onChange={(e) => setSelectedFilter(e.target.value)}
+              onChange={(e) => {
+                setSelectedFilter(e.target.value);
+                setCurrentPage(1);
+              }}
             >
               <option>All</option>
               <option>Active</option>
               <option>In-Active</option>
+              <option>Relieved</option>
             </select>
           </FilterSelect>
           <FilterSelect>
             <select
               className="form-select"
               value={selectedRange}
-              onChange={(e) => setSelectedRange(e.target.value)}
+              onChange={(e) => {
+                setSelectedRange(e.target.value);
+                setCurrentPage(1);
+              }}
             >
               <option>Last 7 days</option>
               <option>Last 30 days</option>
@@ -281,10 +247,6 @@ const EmploymentList = ({ agentId }) => {
             <CardTitle>{item.title}</CardTitle>
             <CardFooter>
               <CardValue>{item.value}</CardValue>
-              <Badge type={item.type}>
-                {item.percent}
-                <img src={item.type === "up" ? GreenArrow : RedArrow} alt="trend" />
-              </Badge>
             </CardFooter>
           </StatCard>
         ))}
@@ -368,22 +330,6 @@ const CardValue = styled.h2`
   font-family: "Inter-Bold", sans-serif;
   color: ${theme.colors.textColor};
   margin: 0;
-`;
-
-const Badge = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-  font-size: 0.75rem;
-  font-weight: 500;
-  padding: 0.2rem 0.45rem;
-  border-radius: 999px;
-  color: ${({ type }) => (type === "up" ? "#16a34a" : "#dc2626")};
-  background: ${({ type }) => (type === "up" ? "#dcfce7" : "#fee2e2")};
-  img {
-    width: 12px;
-    height: 12px;
-  }
 `;
 
 const Top = styled.div`

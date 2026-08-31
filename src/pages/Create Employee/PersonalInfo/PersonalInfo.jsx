@@ -5,7 +5,7 @@ import InputComponent from "../../../components/InputComponent";
 import CalenderInput from "../../../components/CalenderInput";
 import Select from "react-select";
 import { customSelectStyles } from "../../../theme/reactSelectStyles";
-import UploadIcon from "../../../assets/images/employee/upload2.svg";
+import ProfileImageUpload from "../../../components/ProfileImageUpload";
 import { generateEmployeeId as requestEmployeeId, getBranches } from "../../../services/apiServices";
 import { stateDistrictMap, stateOptions } from "../../../utils/statesAndDistricts";
 import { toast } from "react-toastify";
@@ -251,31 +251,6 @@ const PersonalInfo = forwardRef((_, ref) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleImageUpload = (e) => {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file) return;
-    if (!file.type.startsWith("image/")) {
-      toast.error("Please select an image file");
-      return;
-    }
-    if (file.size > 2 * 1024 * 1024) {
-      toast.error("Profile picture must be smaller than 2 MB");
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      setFormData((prev) => ({
-        ...prev,
-        aadhaarImage: file,
-        profilePic: reader.result,
-      }));
-    };
-    reader.onerror = () => toast.error("Could not read the selected image");
-    reader.readAsDataURL(file);
-  };
-
   const handleEmergencyContactChange = (index, field, value) => {
     const updated = [...emergencyContacts];
     updated[index][field] = value;
@@ -476,26 +451,7 @@ const PersonalInfo = forwardRef((_, ref) => {
         </Row>
         <Row>
           <FullCol>
-            <UploadLabel>Profile Image</UploadLabel>
-            <UploadArea>
-              <input
-                type="file"
-                id="profile-upload"
-                accept="image/*"
-                onChange={handleImageUpload}
-                style={{ display: "none" }}
-              />
-              <label htmlFor="profile-upload" style={{ cursor: "pointer", width: "100%" }}>
-                <UploadContent>
-                  <img src={UploadIcon} alt="upload" width="32" height="32" />
-                  <UploadText>
-                    {formData.aadhaarImage
-                      ? formData.aadhaarImage.name
-                      : "Upload Image"}
-                  </UploadText>
-                </UploadContent>
-              </label>
-            </UploadArea>
+            <ProfileImageUpload value={formData.profilePic} onChange={(url) => handleChange("profilePic", url)} />
           </FullCol>
         </Row>
       </Section>
@@ -747,47 +703,6 @@ const Label = styled.label`
   line-height: 160%;
   color: ${theme.colors.primaryGreen};
   margin-bottom: 0.625rem;
-`;
-
-const UploadLabel = styled.p`
-  font-size: 0.875rem;
-  font-family: "Inter_18pt-Medium", sans-serif;
-  font-weight: 500;
-  line-height: 160%;
-  color: ${theme.colors.primaryGreen};
-  margin: 0 0 0.625rem 0;
-`;
-
-const UploadArea = styled.div`
-  width: 100%;
-  min-height: 150px;
-  border: 2px dashed ${theme.colors.primary};
-  border-radius: 0.625rem;
-  background: #066c781a;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s;
-
-  &:hover {
-    background: #f0f9ff;
-  }
-`;
-
-const UploadContent = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.5rem;
-`;
-
-const UploadText = styled.p`
-  font-size: 0.875rem;
-  font-family: "Inter_18pt-Medium", sans-serif;
-  font-weight: 500;
-  color: ${theme.colors.primary};
-  margin: 0;
 `;
 
 const ButtonWrapper = styled.div`

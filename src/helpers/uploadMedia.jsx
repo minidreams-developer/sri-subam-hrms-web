@@ -6,11 +6,9 @@ export const uploadMedia = async (file, onProgress) => {
   
     try {
       const response = await uploadMediaFile(formData, onProgress);
-      if (response?.data?.link?.[0]) {
-        return response.data.link[0];
-      } else {
-        throw new Error("Upload failed: No link returned");
-      }
+      const uploadedFile = response?.files?.[0] || response?.data?.files?.[0];
+      if (!uploadedFile?.url) throw new Error("Upload failed: No file URL returned");
+      return uploadedFile;
     } catch (error) {
       console.error("Media Upload Error:", error);
       throw error;

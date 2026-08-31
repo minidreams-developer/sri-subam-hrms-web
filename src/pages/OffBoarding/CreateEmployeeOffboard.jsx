@@ -18,6 +18,7 @@ import {
   createOffboard,
   generateEmployeeId as requestEmployeeId,
   getDepartments,
+  getEmployeeByEmployeeId,
   getTeams,
   getUsers,
 } from "../../services/apiServices";
@@ -143,8 +144,15 @@ const CreateEmployeeOffboard = () => {
       const empId = selectedOption.value;
       setFormData((prev) => ({ ...prev, employeeId: empId }));
 
-      // Use the stored employee data or fetch if not available
-      let employee = selectedOption.employeeData;
+      // Always fetch the authoritative employee record by employee ID.
+      let employee;
+      try {
+        const employeeResponse = await getEmployeeByEmployeeId(empId);
+        employee = employeeResponse?.data?.user || employeeResponse?.data?.employee || employeeResponse?.data || employeeResponse?.user || employeeResponse?.employee || employeeResponse;
+      } catch (error) {
+        console.warn("Employee detail lookup failed, using dropdown record:", error);
+        employee = selectedOption.employeeData;
+      }
 
       if (!employee) {
         // Fallback: search by employee ID if data not in option
@@ -182,6 +190,12 @@ const CreateEmployeeOffboard = () => {
       }
 
       if (employee) {
+        const work = employee.workInformation || employee.workDetails || {};
+        const department = work.department || employee.department;
+        const team = work.team || employee.team;
+        const reportingPerson = work.reportingPerson || employee.reportingPerson;
+        const joinedDate = work.joinedDate || employee.dateOfJoining || employee.joinedDate;
+        const employmentType = work.experienceType || employee.employmentType;
         // Extract employee name
         const employeeName =
           employee.firstName && employee.lastName
@@ -196,46 +210,47 @@ const CreateEmployeeOffboard = () => {
             label: employeeName,
           },
           // Auto-populate other fields if available
-          department: employee.department
+          department: department
             ? {
                 value:
-                  employee.department.id ||
-                  employee.department._id ||
-                  employee.department,
+                  department.id ||
+                  department._id ||
+                  department.departmentCode ||
+                  department,
                 label:
-                  employee.department.departmentName ||
-                  employee.department.name ||
-                  employee.department,
+                  department.departmentName ||
+                  department.name ||
+                  department.departmentCode ||
+                  department,
               }
             : null,
-          designation: employee.designation || employee.position || "",
-          team: employee.team
+          designation: work.designation || employee.designation || employee.position || "",
+          team: team
             ? {
-                value: employee.team.id || employee.team._id || employee.team,
+                value: team.id || team._id || team.teamCode || team,
                 label:
-                  employee.team.teamName || employee.team.name || employee.team,
+                  team.teamName || team.name || team.teamCode || team,
               }
             : null,
-          reportingPerson: employee.reportingPerson
+          reportingPerson: reportingPerson
             ? {
                 value:
-                  employee.reportingPerson.id ||
-                  employee.reportingPerson._id ||
-                  employee.reportingPerson,
+                  reportingPerson.id ||
+                  reportingPerson._id ||
+                  reportingPerson,
                 label:
-                  employee.reportingPerson.firstName &&
-                  employee.reportingPerson.lastName
-                    ? `${employee.reportingPerson.firstName} ${employee.reportingPerson.lastName}`
-                    : employee.reportingPerson.name || employee.reportingPerson,
+                  reportingPerson.firstName && reportingPerson.lastName
+                    ? `${reportingPerson.firstName} ${reportingPerson.lastName}`
+                    : reportingPerson.name || reportingPerson.email || reportingPerson,
               }
             : null,
-          dateOfJoining: employee.dateOfJoining
-            ? new Date(employee.dateOfJoining)
+          dateOfJoining: joinedDate
+            ? new Date(joinedDate)
             : null,
-          employmentType: employee.employmentType
+          employmentType: employmentType
             ? {
-                value: employee.employmentType.toLowerCase(),
-                label: employee.employmentType,
+                value: String(employmentType).toLowerCase(),
+                label: employmentType,
               }
             : null,
         }));
@@ -303,6 +318,8 @@ const CreateEmployeeOffboard = () => {
       // Map employees to dropdown options
       const options = employees.map((emp) => ({
         value: emp.id || emp._id,
+        employeeId: emp.employeeId,
+        employeeData: emp,
         label:
           emp.firstName && emp.lastName
             ? `${emp.firstName} ${emp.lastName}`
@@ -672,7 +689,12 @@ const CreateEmployeeOffboard = () => {
               <Select
                 options={employeeOptions}
                 value={formData.employee}
-                onChange={(value) => handleChange("employee", value)}
+                onChange={(option) => option
+                  ? handleEmployeeIdSearch({
+                      value: option.employeeId || option.value,
+                      employeeData: option.employeeData,
+                    })
+                  : handleEmployeeIdSearch(null)}
                 placeholder="Select Employee"
                 styles={customSelectStyles}
                 isSearchable

@@ -28,6 +28,9 @@ export const getUsers = (params, config) => list("/v1/users", params, config);
 
 export const getUser = (id, config) => data(api.get(`/v1/users/${id}`, config));
 
+export const getEmployeeByEmployeeId = (employeeId, config) =>
+  data(api.get(`/v1/users/employee/${encodeURIComponent(employeeId)}`, config));
+
 export const getUserCount = (params, config) =>
   list("/v1/users/count", params, config);
 
@@ -56,6 +59,9 @@ export const generateStaffId = (config) =>
 
 export const generateAgentId = (config) =>
   data(api.get("/v1/users/generate-agentId", config));
+
+export const getAgentMembers = (agentId, params, config) =>
+  list(`/v1/users/agent/${agentId}/members`, params, config);
 
 // Branches
 export const getBranches = (params, config) =>
@@ -196,8 +202,12 @@ export const createAdjustment = (payload) =>
 // Offboarding, leaderboard, dashboard, and settings
 export const getOffboards = (params) => list("/v1/off-board", params);
 
+export const getOffboard = (id) => data(api.get(`/v1/off-board/${id}`));
+
 export const createOffboard = (payload) =>
   data(api.post("/v1/off-board", payload));
+
+export const deleteOffboard = (id) => data(api.delete(`/v1/off-board/${id}`));
 
 export const getLeaderboard = (params) => list("/v1/leaderboard", params);
 
@@ -258,7 +268,7 @@ export const searchCart = (query) => list("/v1/cart", { search: query });
 
 export const uploadMediaFile = (formData, onProgress) =>
   data(
-    api.post("/v1/media", formData, {
+    api.post("/v1/media/upload", formData, {
       headers: { "Content-Type": "multipart/form-data" },
       onUploadProgress: (event) =>
         event.total &&

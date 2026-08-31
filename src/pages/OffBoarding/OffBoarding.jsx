@@ -10,7 +10,9 @@ import TableToolbar from "../../components/TableToolbar";
 import PlusIcon from "../../assets/images/DashboardImages/plus-large_svgrepo.com.svg";
 import TabSwitcher from "../../components/TabSwitcher";
 import ProfileImage from "../../assets/images/employee/sampleProfile.jpg";
-import { getDepartments, getOffboards } from "../../services/apiServices";
+import { deleteOffboard, getDepartments, getOffboards } from "../../services/apiServices";
+import DeleteConfirmationModal from "../../components/DeleteConfirmationModal";
+import { FiEye, FiTrash2 } from "react-icons/fi";
 import { toast } from "react-toastify";
 import Filter from "../../components/filter";
 import {
@@ -53,6 +55,8 @@ const OffBoarding = () => {
   const [totalResults, setTotalResults] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [departmentOptions, setDepartmentOptions] = useState([]);
+  const [recordToDelete, setRecordToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const handleFilterApply = (filters) => {
     setShowFilter(false);
@@ -140,6 +144,21 @@ const OffBoarding = () => {
     navigate("/admin/peopleHub/off-boarding/EmployeeOffBoardingDetails", {
       state: { offboardId: row.id },
     });
+  };
+
+  const handleDelete = async () => {
+    if (!recordToDelete?.id) return;
+    setIsDeleting(true);
+    try {
+      await deleteOffboard(recordToDelete.id);
+      toast.success("Offboarding record deleted successfully");
+      setRecordToDelete(null);
+      await fetchOffboardingRecords();
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to delete offboarding record");
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const handleNewOffBoarding = () => {
@@ -247,7 +266,16 @@ const OffBoarding = () => {
             ),
           };
         }
-        if (col.accessor === "action") return { ...col, align: "right" };
+        if (col.accessor === "action") return {
+          ...col,
+          align: "right",
+          render: (row) => (
+            <ActionGroup>
+              <ActionButton type="button" title="View" onClick={(event) => { event.stopPropagation(); handleRowClick(row); }}><FiEye /></ActionButton>
+              <DeleteAction type="button" title="Delete" onClick={(event) => { event.stopPropagation(); setRecordToDelete(row); }}><FiTrash2 /></DeleteAction>
+            </ActionGroup>
+          ),
+        };
         return col;
       }),
     [],
@@ -260,23 +288,40 @@ const OffBoarding = () => {
         render: (row) => (
           <EmployeeCell>
             <EmployeeAvatar
-              src={row.staff.profileImage || ProfileImage}
-              alt={row.staff.name}
+              src={row.employee.profileImage || ProfileImage}
+              alt={row.employee.name}
             />
             <EmployeeInfo>
-              <EmployeeName>{row.staff.name}</EmployeeName>
-              <EmployeeRole>{row.staff.role}</EmployeeRole>
+              <EmployeeName>{row.employee.name}</EmployeeName>
+              <EmployeeRole>{row.employee.role}</EmployeeRole>
             </EmployeeInfo>
           </EmployeeCell>
         ),
       };
     }
-    if (col.accessor === "action") return { ...col, align: "right" };
+    if (col.accessor === "action") return {
+      ...col,
+      align: "right",
+      render: (row) => (
+        <ActionGroup>
+          <ActionButton type="button" title="View" onClick={(event) => { event.stopPropagation(); handleRowClick(row); }}><FiEye /></ActionButton>
+          <DeleteAction type="button" title="Delete" onClick={(event) => { event.stopPropagation(); setRecordToDelete(row); }}><FiTrash2 /></DeleteAction>
+        </ActionGroup>
+      ),
+    };
     return col;
   });
 
   return (
     <Container>
+      <DeleteConfirmationModal
+        isOpen={Boolean(recordToDelete)}
+        title="Delete offboarding record?"
+        message={`Are you sure you want to delete the offboarding record for ${recordToDelete?.employee?.name || "this user"}?`}
+        isDeleting={isDeleting}
+        onCancel={() => !isDeleting && setRecordToDelete(null)}
+        onConfirm={handleDelete}
+      />
       <Top>
         <TopTitle>Quick Stats</TopTitle>
         <Controls>
@@ -561,5 +606,9 @@ const EmployeeRole = styled.p`
   margin: 0;
   line-height: 1.2;
 `;
+
+const ActionGroup = styled.div`display:flex;justify-content:flex-end;gap:6px;`;
+const ActionButton = styled.button`width:32px;height:32px;border:0;border-radius:6px;display:grid;place-items:center;background:#e8f5f6;color:${theme.colors.primary};cursor:pointer;`;
+const DeleteAction = styled(ActionButton)`background:#fee2e2;color:#dc2626;`;
 
 export default OffBoarding;

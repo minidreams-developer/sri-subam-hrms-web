@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useOutletContext } from "react-router-dom";
+import { useLocation, useNavigate, useOutletContext } from "react-router-dom";
 import styled from "styled-components";
 import theme from "../../theme/theme";
 import DocIcon from "../../assets/images/employee/document.svg";
@@ -8,6 +8,8 @@ import CardDetails from "../../components/CardDetails";
 import CardDetailsAlt from "../../components/CardDetailsAlt";
 import FileUploadComponent from "../../components/FileUploadComponent";
 import CheckboxGroup from "../../components/CheckboxGroup";
+import { getOffboard } from "../../services/apiServices";
+import { toast } from "react-toastify";
 
 const earnings = [
   "Last Month Salary",
@@ -27,6 +29,7 @@ const deductions = [
 
 export const EmployeeOffboardDetails = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { setHeaderTitle, setHeaderBackAction } = useOutletContext();
   const [docFiles, setDocFiles] = useState([
     { label: "Aadhaar", fileName: "File Name" },
@@ -35,6 +38,21 @@ export const EmployeeOffboardDetails = () => {
     { label: "Aadhaar", fileName: "File Name" },
     { label: "Aadhaar", fileName: "File Name" },
   ]);
+  const [offboard, setOffboard] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const id = location.state?.offboardId;
+    if (!id) {
+      toast.error("Offboarding record ID is missing");
+      setLoading(false);
+      return;
+    }
+    getOffboard(id)
+      .then((response) => setOffboard(response?.data || response?.result || response))
+      .catch((error) => toast.error(error.response?.data?.message || "Failed to load offboarding details"))
+      .finally(() => setLoading(false));
+  }, [location.state?.offboardId]);
 
   useEffect(() => {
     setHeaderTitle("Employee Off-Board Details");
@@ -50,6 +68,11 @@ export const EmployeeOffboardDetails = () => {
     const label = extension === "pdf" ? "PDF" : "Document";
     setDocFiles((files) => [...files, { label, fileName: file.name }]);
   };
+
+  if (loading) return <PageCard>Loading offboarding details...</PageCard>;
+
+  const user = offboard?.userId || offboard?.user || {};
+  const exit = offboard?.exitInformation || offboard || {};
 
   return (
     <PageCard>
@@ -71,14 +94,14 @@ export const EmployeeOffboardDetails = () => {
         title="Employee Details"
         columns={3}
         items={[
-          { label: "Employee ID", value: "EMP001" },
-          { label: "Employee", value: "Manoj Kumar" },
-          { label: "Date Of Joining", value: "20-09-2025" },
-          { label: "Department", value: "Senior UI/UX Designer" },
-          { label: "Designation", value: "Core UI / Design Systems" },
-          { label: "Team", value: "Design Team" },
-          { label: "Reporting Manager", value: "Arun Kumar" },
-          { label: "Work Experience", value: "3 Years 3 Months" },
+          { label: "Employee ID", value: user.employeeId || "N/A" },
+          { label: "Employee", value: user.name || "N/A" },
+          { label: "Date Of Joining", value: user.dateOfJoining || "N/A" },
+          { label: "Department", value: user.department?.name || user.department?.departmentName || "N/A" },
+          { label: "Designation", value: user.designation?.name || user.designation || "N/A" },
+          { label: "Team", value: user.team?.name || user.team || "N/A" },
+          { label: "Reporting Manager", value: user.reportingPerson?.name || "N/A" },
+          { label: "Work Experience", value: user.workExperience || "N/A" },
         ]}
       />
 
@@ -86,15 +109,15 @@ export const EmployeeOffboardDetails = () => {
         title="Exit Information Section"
         columns={3}
         items={[
-          { label: "Exit Type", value: "Termination" },
-          { label: "Exit Reason", value: "Personal Reasons" },
-          { label: "Resignation Submitted Date", value: "20-09-2025" },
-          { label: "Last Working Date", value: "20-09-2025" },
-          { label: "Notice Period", value: "-" },
-          { label: "Actual Notice Served", value: "-" },
-          { label: "Waiver", value: "Yes" },
-          { label: "Exit Approved By", value: "Deepak" },
-          { label: "Approval Date", value: "20-09-2025" },
+          { label: "Exit Type", value: exit.exitType || "N/A" },
+          { label: "Exit Reason", value: exit.exitReason || "N/A" },
+          { label: "Resignation Submitted Date", value: exit.resignationSubmittedDate || exit.resignationDate || "N/A" },
+          { label: "Last Working Date", value: exit.lastWorkingDate || "N/A" },
+          { label: "Notice Period", value: exit.noticePeriod || "N/A" },
+          { label: "Actual Notice Served", value: exit.actualNoticeServed || "N/A" },
+          { label: "Waiver", value: exit.waiver ?? "N/A" },
+          { label: "Exit Approved By", value: exit.exitApprovedBy?.name || exit.exitApprovedBy || "N/A" },
+          { label: "Approval Date", value: exit.approvalDate || "N/A" },
         ]}
       />
 

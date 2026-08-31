@@ -182,7 +182,7 @@ const Agents = () => {
           id: agent?.id || agent?._id,
           agentId: agent?.employeeId || agent?.agentId || "N/A",
           name: agent?.name || "N/A",
-          laboursCount: "-",
+          laboursCount: Number(agent?.memberCount) || 0,
           joinedDate: formatDate(agent?.workInformation?.joinedDate),
           status: agent?.isActive ? "Active" : "In-Active",
           action: "",

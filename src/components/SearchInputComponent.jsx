@@ -47,7 +47,7 @@ const SearchInputWrapper = styled.div`
 const SearchInput = styled.input`
   width: 100%;
   font-size: 0.875rem;
-  color: ${theme.colors.searchInputText};
+  color: ${theme.colors.textColor};
   font-family: "Inter", sans-serif;
   font-weight: 500;
   border: none;
@@ -62,7 +62,7 @@ const SearchInput = styled.input`
     opacity: 1;
   }
   &:focus {
-    color: ${theme.colors.primary_text};
+    color: ${theme.colors.textColor};
   }
 `;
 

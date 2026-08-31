@@ -79,7 +79,7 @@ const CreateAgent = () => {
       // --- Build payload: POST /v1/users/employee-registration ---
       const payload = {
         role: "agent",
-        employeeId: personalData.agentId,
+        agentId: personalData.agentId,
         name: personalData.agentName,
         email: personalData.email,
         password: personalData.password,
@@ -95,8 +95,10 @@ const CreateAgent = () => {
         branch: personalData.branch?.value,
 
         documentNo: {
-          aadharNo: Number(personalData.aadharNo.replace(/\D/g, "")) || null,
-          panNo: personalData.panNo,
+          aadharNo:
+            Number(String(personalData.aadharNo || "").replace(/\D/g, "")) ||
+            null,
+          panNo: String(personalData.panNo || "").trim().toUpperCase(),
         },
 
         address: [
@@ -132,7 +134,11 @@ const CreateAgent = () => {
           .map((doc) => ({
             documentName: doc.label,
             documentType: documentsData.governmentDocuments?.includes(doc) ? "government" : "personal",
-            fileUrl: doc.file?.name || "", // In real scenario, this would be the uploaded URL from server
+            fileName: doc.file?.name || "",
+            fileUrl: doc.file?.url || "",
+            publicId: doc.file?.publicId || "",
+            mimeType: doc.file?.mimeType || "",
+            keepOriginal: Boolean(doc.keepOriginal),
           })),
 
         commission: {

@@ -7,8 +7,7 @@ import PersonalInfo from "./PersonalInfo/PersonalInfo";
 import AddWorkDetails from "./Work Details/AddWorkDetails";
 import Documents from "./Documents/Documents";
 import Button from "../../components/Button";
-import { createEmployee, updateUserFormData } from "../../services/apiServices";
-import { buildDocumentFormData } from "../../helpers/registration_form_data";
+import { createEmployee } from "../../services/apiServices";
 import { toast } from "react-toastify";
 
 const CreateEmployee = () => {
@@ -93,6 +92,19 @@ const CreateEmployee = () => {
         religion: personalData.religion?.value,
         profilePic: personalData.profilePic || "",
 
+        documentImage: (documentsData.governmentDocuments || [])
+          .concat(documentsData.personalDocuments || [])
+          .filter((doc) => doc.file?.url)
+          .map((doc) => ({
+            documentName: doc.label,
+            documentType: documentsData.governmentDocuments?.includes(doc) ? "government" : "personal",
+            fileName: doc.file.name,
+            fileUrl: doc.file.url,
+            publicId: doc.file.publicId,
+            mimeType: doc.file.mimeType,
+            keepOriginal: Boolean(doc.keepOriginal),
+          })),
+
         documentNo: {
           aadharNo: Number(personalData.aadharNo),
           panNo: personalData.panNo,
@@ -165,13 +177,9 @@ const CreateEmployee = () => {
       const selectedDocuments = [
         ...(documentsData.governmentDocuments || []),
         ...(documentsData.personalDocuments || []),
-      ].filter((document) => document.file instanceof File);
-      const createdEmployee = response?.data || response?.user || response;
-      const employeeId = createdEmployee?.id || createdEmployee?._id;
-
+      ].filter((document) => document.file?.url);
       if (selectedDocuments.length) {
-        if (!employeeId) throw new Error("Employee created, but its ID was not returned for document upload");
-        await updateUserFormData(employeeId, buildDocumentFormData(documentsData));
+        toast.success(`${selectedDocuments.length} document${selectedDocuments.length > 1 ? "s" : ""} uploaded`);
       }
 
       toast.success("Employee created successfully!");

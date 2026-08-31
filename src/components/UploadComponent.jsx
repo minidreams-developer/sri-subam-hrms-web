@@ -2,20 +2,45 @@ import { useState } from "react";
 import styled from "styled-components";
 import theme from "../theme/theme";
 import UploadIcon from "../assets/images/employee/upload-filled.svg";
+import { toast } from "react-toastify";
+import { uploadMedia } from "../helpers/uploadMedia";
 
 const UploadComponent = ({ label, onFileSelect, showKeepOriginal = true, isEditable = false, onLabelChange }) => {
   const [selectedFile, setSelectedFile] = useState(null);
   const [keepOriginal, setKeepOriginal] = useState(false);
   const [isEditingLabel, setIsEditingLabel] = useState(false);
   const [editedLabel, setEditedLabel] = useState(label);
+  const [uploading, setUploading] = useState(false);
+  const [progress, setProgress] = useState(0);
 
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setSelectedFile(file);
-      if (onFileSelect) {
-        onFileSelect(file, keepOriginal);
-      }
+  const handleFileChange = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+
+    const allowedExtensions = ["jpg", "jpeg", "png", "webp", "gif", "pdf", "doc", "docx"];
+    const extension = file.name.split(".").pop()?.toLowerCase();
+    if (!allowedExtensions.includes(extension)) {
+      toast.error("Allowed formats: JPG, PNG, WEBP, GIF, PDF, DOC, DOCX");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("File must be 5 MB or smaller");
+      return;
+    }
+
+    setUploading(true);
+    setProgress(0);
+    try {
+      const uploaded = await uploadMedia(file, setProgress);
+      const uploadedFile = { ...uploaded, name: uploaded.originalName || file.name };
+      setSelectedFile(uploadedFile);
+      onFileSelect?.(uploadedFile, keepOriginal);
+      toast.success("File uploaded successfully");
+    } catch (error) {
+      toast.error(error?.response?.data?.message || error.message || "File upload failed");
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -63,6 +88,8 @@ const UploadComponent = ({ label, onFileSelect, showKeepOriginal = true, isEdita
           type="file"
           id={`upload-${label}`}
           onChange={handleFileChange}
+          accept=".jpg,.jpeg,.png,.webp,.gif,.pdf,.doc,.docx"
+          disabled={uploading}
           style={{ display: "none" }}
         />
         <label htmlFor={`upload-${label}`} style={{ cursor: "pointer", width: "100%", height: "100%" }}>
@@ -70,7 +97,7 @@ const UploadComponent = ({ label, onFileSelect, showKeepOriginal = true, isEdita
             <IconWrapper>
               <img src={UploadIcon} alt="upload" />
             </IconWrapper>
-            <UploadText>Add File</UploadText>
+            <UploadText>{uploading ? `Uploading${progress ? ` ${progress}%` : "..."}` : selectedFile?.name || "Add File"}</UploadText>
           </UploadContent>
         </label>
       </UploadArea>

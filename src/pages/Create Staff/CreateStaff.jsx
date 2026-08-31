@@ -7,32 +7,8 @@ import PersonalInfo from "./PersonalInfo/PersonalInfo";
 import Documents from "./Documents/Documents";
 import AddWorkDetails from "./Work Details/AddWorkDetails";
 import Button from "../../components/Button";
-import { createEmployee, getUsers, updateUserFormData } from "../../services/apiServices";
-import { buildDocumentFormData } from "../../helpers/registration_form_data";
+import { createEmployee } from "../../services/apiServices";
 import { toast } from "react-toastify";
-
-const findUserId = (value) => {
-  if (!value || typeof value !== "object") return null;
-  if (!Array.isArray(value) && (value.id || value._id)) return value.id || value._id;
-
-  for (const key of ["data", "user", "result", "createdUser", "staff"]) {
-    const id = findUserId(value[key]);
-    if (id) return id;
-  }
-  return null;
-};
-
-const findUserByEmail = (value, email) => {
-  if (!value || typeof value !== "object") return null;
-  if (Array.isArray(value)) {
-    return value.find((user) => user?.email?.toLowerCase() === email.toLowerCase()) || null;
-  }
-  for (const key of ["results", "data", "users", "result"]) {
-    const user = findUserByEmail(value[key], email);
-    if (user) return user;
-  }
-  return null;
-};
 
 const CreateStaff = () => {
   const navigate = useNavigate();
@@ -122,6 +98,19 @@ const CreateStaff = () => {
         religion: personalData.religion?.value,
         profilePic: personalData.profilePic || "",
 
+        documentImage: (documentsData.governmentDocuments || [])
+          .concat(documentsData.personalDocuments || [])
+          .filter((doc) => doc.file?.url)
+          .map((doc) => ({
+            documentName: doc.label,
+            documentType: documentsData.governmentDocuments?.includes(doc) ? "government" : "personal",
+            fileName: doc.file.name,
+            fileUrl: doc.file.url,
+            publicId: doc.file.publicId,
+            mimeType: doc.file.mimeType,
+            keepOriginal: Boolean(doc.keepOriginal),
+          })),
+
         documentNo: {
           aadharNo: Number(personalData.aadharNo),
           panNo: personalData.panNo,
@@ -196,17 +185,8 @@ const CreateStaff = () => {
       const selectedDocuments = [
         ...(documentsData.governmentDocuments || []),
         ...(documentsData.personalDocuments || []),
-      ].filter((document) => document.file instanceof File);
-      let staffUserId = findUserId(response);
-
+      ].filter((document) => document.file?.url);
       if (selectedDocuments.length) {
-        if (!staffUserId) {
-          const usersResponse = await getUsers({ email: payload.email, limit: 10 });
-          const createdStaff = findUserByEmail(usersResponse, payload.email);
-          staffUserId = createdStaff?.id || createdStaff?._id;
-        }
-        if (!staffUserId) throw new Error("Staff created, but its ID was not returned for document upload");
-        await updateUserFormData(staffUserId, buildDocumentFormData(documentsData));
         toast.success(`${selectedDocuments.length} document${selectedDocuments.length > 1 ? "s" : ""} uploaded`);
       }
 
