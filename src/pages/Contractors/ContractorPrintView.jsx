@@ -337,7 +337,7 @@ const DownloadButton = styled.button`
 
 const PrintButton = styled.button`
   padding: 0.5rem 1rem;
-  background: #066C78;
+  background: #0047AB;
   color: white;
   border: none;
   border-radius: 4px;
@@ -347,7 +347,7 @@ const PrintButton = styled.button`
   font-family: "Inter", sans-serif;
 
   &:hover {
-    background: #055B65;
+    background: #003A8C;
   }
 `;
 

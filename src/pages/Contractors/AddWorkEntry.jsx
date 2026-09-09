@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import styled from "styled-components";
 import { useNavigate, useLocation } from "react-router-dom";
-import { createWorkEntry, getBranches } from "../../services/apiServices";
+import { createWorkEntry, getBranchDropdown } from "../../services/apiServices";
 import { toast } from "react-toastify";
 import theme from "../../theme/theme";
 import deleteIcon from "../../assets/contractor/SVG.svg";
@@ -48,11 +48,11 @@ const AddWorkEntry = () => {
     const fetchBranches = async () => {
       try {
         setBranchesLoading(true);
-        const response = { data: await getBranches() };
+        const response = await getBranchDropdown({ skipGlobalLoading: true });
 
-        console.log("✅ Branches fetched successfully:", response.data);
+        console.log("✅ Branches fetched successfully:", response);
         
-        const branchResults = response.data?.results || [];
+        const branchResults = Array.isArray(response) ? response : [];
         setBranches(Array.isArray(branchResults) ? branchResults : []);
         
         // Set first branch as default if available
@@ -246,7 +246,7 @@ const AddWorkEntry = () => {
                 </option>
                 {branches.map((branch) => (
                   <option key={branch._id || branch.id} value={branch._id || branch.id}>
-                    {branch.branchName || branch.name || "Unknown"}
+                    {branch.branchName}
                   </option>
                 ))}
               </Select>

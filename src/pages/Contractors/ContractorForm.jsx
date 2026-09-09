@@ -1,19 +1,27 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import styled from "styled-components";
 import { useNavigate } from "react-router-dom";
 import deleteIcon from "../../assets/contractor/SVG.svg";
 import editIcon from "../../assets/contractor/SVG (1).svg";
-import { createContractor } from "../../services/apiServices";
+import {
+  createContractor,
+  generateContractorId as requestContractorId,
+} from "../../services/apiServices";
+import { uploadMedia } from "../../helpers/uploadMedia";
 import { toast } from "react-toastify";
 
 const ContractorForm = () => {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGeneratingId, setIsGeneratingId] = useState(false);
+  const [isPhotoUploading, setIsPhotoUploading] = useState(false);
+  const [photoUploadProgress, setPhotoUploadProgress] = useState(0);
 
   // Step 1: Personal Information
   const [formData, setFormData] = useState({
     profilePhoto: null,
+    profilePhotoUrl: "",
     profilePhotoName: "",
     contractorId: "",
     contractorName: "",
@@ -86,9 +94,59 @@ const ContractorForm = () => {
     }
   ]);
 
+  useEffect(() => {
+    const generateContractorId = async () => {
+      setIsGeneratingId(true);
+      try {
+        const response = await requestContractorId();
+        const contractorId =
+          (typeof response === "string" && response) ||
+          response?.contractorId ||
+          response?.data?.contractorId ||
+          (typeof response?.data === "string" && response.data) ||
+          response?.id ||
+          "";
+
+        if (contractorId) {
+          setFormData((current) => ({ ...current, contractorId }));
+        } else {
+          toast.error("No contractor ID received from server");
+        }
+      } catch (error) {
+        console.error("Failed to generate contractor ID:", error);
+        toast.error("Failed to generate contractor ID");
+      } finally {
+        setIsGeneratingId(false);
+      }
+    };
+
+    generateContractorId();
+  }, []);
+
+  const calculateAge = (dateOfBirth) => {
+    if (!dateOfBirth) return "";
+    const birthDate = new Date(`${dateOfBirth}T00:00:00`);
+    if (Number.isNaN(birthDate.getTime())) return "";
+
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDifference = today.getMonth() - birthDate.getMonth();
+    if (
+      monthDifference < 0 ||
+      (monthDifference === 0 && today.getDate() < birthDate.getDate())
+    ) {
+      age -= 1;
+    }
+    return age >= 0 ? String(age) : "";
+  };
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
+    setFormData((current) => ({
+      ...current,
+      [name]: value,
+      ...(name === "dateOfBirth" && { age: calculateAge(value) }),
+    }));
   };
 
   const handleWorkDataChange = (e) => {
@@ -96,14 +154,38 @@ const ContractorForm = () => {
     setWorkData({ ...workData, [name]: value });
   };
 
-  const handlePhotoUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setFormData({
-        ...formData,
+  const handlePhotoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select an image file");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Contractor photo must be 5 MB or smaller");
+      return;
+    }
+
+    setIsPhotoUploading(true);
+    setPhotoUploadProgress(0);
+    try {
+      const uploadedFile = await uploadMedia(file, setPhotoUploadProgress);
+      setFormData((current) => ({
+        ...current,
         profilePhoto: file,
-        profilePhotoName: file.name,
-      });
+        profilePhotoUrl: uploadedFile.url,
+        profilePhotoName: uploadedFile.originalName || file.name,
+      }));
+      toast.success("Contractor photo uploaded successfully");
+    } catch (error) {
+      toast.error(
+        error?.response?.data?.message ||
+          error.message ||
+          "Contractor photo upload failed",
+      );
+    } finally {
+      setIsPhotoUploading(false);
     }
   };
 
@@ -225,7 +307,9 @@ const ContractorForm = () => {
     try {
       // Build payload according to API spec
       const payload = {
+        contractorId: formData.contractorId?.trim() || "",
         name: formData.contractorName?.trim() || "",
+        ...(formData.profilePhotoUrl && { profilePic: formData.profilePhotoUrl }),
         email: formData.emailAddress?.trim() || "",
         password: formData.password?.trim() || "defaultPassword123",
         phone: parseInt(formData.phoneNumber?.replace(/\D/g, "") || "0", 10),
@@ -345,12 +429,18 @@ const ContractorForm = () => {
 
               <PhotoUploadArea>
                 <PhotoPlaceholder>
-                  {formData.profilePhotoName ? "✓" : "📷"}
+                  {formData.profilePhotoUrl ? (
+                    <PhotoPreview src={formData.profilePhotoUrl} alt="Contractor preview" />
+                  ) : (
+                    "📷"
+                  )}
                 </PhotoPlaceholder>
                 <PhotoInfo>
                   <UploadText>Upload Photo</UploadText>
                   <UploadSubtext>
-                    {formData.profilePhotoName
+                    {isPhotoUploading
+                      ? `Uploading${photoUploadProgress ? ` ${photoUploadProgress}%` : "..."}`
+                      : formData.profilePhotoName
                       ? `Selected: ${formData.profilePhotoName}`
                       : "Recommended size 200 x 200px (Min 100 x 100px)"}
                   </UploadSubtext>
@@ -358,11 +448,16 @@ const ContractorForm = () => {
                     type="file"
                     accept="image/*"
                     onChange={handlePhotoUpload}
+                    disabled={isPhotoUploading}
                     hidden
                     id="photo-upload"
                   />
                   <UploadLabel htmlFor="photo-upload">
-                    {formData.profilePhotoName ? "Change Photo" : "Choose File"}
+                    {isPhotoUploading
+                      ? "Uploading..."
+                      : formData.profilePhotoName
+                        ? "Change Photo"
+                        : "Choose File"}
                   </UploadLabel>
                 </PhotoInfo>
               </PhotoUploadArea>
@@ -373,9 +468,9 @@ const ContractorForm = () => {
                   <Input
                     type="text"
                     name="contractorId"
-                    placeholder="C12-0001"
+                    placeholder={isGeneratingId ? "Generating..." : "Auto Generated"}
                     value={formData.contractorId}
-                    onChange={handleInputChange}
+                    disabled
                   />
                 </FormGroup>
 
@@ -439,7 +534,7 @@ const ContractorForm = () => {
                     name="age"
                     placeholder="Auto-calculated"
                     value={formData.age}
-                    onChange={handleInputChange}
+                    readOnly
                   />
                 </FormGroup>
 
@@ -984,7 +1079,13 @@ const ContractorForm = () => {
         {currentStep === 1 && (
           <FormActions>
             <CancelButton onClick={handleCancel}>Cancel</CancelButton>
-            <NextButton type="button" onClick={() => setCurrentStep(2)}>Next →</NextButton>
+            <NextButton
+              type="button"
+              onClick={() => setCurrentStep(2)}
+              disabled={isPhotoUploading}
+            >
+              Next →
+            </NextButton>
           </FormActions>
         )}
       </FormContainer>
@@ -1147,6 +1248,13 @@ const PhotoPlaceholder = styled.div`
   justify-content: center;
   font-size: 2rem;
   flex-shrink: 0;
+  overflow: hidden;
+`;
+
+const PhotoPreview = styled.img`
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 `;
 
 const PhotoInfo = styled.div`
@@ -1243,6 +1351,12 @@ const Input = styled.input`
 
   &::placeholder {
     color: #999;
+  }
+
+  &:disabled {
+    background: #f3f4f6;
+    color: #667085;
+    cursor: not-allowed;
   }
 `;
 
@@ -1438,7 +1552,7 @@ const IconButton = styled.button`
 const AddJobButton = styled.button`
   height: 36px;
   padding: 0 14px;
-  background: #066C78;
+  background: #0047AB;
   color: white;
   border: none;
   border-radius: 6px;
@@ -1449,7 +1563,7 @@ const AddJobButton = styled.button`
   transition: all 0.2s;
 
   &:hover {
-    background: #055B65;
+    background: #003A8C;
   }
 `;
 
@@ -1491,7 +1605,7 @@ const CancelButton = styled.button`
 const NextButton = styled.button`
   height: 40px;
   padding: 0 24px;
-  background: #066C78;
+  background: #0047AB;
   color: white;
   border: none;
   border-radius: 6px;
@@ -1502,7 +1616,7 @@ const NextButton = styled.button`
   transition: all 0.2s;
 
   &:hover {
-    background: #055B65;
+    background: #003A8C;
   }
 
   &:active {
@@ -1518,7 +1632,7 @@ const NextButton = styled.button`
 const SubmitButton = styled.button`
   height: 40px;
   padding: 0 24px;
-  background: #066C78;
+  background: #0047AB;
   color: white;
   border: none;
   border-radius: 6px;
@@ -1529,7 +1643,7 @@ const SubmitButton = styled.button`
   transition: all 0.2s;
 
   &:hover:not(:disabled) {
-    background: #055B65;
+    background: #003A8C;
   }
 
   &:active:not(:disabled) {

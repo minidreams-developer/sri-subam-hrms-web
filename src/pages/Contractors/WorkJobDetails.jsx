@@ -357,7 +357,7 @@ const Description = styled.p`
 
 const AddJobButton = styled.button`
   padding: 0.5rem 1rem;
-  background: #066C78;
+  background: #0047AB;
   color: white;
   border: none;
   border-radius: 6px;
@@ -368,7 +368,7 @@ const AddJobButton = styled.button`
   transition: all 0.2s;
 
   &:hover {
-    background: #055B65;
+    background: #003A8C;
   }
 `;
 
@@ -594,7 +594,7 @@ const SaveButton = styled.button`
   padding: 0.75rem 2rem;
   border: none;
   border-radius: 8px;
-  background: #066C78;
+  background: #0047AB;
   color: white;
   font-family: "Inter", sans-serif;
   font-weight: 600;
@@ -603,7 +603,7 @@ const SaveButton = styled.button`
   transition: all 0.2s;
 
   &:hover {
-    background: #055B65;
+    background: #003A8C;
   }
 `;
 

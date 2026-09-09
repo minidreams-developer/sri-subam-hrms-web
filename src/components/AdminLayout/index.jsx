@@ -290,6 +290,7 @@ const AdminLayout = () => {
               <React.Fragment key={index}>
                 <SidebarItem
                   $isactive={isActive}
+                  $isContractor={item.name === "Contractors"}
                   open={sidebarOpen}
                   onClick={() => {
                     if (hasSubmenu) {
@@ -307,7 +308,11 @@ const AdminLayout = () => {
                     <span>{item.name}</span>
                   </ItemContent>
                   {hasSubmenu && sidebarOpen && (
-                    <ArrowIcon open={sidebarOpen}>
+                    <ArrowIcon
+                      open={sidebarOpen}
+                      $isactive={isActive}
+                      $isContractor={item.name === "Contractors"}
+                    >
                       {isExpanded ? (
                         <MdKeyboardArrowUp />
                       ) : (
@@ -325,6 +330,7 @@ const AdminLayout = () => {
                         <SubMenuItem
                           key={subIndex}
                           $isactive={isSubActive}
+                          $isContractor={item.name === "Contractors"}
                           onClick={() => {
                             if (subItem.state) {
                               navigateFromSidebar(subItem.path, { state: subItem.state });
@@ -542,11 +548,16 @@ const SidebarItem = styled.li`
   cursor: pointer;
   white-space: nowrap;
 
-  background-color: ${(props) =>
-    props.$isactive ? theme.colors.primary : "transparent"};
+  background-color: ${(props) => {
+    if (!props.$isactive) return "transparent";
+    return props.$isContractor ? "#0047AB" : theme.colors.primary;
+  }};
 
   span {
-    color: ${(props) => (props.$isactive ? theme.colors.white : "#1B2436")};
+    color: ${(props) => {
+      if (!props.$isactive) return "#1B2436";
+      return theme.colors.white;
+    }};
     display: ${(props) => (props.open ? "inline" : "none")};
     transition: opacity 0.3s ease;
   }
@@ -559,10 +570,17 @@ const SidebarItem = styled.li`
 
   &:hover {
     background-color: ${(props) =>
-      props.$isactive ? theme.colors.primary : "transparent"};
+      props.$isactive
+        ? props.$isContractor
+          ? "#0047AB"
+          : theme.colors.primary
+        : "transparent"};
 
     span {
-      color: ${(props) => (props.$isactive ? theme.colors.white : "#1B2436")};
+      color: ${(props) => {
+        if (!props.$isactive) return "#1B2436";
+        return theme.colors.white;
+      }};
     }
 
     img {
@@ -594,7 +612,8 @@ const ItemContent = styled.div`
 const ArrowIcon = styled.div`
   display: ${(props) => (props.open ? "flex" : "none")};
   align-items: center;
-  color: ${theme.colors.textColor};
+  color: ${(props) =>
+    props.$isactive ? theme.colors.white : theme.colors.textColor};
   font-size: 1.25rem;
 `;
 
@@ -612,7 +631,11 @@ const SubMenuItem = styled.li`
   cursor: pointer;
   border-radius: 4px;
   background-color: ${(props) =>
-    props.$isactive ? theme.colors.primary : "transparent"};
+    props.$isactive
+      ? props.$isContractor
+        ? "#0047AB"
+        : theme.colors.primary
+      : "transparent"};
 
   span {
     font-family: "Inter", sans-serif;
@@ -624,7 +647,11 @@ const SubMenuItem = styled.li`
 
   &:hover {
     background-color: ${(props) =>
-      props.$isactive ? theme.colors.primary : "#f7fafc"};
+      props.$isactive
+        ? props.$isContractor
+          ? "#0047AB"
+          : theme.colors.primary
+        : "#f7fafc"};
     span {
       color: ${(props) =>
         props.$isactive ? theme.colors.white : theme.colors.primary};

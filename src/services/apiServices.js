@@ -67,6 +67,9 @@ export const getAgentMembers = (agentId, params, config) =>
 export const getBranches = (params, config) =>
   list("/v1/branches", params, config);
 
+export const getBranchDropdown = (config) =>
+  data(api.get("/api/v1/branches/dropdown", config));
+
 export const generateBranchId = () => data(api.get("/v1/branches/generate-id"));
 
 export const createBranch = (payload) =>
@@ -255,6 +258,9 @@ export const deleteAnnouncement = (id) =>
   data(api.delete(`/v1/announcements/${id}`));
 
 export const getContractors = (params) => list("/v1/contractors", params);
+
+export const generateContractorId = () =>
+  data(api.get("/v1/contractors/generate-id"));
 
 export const getContractor = (id) => data(api.get(`/v1/contractors/${id}`));
 

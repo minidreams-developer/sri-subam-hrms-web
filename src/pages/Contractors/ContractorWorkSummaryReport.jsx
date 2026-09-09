@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation, useParams } from "react-router-dom";
 import styled from "styled-components";
-import { FiDownload, FiZoomIn, FiZoomOut } from "react-icons/fi";
+import { FiDownload, FiZoomIn, FiZoomOut, FiCalendar } from "react-icons/fi";
 
 const ContractorWorkSummaryReport = () => {
   const navigate = useNavigate();
@@ -52,9 +52,9 @@ const ContractorWorkSummaryReport = () => {
         ],
       },
       {
-        date: "06/04/2026",
+        date: "08/04/2026",
         dayOfWeek: "Wednesday",
-        totalAmount: "$1,230.00",
+        totalAmount: "$1,250.00",
         items: [
           {
             sNo: 1,
@@ -63,7 +63,7 @@ const ContractorWorkSummaryReport = () => {
             unit: "Sq.Ft.",
             pricePerUnit: "$2.50 / SqFt",
             remarks: "Heavy dust accumulation",
-            total: "$1,230.00",
+            total: "$1,250.00",
           },
         ],
       },
@@ -162,10 +162,12 @@ const ContractorWorkSummaryReport = () => {
           <ReportSubtitle>Ace Workforce Management System</ReportSubtitle>
           <ReportMeta>
             <MetaItem>
+              <FiCalendar />
               <MetaLabel>Report Period:</MetaLabel>
               <MetaValue>📅 {reportFilters.fromDate} — {reportFilters.toDate}</MetaValue>
             </MetaItem>
           </ReportMeta>
+          <ReportType>Report Type: <strong>{reportFilters.reportType}</strong><small>Generated on: 02/05/2026</small></ReportType>
         </ReportHeader>
 
         {/* Contractor Info */}
@@ -296,7 +298,7 @@ const ContractorWorkSummaryReport = () => {
 // Styled Components
 const ReportWrapper = styled.div`
   width: 100%;
-  background: #f5f5f5;
+  background: transparent;
   min-height: 100vh;
   padding: 1.5rem;
   font-family: "Inter", sans-serif;
@@ -306,10 +308,11 @@ const ReportToolbar = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: #2c3e50;
-  padding: 1rem 1.5rem;
-  border-radius: 8px;
-  margin-bottom: 1.5rem;
+  background: transparent;
+  padding: 0 0 1rem;
+  border-radius: 0;
+  margin: 0 auto 0.25rem;
+  max-width: 1070px;
   gap: 1rem;
 `;
 
@@ -329,16 +332,17 @@ const ToolbarRight = styled.div`
 const ZoomControl = styled.div`
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  background: #34495e;
-  padding: 0.5rem 1rem;
-  border-radius: 6px;
+  gap: 0;
+  background: #fff;
+  padding: 0.35rem 0.55rem;
+  border-radius: 7px;
+  color: #172033;
 `;
 
 const ZoomButton = styled.button`
   background: none;
   border: none;
-  color: white;
+  color: #172033;
   cursor: pointer;
   font-size: 1rem;
   padding: 0.25rem;
@@ -352,7 +356,7 @@ const ZoomButton = styled.button`
 `;
 
 const ZoomPercentage = styled.span`
-  color: white;
+  color: #172033;
   font-weight: 600;
   font-size: 0.9rem;
   min-width: 50px;
@@ -381,23 +385,27 @@ const DownloadButton = styled.button`
 
 const ReportContent = styled.div`
   background: white;
-  padding: 3rem;
+  padding: 2rem 2.1rem;
   border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
   margin-bottom: 2rem;
+  max-width: 1070px;
+  margin-left: auto;
+  margin-right: auto;
 `;
 
 const ReportHeader = styled.div`
-  text-align: center;
+  text-align: left;
   margin-bottom: 2rem;
-  border-bottom: 2px solid #333;
-  padding-bottom: 1rem;
+  border-bottom: 2px solid #e5e7eb;
+  padding-bottom: 1.25rem;
+  position: relative;
 `;
 
 const ReportTitle = styled.h1`
   font-size: 1.5rem;
   font-weight: 700;
-  color: #333;
+  color: #172033;
   margin: 0 0 0.5rem 0;
   letter-spacing: 1px;
 `;
@@ -410,9 +418,19 @@ const ReportSubtitle = styled.p`
 
 const ReportMeta = styled.div`
   display: flex;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 2rem;
   font-size: 0.9rem;
+`;
+
+const ReportType = styled.div`
+  position: absolute;
+  right: 0;
+  top: 0;
+  color: #687386;
+  font-size: 0.8rem;
+  strong { color: #172033; }
+  small { display: block; margin-top: 0.9rem; text-align: right; }
 `;
 
 const MetaItem = styled.div`
@@ -443,7 +461,7 @@ const SectionTitle = styled.h2`
 
 const ContractorInfoGrid = styled.div`
   display: grid;
-  grid-template-columns: 120px 1fr;
+  grid-template-columns: 100px 1fr;
   gap: 2rem;
   align-items: flex-start;
 `;
@@ -462,7 +480,7 @@ const ContractorPhoto = styled.div`
 
 const InfoColumnsGrid = styled.div`
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
   gap: 1.5rem 3rem;
 `;
 
@@ -510,10 +528,11 @@ const WorkLogDateHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: #f0f0f0;
+  background: #eef2f3;
   padding: 0.75rem 1rem;
-  border-radius: 6px;
-  margin-bottom: 1rem;
+  border: 1px solid #dce1e5;
+  border-radius: 8px 8px 0 0;
+  margin-bottom: 0;
 `;
 
 const WorkLogDate = styled.span`
@@ -525,13 +544,17 @@ const WorkLogDate = styled.span`
 const WorkLogTotal = styled.span`
   font-size: 0.85rem;
   font-weight: 700;
-  color: #066C78;
+  color: #0047AB;
 `;
 
 const WorkLogTable = styled.table`
   width: 100%;
   border-collapse: collapse;
   margin-bottom: 1rem;
+  border: 1px solid #dce1e5;
+  border-top: 0;
+  border-radius: 0 0 8px 8px;
+  overflow: hidden;
 `;
 
 const WorkLogTableHead = styled.thead`
@@ -562,7 +585,7 @@ const WorkLogTd = styled.td`
   font-size: 0.85rem;
   color: #333;
   font-weight: ${(props) => (props.$highlight ? "700" : "500")};
-  color: ${(props) => (props.$highlight ? "#066C78" : "#333")};
+  color: ${(props) => (props.$highlight ? "#0047AB" : "#333")};
 `;
 
 const BankDetailsSection = styled.div`
