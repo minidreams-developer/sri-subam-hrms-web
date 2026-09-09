@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import styled from "styled-components";
 import { useNavigate, useLocation } from "react-router-dom";
 import { createWorkEntry, getBranchDropdown } from "../../services/apiServices";
+import { uploadMedia } from "../../helpers/uploadMedia";
 import { toast } from "react-toastify";
 import theme from "../../theme/theme";
 import deleteIcon from "../../assets/contractor/SVG.svg";
@@ -33,6 +34,7 @@ const AddWorkEntry = () => {
       id: 1,
       jobItem: "",
       quantity: "",
+      unit: "",
       priceUnit: "",
       remarks: ""
     }
@@ -42,6 +44,7 @@ const AddWorkEntry = () => {
   const [isDragging, setIsDragging] = useState(false);
   const [branches, setBranches] = useState([]);
   const [branchesLoading, setBranchesLoading] = useState(true);
+  const [isUploadingFiles, setIsUploadingFiles] = useState(false);
 
   // Fetch branches on component mount
   useEffect(() => {
@@ -93,6 +96,7 @@ const AddWorkEntry = () => {
       id: Date.now(),
       jobItem: "",
       quantity: "",
+      unit: "",
       priceUnit: "",
       remarks: ""
     };
@@ -114,16 +118,38 @@ const AddWorkEntry = () => {
     setIsDragging(false);
   };
 
+  const uploadFiles = async (files) => {
+    if (!files.length) return;
+    setIsUploadingFiles(true);
+    try {
+      const uploaded = await Promise.all(
+        files.map(async (file) => {
+          const media = await uploadMedia(file);
+          return { ...file, ...media };
+        }),
+      );
+      setUploadedFiles((current) => [...current, ...uploaded]);
+    } catch (error) {
+      toast.error(error.message || "Failed to upload attachment");
+    } finally {
+      setIsUploadingFiles(false);
+    }
+  };
+
+  const getItemTotal = (item) =>
+    (Number(item.quantity) || 0) * (Number(item.priceUnit) || 0);
+
   const handleDrop = (e) => {
     e.preventDefault();
     setIsDragging(false);
     const files = Array.from(e.dataTransfer.files);
-    setUploadedFiles([...uploadedFiles, ...files]);
+    uploadFiles(files);
   };
 
   const handleFileUpload = (e) => {
     const files = Array.from(e.target.files);
-    setUploadedFiles([...uploadedFiles, ...files]);
+    uploadFiles(files);
+    e.target.value = "";
   };
 
   const removeFile = (index) => {
@@ -144,6 +170,10 @@ const AddWorkEntry = () => {
       toast.error("Work Done Date is required");
       return;
     }
+    if (!formData.branch?.trim()) {
+      toast.error("Branch is required");
+      return;
+    }
     if (jobItems.some(item => !item.jobItem?.trim())) {
       toast.error("All job items must have a description");
       return;
@@ -152,14 +182,26 @@ const AddWorkEntry = () => {
     setIsSubmitting(true);
 
     try {
-      // Get branch ObjectId from contractor's workInformation or use formData.branch as fallback
-      const branchId = contractor?._originalData?.workInformation?.branch || formData.branch;
-      const contractorId = contractor?.contractorId || contractor?._originalData?.employeeId || contractor?.id || "";
+      // The API schema requires branch to be a string. A contractor detail can
+      // contain the populated branch object, so reduce it to its identifier.
+      const branchValue = contractor?._originalData?.workInformation?.branch || formData.branch;
+      const branchId = typeof branchValue === "object"
+        ? branchValue?._id || branchValue?.id || branchValue?.value || ""
+        : branchValue;
+      const contractorValue = contractor?.contractorId || contractor?._originalData?.employeeId || contractor?.id || "";
+      const contractorId = typeof contractorValue === "object"
+        ? contractorValue?._id || contractorValue?.id || contractorValue?.value || ""
+        : contractorValue;
+
+      if (typeof branchId !== "string" || !branchId.trim()) {
+        toast.error("Please select a valid branch");
+        return;
+      }
 
       // Build payload according to API spec
       const payload = {
         contractorId: contractorId,
-        branch: branchId,
+        branch: branchId.trim(),
         workDoneDate: formData.workDueDate,
         reference: formData.reference || "",
         jobItems: jobItems
@@ -167,6 +209,7 @@ const AddWorkEntry = () => {
           .map(item => ({
             contractorJobItem: item.jobItem?.trim() || "",
             quantity: parseFloat(item.quantity) || 0,
+            unit: item.unit?.trim() || "",
             pricePerUnit: parseFloat(item.priceUnit) || 0,
             remarks: item.remarks?.trim() || ""
           }))
@@ -273,12 +316,12 @@ const AddWorkEntry = () => {
             </FormGroup>
 
             <FormGroup fullWidth>
-              <Label>Reference / Work Description</Label>
+              <Label>Reference</Label>
               <TextArea
                 name="reference"
                 value={formData.reference}
                 onChange={handleInputChange}
-                placeholder="Why Something"
+                placeholder="Write Something"
                 rows="3"
               />
             </FormGroup>
@@ -301,7 +344,9 @@ const AddWorkEntry = () => {
                   <Th>S. No</Th>
                   <Th>Job Item</Th>
                   <Th>Quantity</Th>
+                  <Th>Unit</Th>
                   <Th>Price/Unit</Th>
+                  <Th>Total</Th>
                   <Th>Remarks</Th>
                   <Th>Action</Th>
                 </TableRow>
@@ -331,6 +376,17 @@ const AddWorkEntry = () => {
                       />
                     </Td>
                     <Td>
+                      <CellSelect
+                        value={item.unit || ""}
+                        onChange={(e) => handleJobItemChange(index, "unit", e.target.value)}
+                      >
+                        <option value="">Select Unit</option>
+                        <option value="Sq. Ft.">Sq. Ft.</option>
+                        <option value="Piece">Piece</option>
+                        <option value="Day">Day</option>
+                      </CellSelect>
+                    </Td>
+                    <Td>
                       <CellInput
                         type="number"
                         value={item.priceUnit}
@@ -340,6 +396,7 @@ const AddWorkEntry = () => {
                         }
                       />
                     </Td>
+                    <Td><CellDisplay>${getItemTotal(item).toFixed(2)}</CellDisplay></Td>
                     <Td>
                       <CellInput
                         type="text"
@@ -377,12 +434,13 @@ const AddWorkEntry = () => {
             onDrop={handleDrop}
           >
             <UploadIcon>☁️</UploadIcon>
-            <UploadText>Click to upload or drag and drop</UploadText>
+            <UploadText>{isUploadingFiles ? "Uploading..." : "Click to upload or drag and drop"}</UploadText>
             <UploadSubtext>SVG, PNG, JPG, PDF or DOC (Max: 10 MB)</UploadSubtext>
             <FileInput
               type="file"
               multiple
               onChange={handleFileUpload}
+              disabled={isUploadingFiles}
               id="file-upload"
               hidden
             />
@@ -422,8 +480,8 @@ const AddWorkEntry = () => {
 const Container = styled.div`
   width: 100%;
   min-height: 100vh;
-  background: #F5F7FA;
-  padding: 1.5rem;
+  background: #fff;
+  padding: 1.5rem 2rem 6rem;
 `;
 
 const ErrorMessage = styled.div`
@@ -460,9 +518,8 @@ const CrumbSeparator = styled.span`
 `;
 
 const ContentWrapper = styled.div`
-  background: white;
-  padding: 2rem;
-  border-radius: 8px;
+  background: transparent;
+  padding: 0;
 `;
 
 const FormHeader = styled.div`
@@ -474,13 +531,16 @@ const FormHeader = styled.div`
 const FormTitle = styled.h1`
   font-size: 1.5rem;
   font-weight: 700;
-  color: #222;
+  color: #06142d;
   margin: 0;
   font-family: "Inter", sans-serif;
 `;
 
 const Section = styled.div`
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
+  background: white;
+  padding: 1.5rem;
+  border-radius: 10px;
 `;
 
 const SectionHeader = styled.div`
@@ -663,6 +723,23 @@ const CellInput = styled.input`
   font-size: 0.85rem;
   background: white;
   box-sizing: border-box;
+
+  &:focus {
+    outline: none;
+    border-color: #066C78;
+  }
+`;
+
+const CellSelect = styled.select`
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid ${theme.colors.border};
+  border-radius: 6px;
+  font-family: "Inter", sans-serif;
+  font-size: 0.85rem;
+  background: white;
+  box-sizing: border-box;
+  cursor: pointer;
 
   &:focus {
     outline: none;

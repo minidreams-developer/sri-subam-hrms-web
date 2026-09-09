@@ -68,7 +68,7 @@ export const getBranches = (params, config) =>
   list("/v1/branches", params, config);
 
 export const getBranchDropdown = (config) =>
-  data(api.get("/api/v1/branches/dropdown", config));
+  data(api.get("/v1/branches/dropdown", config));
 
 export const generateBranchId = () => data(api.get("/v1/branches/generate-id"));
 
@@ -266,6 +266,12 @@ export const getContractor = (id) => data(api.get(`/v1/contractors/${id}`));
 
 export const createContractor = (payload) =>
   data(api.post("/v1/contractors/register", payload));
+
+export const updateContractor = (id, payload) =>
+  data(api.patch(`/v1/contractors/${id}`, payload));
+
+export const deleteContractor = (id) =>
+  data(api.delete(`/v1/contractors/${id}`));
 
 export const createWorkEntry = (payload) =>
   data(api.post("/v1/log-work", payload));

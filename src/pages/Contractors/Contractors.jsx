@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
-import { getContractors } from "../../services/apiServices";
+import { deleteContractor, getBranchDropdown, getContractors } from "../../services/apiServices";
 import { toast } from "react-toastify";
 import deleteIcon from "../../assets/contractor/SVG.svg";
 import clockIcon from "../../assets/contractor/iconify-icon.svg";
@@ -14,6 +14,10 @@ const Contractors = () => {
   const [showReportModal, setShowReportModal] = useState(false);
   const [showLogWorkModal, setShowLogWorkModal] = useState(false);
   const [selectedContractor, setSelectedContractor] = useState(null);
+  const [branches, setBranches] = useState([]);
+  const [branchesLoading, setBranchesLoading] = useState(false);
+  const [selectedBranch, setSelectedBranch] = useState("");
+  const [deletingId, setDeletingId] = useState(null);
   const [contractors, setContractors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -21,6 +25,42 @@ const Contractors = () => {
     reportType: "All Contractors",
     period: "May 2026",
   });
+
+  useEffect(() => {
+    if (!showLogWorkModal) return;
+
+    const fetchBranches = async () => {
+      setBranchesLoading(true);
+      try {
+        const response = await getBranchDropdown({ skipGlobalLoading: true });
+        const branchList = Array.isArray(response) ? response : [];
+        setBranches(branchList);
+      } catch (fetchError) {
+        console.error("Error fetching branch dropdown:", fetchError);
+        toast.error("Failed to load branches");
+      } finally {
+        setBranchesLoading(false);
+      }
+    };
+
+    fetchBranches();
+  }, [showLogWorkModal]);
+
+  const handleDeleteContractor = async (contractor) => {
+    const recordId = contractor?._originalData?.id || contractor?._originalData?._id || contractor?.id;
+    if (!recordId || !window.confirm(`Delete contractor ${contractor.name}?`)) return;
+
+    setDeletingId(recordId);
+    try {
+      await deleteContractor(recordId);
+      setContractors((current) => current.filter((item) => item.id !== contractor.id));
+      toast.success("Contractor deleted successfully");
+    } catch (deleteError) {
+      toast.error(deleteError.response?.data?.message || "Failed to delete contractor");
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   // Fetch contractors from API
   useEffect(() => {
@@ -171,7 +211,7 @@ const Contractors = () => {
                       <Role>{contractor.role}</Role>
                     </InfoSection>
                   </AvatarWithInfo>
-                  <DeleteButton>
+                  <DeleteButton onClick={() => handleDeleteContractor(contractor)} disabled={deletingId === (contractor._originalData?.id || contractor._originalData?._id || contractor.id)}>
                     <DeleteIcon src={deleteIcon} alt="delete" />
                   </DeleteButton>
                 </CardHeader>
@@ -323,10 +363,19 @@ const Contractors = () => {
 
             <FormGroup>
               <Label>Branch</Label>
-              <Select>
-                <option value="">Select Branch</option>
-                <option value="headquarters">Headquarters</option>
-                <option value="north">North Region</option>
+              <Select
+                value={selectedBranch}
+                onChange={(event) => setSelectedBranch(event.target.value)}
+                disabled={branchesLoading}
+              >
+                <option value="">
+                  {branchesLoading ? "Loading branches..." : "Select Branch"}
+                </option>
+                {branches.map((branch) => (
+                  <option key={branch._id} value={branch._id}>
+                    {branch.branchName}
+                  </option>
+                ))}
               </Select>
             </FormGroup>
 
@@ -337,7 +386,7 @@ const Contractors = () => {
               <EnterWorkLogButton onClick={() => {
                 // Navigate to add work entry page
                 navigate("/admin/contractors/add-work-entry", {
-                  state: { contractor: selectedContractor }
+                  state: { contractor: selectedContractor, branchId: selectedBranch }
                 });
                 setShowLogWorkModal(false);
               }}>

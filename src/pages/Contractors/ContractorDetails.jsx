@@ -93,7 +93,9 @@ const ContractorDetails = () => {
           <Actions><SoftButton onClick={() => print("all")}><FiDownload />Download Profile</SoftButton><OutlineButton onClick={() => navigate("/admin/contractors/add", { state: { contractor: raw, contractorId: id, mode: "edit" } })}><FiEdit2 />Edit Details</OutlineButton></Actions>
         </CardHeading>
         <Profile>
-          <Avatar aria-label="Contractor photo">{name.charAt(0)}</Avatar>
+          <Avatar aria-label="Contractor photo">
+            {raw.profilePic ? <img src={raw.profilePic} alt={`${name} profile`} /> : name.charAt(0)}
+          </Avatar>
           <DetailsGrid>
             <Detail label="Contractor ID" value={contractorId} />
             <Detail label="Contractor Name" value={name} />
@@ -174,7 +176,7 @@ const SoftButton = styled.button`${buttonBase} background:#fff0f1; border:0; col
 const BlueButton = styled.button`${buttonBase} background:#0047AB; border:1px solid #0047AB; color:#fff;`;
 const OutlineBlue = styled.button`${buttonBase} background:#fff; border:1px solid #0047AB; color:#0047AB;`;
 const Profile = styled.div`display:flex; gap:32px; padding-top:24px; align-items:center; @media(max-width:900px){align-items:flex-start;flex-direction:column;}`;
-const Avatar = styled.div`width:120px; height:120px; flex:0 0 120px; border-radius:12px; background:linear-gradient(145deg,#bed3c6,#78998b); display:grid; place-items:center; color:white; font-size:42px; font-weight:700;`;
+const Avatar = styled.div`width:120px; height:120px; flex:0 0 120px; border-radius:12px; overflow:hidden; background:linear-gradient(145deg,#bed3c6,#78998b); display:grid; place-items:center; color:white; font-size:42px; font-weight:700; img{width:100%;height:100%;object-fit:cover;}`;
 const DetailsGrid = styled.div`display:grid; grid-template-columns:repeat(3,minmax(150px,1fr)); gap:26px 48px; flex:1; width:100%; @media(max-width:900px){grid-template-columns:repeat(2,1fr);}`;
 const Info = styled.div`display:flex; flex-direction:column; gap:5px; min-width:0; span{color:#737373;font-size:12px} strong{font-size:14px;font-weight:600;color:#111827}`;
 const Badge = styled.em`font-style:normal; font-size:11px; padding:4px 11px; border-radius:14px; color:#7c35dc; background:#f0ddff;`;

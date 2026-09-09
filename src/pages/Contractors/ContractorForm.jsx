@@ -1,22 +1,35 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import deleteIcon from "../../assets/contractor/SVG.svg";
 import editIcon from "../../assets/contractor/SVG (1).svg";
 import {
   createContractor,
+  getBranchDropdown,
   generateContractorId as requestContractorId,
+  updateContractor,
 } from "../../services/apiServices";
 import { uploadMedia } from "../../helpers/uploadMedia";
 import { toast } from "react-toastify";
+import { stateDistrictMap, stateOptions } from "../../utils/statesAndDistricts";
 
 const ContractorForm = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const editContractor = location.state?.contractor;
+  const isEditMode = location.state?.mode === "edit";
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGeneratingId, setIsGeneratingId] = useState(false);
   const [isPhotoUploading, setIsPhotoUploading] = useState(false);
   const [photoUploadProgress, setPhotoUploadProgress] = useState(0);
+  const [documentUploading, setDocumentUploading] = useState({ aadhar: false, pan: false });
+  const [branches, setBranches] = useState([]);
+  const [isBranchPickerOpen, setIsBranchPickerOpen] = useState(false);
+  const branchPickerRef = useRef(null);
+  const emptyJobItem = () => ({ id: Date.now() + Math.random(), jobItem: "", split: "", priceUnit: "" });
+  const getBranchLabel = (branchId) =>
+    branches.find((branch) => (branch._id || branch.id) === branchId)?.branchName || branchId;
 
   // Step 1: Personal Information
   const [formData, setFormData] = useState({
@@ -72,29 +85,42 @@ const ContractorForm = () => {
     specialization: "",
     licenseNo: "",
     dateOfJoining: "",
-    branch: "Headquarters",
+    branch: [],
     reportingPerson: "",
   });
 
-  const [hqJobItems, setHqJobItems] = useState([
-    {
-      id: 1,
-      jobItem: "",
-      split: "",
-      priceUnit: ""
-    }
-  ]);
+  const [branchJobItems, setBranchJobItems] = useState({});
+  const [hqJobItems, setHqJobItems] = useState([emptyJobItem()]);
+  const [northJobItems, setNorthJobItems] = useState([emptyJobItem()]);
 
-  const [northJobItems, setNorthJobItems] = useState([
-    {
-      id: 1,
-      jobItem: "",
-      split: "",
-      priceUnit: ""
-    }
-  ]);
+  const selectedBranchName = (workData.branch || []).map(getBranchLabel).join(", ") || "Selected Branch";
+
+  const districtOptions = formData.state
+    ? stateDistrictMap[formData.state] || []
+    : [];
 
   useEffect(() => {
+    getBranchDropdown({ skipGlobalLoading: true })
+      .then((response) => setBranches(Array.isArray(response) ? response : []))
+      .catch((error) => {
+        console.error("Failed to load branches:", error);
+        toast.error("Failed to load branches");
+      });
+  }, []);
+
+  useEffect(() => {
+    const handleOutsideClick = (event) => {
+      if (branchPickerRef.current && !branchPickerRef.current.contains(event.target)) {
+        setIsBranchPickerOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
+  }, []);
+
+  useEffect(() => {
+    if (isEditMode || editContractor) return;
     const generateContractorId = async () => {
       setIsGeneratingId(true);
       try {
@@ -121,7 +147,86 @@ const ContractorForm = () => {
     };
 
     generateContractorId();
-  }, []);
+  }, [editContractor, isEditMode]);
+
+  useEffect(() => {
+    if (!isEditMode || !editContractor) return;
+
+    const address = Array.isArray(editContractor.address) ? editContractor.address[0] || {} : editContractor.address || {};
+    const work = editContractor.workInformation || {};
+    const documentNo = editContractor.documentNo || {};
+    const emergencyContact = Array.isArray(editContractor.emergencyContact)
+      ? editContractor.emergencyContact
+      : [];
+    const jobItems = Array.isArray(work.jobItems) ? work.jobItems : work.jobItems ? [work.jobItems] : [];
+
+    setFormData((current) => ({
+      ...current,
+      contractorId: editContractor.employeeId || editContractor.contractorId || location.state?.contractorId || "",
+      contractorName: editContractor.name || "",
+      profilePhotoUrl: editContractor.profilePic || "",
+      profilePhotoName: editContractor.profilePic ? "Profile photo uploaded" : "",
+      emailAddress: editContractor.email || "",
+      gender: editContractor.gender || "",
+      dateOfBirth: editContractor.dateOfBirth?.slice?.(0, 10) || editContractor.dateOfBirth || "",
+      age: editContractor.age == null ? "" : String(editContractor.age),
+      phoneNumber: editContractor.phone == null ? "" : String(editContractor.phone),
+      motherTongue: editContractor.motherTongue || "",
+      religion: editContractor.religion || "",
+      identificationMark: editContractor.identificationMark || "",
+      address: address.addressLine1 || "",
+      city: address.city || "",
+      district: address.district || "",
+      state: address.state || "",
+      pinCode: address.pincode == null ? "" : String(address.pincode),
+      country: address.country || "India",
+      aadharNumber: documentNo.aadharNo == null ? "" : String(documentNo.aadharNo),
+      bankCardNumber: documentNo.panNo || "",
+      aadharFileUrl: documentNo.aadharFile || "",
+      aadharFileName: documentNo.aadharFile ? "Aadhar file uploaded" : "",
+      panFileUrl: documentNo.panFile || "",
+      panFileName: documentNo.panFile ? "PAN file uploaded" : "",
+      emergencyContacts: emergencyContact.length
+        ? emergencyContact.map((contact, index) => ({
+            id: contact._id || index + 1,
+            name: contact.contactName || "",
+            phone: contact.phone == null ? "" : String(contact.phone),
+            relation: contact.relationship || "",
+            address: contact.address?.addressLine1 || contact.address || "",
+            city: contact.address?.city || "",
+            district: contact.address?.district || "",
+            state: contact.address?.state || "",
+            pinCode: contact.address?.pincode == null ? "" : String(contact.address.pincode),
+            country: contact.address?.country || "India",
+          }))
+        : current.emergencyContacts,
+    }));
+
+    setWorkData((current) => ({
+      ...current,
+      companyName: work.companyName || "",
+      specialization: work.specialty || "",
+      licenseNo: work.LicenseNo || work.licenseNo || "",
+      dateOfJoining: work.dateOfJoining?.slice?.(0, 10) || work.dateOfJoining || "",
+      branch: Array.isArray(work.branch)
+        ? work.branch.map((branch) => branch?.id || branch?._id || branch).filter(Boolean)
+        : [work.branch?.id || work.branch?._id || work.branch].filter(Boolean),
+      reportingPerson: work.reportingPerson || "",
+    }));
+
+    const mappedJobItems = jobItems.map((item, index) => ({
+      id: item.id || index + 1,
+      jobItem: item.jobItems || "",
+      split: item.unit || "Piece",
+      priceUnit: item.price == null ? "" : String(item.price),
+    }));
+    const groupedItems = jobItems.reduce((groups, item, index) => {
+      const branchId = item.branch || item.region || "default";
+      (groups[branchId] ||= []).push(mappedJobItems[index]);
+      return groups;
+    }, {});
+    setBranchJobItems(groupedItems);
+  }, [editContractor, isEditMode, location.state]);
 
   const calculateAge = (dateOfBirth) => {
     if (!dateOfBirth) return "";
@@ -189,27 +294,33 @@ const ContractorForm = () => {
     }
   };
 
-  const handleAadharUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setFormData({
-        ...formData,
-        aadharFile: file,
-        aadharFileName: file.name,
-      });
+  const handleDocumentUpload = async (e, documentType) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+
+    setDocumentUploading((current) => ({ ...current, [documentType]: true }));
+    try {
+      const uploadedFile = await uploadMedia(file);
+      const fileKey = `${documentType}File`;
+      const urlKey = `${documentType}FileUrl`;
+      setFormData((current) => ({
+        ...current,
+        [fileKey]: file,
+        [`${documentType}FileName`]: uploadedFile.originalName || file.name,
+        [urlKey]: uploadedFile.url,
+      }));
+      toast.success(`${documentType === "aadhar" ? "Aadhar" : "PAN"} file uploaded successfully`);
+    } catch (error) {
+      toast.error(error.message || "Document upload failed");
+    } finally {
+      setDocumentUploading((current) => ({ ...current, [documentType]: false }));
     }
   };
 
-  const handlePanUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setFormData({
-        ...formData,
-        panFile: file,
-        panFileName: file.name,
-      });
-    }
-  };
+  const handleAadharUpload = (e) => handleDocumentUpload(e, "aadhar");
+
+  const handlePanUpload = (e) => handleDocumentUpload(e, "pan");
 
   const handleEmergencyContactChange = (index, field, value) => {
     const newContacts = [...formData.emergencyContacts];
@@ -241,49 +352,51 @@ const ContractorForm = () => {
     setFormData({ ...formData, emergencyContacts: newContacts });
   };
 
-  const handleHqJobItemChange = (index, field, value) => {
-    const newItems = [...hqJobItems];
-    newItems[index][field] = value;
-    setHqJobItems(newItems);
+  const handleBranchChange = (e) => {
+    const selected = Array.from(e.target.selectedOptions, (option) => option.value);
+    setWorkData((current) => ({ ...current, branch: selected }));
+    setBranchJobItems((current) => {
+      const next = { ...current };
+      selected.forEach((branchId) => { if (!next[branchId]) next[branchId] = [emptyJobItem()]; });
+      return next;
+    });
   };
 
-  const handleNorthJobItemChange = (index, field, value) => {
-    const newItems = [...northJobItems];
-    newItems[index][field] = value;
-    setNorthJobItems(newItems);
+  const toggleBranch = (branchId) => {
+    setWorkData((current) => {
+      const selected = current.branch.includes(branchId)
+        ? current.branch.filter((id) => id !== branchId)
+        : [...current.branch, branchId];
+      return { ...current, branch: selected };
+    });
+    setBranchJobItems((current) => ({
+      ...current,
+      [branchId]: current[branchId] || [emptyJobItem()],
+    }));
   };
 
-  const addHqJobItem = () => {
-    const newItem = {
-      id: Date.now(),
-      jobItem: "",
-      split: "",
-      priceUnit: ""
-    };
-    setHqJobItems([...hqJobItems, newItem]);
+  const updateBranchJobItem = (branchId, index, field, value) => {
+    setBranchJobItems((current) => ({
+      ...current,
+      [branchId]: (current[branchId] || []).map((item, itemIndex) => itemIndex === index ? { ...item, [field]: value } : item),
+    }));
   };
 
-  const addNorthJobItem = () => {
-    const newItem = {
-      id: Date.now(),
-      jobItem: "",
-      split: "",
-      priceUnit: ""
-    };
-    setNorthJobItems([...northJobItems, newItem]);
-  };
+  const addBranchJobItem = (branchId) => setBranchJobItems((current) => ({
+    ...current, [branchId]: [...(current[branchId] || []), emptyJobItem()],
+  }));
 
-  const removeHqJobItem = (index) => {
-    if (hqJobItems.length > 1) {
-      setHqJobItems(hqJobItems.filter((_, i) => i !== index));
-    }
-  };
+  const removeBranchJobItem = (branchId, index) => setBranchJobItems((current) => ({
+    ...current,
+    [branchId]: current[branchId].length > 1 ? current[branchId].filter((_, itemIndex) => itemIndex !== index) : current[branchId],
+  }));
 
-  const removeNorthJobItem = (index) => {
-    if (northJobItems.length > 1) {
-      setNorthJobItems(northJobItems.filter((_, i) => i !== index));
-    }
-  };
+  const handleHqJobItemChange = (index, field, value) => setHqJobItems((items) => items.map((item, i) => i === index ? { ...item, [field]: value } : item));
+  const handleNorthJobItemChange = (index, field, value) => setNorthJobItems((items) => items.map((item, i) => i === index ? { ...item, [field]: value } : item));
+  const addHqJobItem = () => setHqJobItems((items) => [...items, emptyJobItem()]);
+  const addNorthJobItem = () => setNorthJobItems((items) => [...items, emptyJobItem()]);
+  const removeHqJobItem = (index) => setHqJobItems((items) => items.length > 1 ? items.filter((_, i) => i !== index) : items);
+  const removeNorthJobItem = (index) => setNorthJobItems((items) => items.length > 1 ? items.filter((_, i) => i !== index) : items);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -305,13 +418,37 @@ const ContractorForm = () => {
     setIsSubmitting(true);
 
     try {
+      const addressDetails = {
+        addressLine1: formData.address?.trim() || "",
+        district: formData.district?.trim() || "",
+        city: formData.city?.trim() || "",
+        state: formData.state?.trim() || "",
+        pincode: parseInt(formData.pinCode || "0", 10),
+        country: formData.country?.trim() || "India",
+      };
+      let rawAddresses = editContractor?.address;
+      if (typeof rawAddresses === "string") {
+        try {
+          rawAddresses = JSON.parse(rawAddresses);
+        } catch {
+          rawAddresses = [rawAddresses];
+        }
+      }
+      const existingAddressIds = (Array.isArray(rawAddresses)
+        ? rawAddresses
+        : rawAddresses
+          ? [rawAddresses]
+          : [])
+        .map((address) => typeof address === "string" ? address : address?._id || address?.id)
+        .filter(Boolean);
+
       // Build payload according to API spec
       const payload = {
         contractorId: formData.contractorId?.trim() || "",
         name: formData.contractorName?.trim() || "",
         ...(formData.profilePhotoUrl && { profilePic: formData.profilePhotoUrl }),
         email: formData.emailAddress?.trim() || "",
-        password: formData.password?.trim() || "defaultPassword123",
+        ...(formData.password?.trim() && { password: formData.password.trim() }),
         phone: parseInt(formData.phoneNumber?.replace(/\D/g, "") || "0", 10),
         gender: (formData.gender || "male").toLowerCase(),
         dateOfBirth: formData.dateOfBirth || "",
@@ -321,16 +458,13 @@ const ContractorForm = () => {
         identificationMark: formData.identificationMark?.trim() || "",
         documentNo: {
           aadharNo: parseInt(formData.aadharNumber || "0", 10),
-          panNo: formData.bankCardNumber?.trim() || ""
+          panNo: formData.bankCardNumber?.trim() || "",
+          ...(formData.aadharFileUrl && { aadharFile: formData.aadharFileUrl }),
+          ...(formData.panFileUrl && { panFile: formData.panFileUrl }),
         },
-        address: {
-          addressLine1: formData.address?.trim() || "",
-          district: formData.district?.trim() || "",
-          city: formData.city?.trim() || "",
-          state: formData.state?.trim() || "",
-          pincode: parseInt(formData.pinCode || "0", 10),
-          country: formData.country?.trim() || "India"
-        },
+        ...(isEditMode
+          ? (existingAddressIds.length ? { address: existingAddressIds } : {})
+          : { address: addressDetails }),
         emergencyContacts: formData.emergencyContacts
           .filter(contact => contact.name?.trim() && contact.phone?.trim())
           .map(contact => ({
@@ -356,7 +490,7 @@ const ContractorForm = () => {
         },
         jobItems: [
           ...hqJobItems
-            .filter(item => item.jobItem?.trim() && item.priceUnit)
+            .filter(item => item.jobItem?.trim())
             .map(item => ({
               jobItems: item.jobItem?.trim() || "",
               unit: item.split?.trim() || "Piece",
@@ -364,7 +498,7 @@ const ContractorForm = () => {
               region: "headquarters"
             })),
           ...northJobItems
-            .filter(item => item.jobItem?.trim() && item.priceUnit)
+            .filter(item => item.jobItem?.trim())
             .map(item => ({
               jobItems: item.jobItem?.trim() || "",
               unit: item.split?.trim() || "Piece",
@@ -375,7 +509,12 @@ const ContractorForm = () => {
       };
 
       console.log("📤 Submitting payload:", JSON.stringify(payload, null, 2));
-      const response = { data: await createContractor(payload) };
+      const contractorRecordId = editContractor?.id || editContractor?._id || location.state?.contractorId;
+      const response = {
+        data: isEditMode
+          ? await updateContractor(contractorRecordId, payload)
+          : await createContractor(payload),
+      };
 
       console.log("✅ Contractor registered successfully:", response.data);
       toast.success("Contractor registered successfully!");
@@ -624,36 +763,45 @@ const ContractorForm = () => {
                 </FormGroup>
 
                 <FormGroup>
-                  <Label>City</Label>
-                  <Input
-                    type="text"
-                    name="city"
-                    placeholder="City name"
-                    value={formData.city}
-                    onChange={handleInputChange}
-                  />
-                </FormGroup>
-
-                <FormGroup>
-                  <Label>District</Label>
-                  <Input
-                    type="text"
-                    name="district"
-                    placeholder="District"
-                    value={formData.district}
-                    onChange={handleInputChange}
-                  />
+                  <Label>Country</Label>
+                  <Select name="country" value={formData.country} onChange={handleInputChange}>
+                    <option value="">Select</option><option value="India">India</option>
+                  </Select>
                 </FormGroup>
 
                 <FormGroup>
                   <Label>State</Label>
-                  <Input
-                    type="text"
+                  <Select
                     name="state"
-                    placeholder="State"
                     value={formData.state}
-                    onChange={handleInputChange}
-                  />
+                    onChange={(event) =>
+                      setFormData((current) => ({
+                        ...current,
+                        state: event.target.value,
+                        district: "",
+                      }))
+                    }
+                  >
+                    <option value="">Select State</option>
+                    {stateOptions.map((state) => (
+                      <option key={state.value} value={state.value}>
+                        {state.label}
+                      </option>
+                    ))}
+                  </Select>
+                </FormGroup>
+
+                <FormGroup>
+                  <Label>District</Label>
+                  <Select name="district" value={formData.district} onChange={handleInputChange} disabled={!formData.state}>
+                    <option value="">{formData.state ? "Select District" : "Select State first"}</option>
+                    {districtOptions.map((district) => <option key={district.value} value={district.value}>{district.label}</option>)}
+                  </Select>
+                </FormGroup>
+
+                <FormGroup>
+                  <Label>City</Label>
+                  <Input type="text" name="city" placeholder="City name" value={formData.city} onChange={handleInputChange} />
                 </FormGroup>
 
                 <FormGroup>
@@ -667,13 +815,6 @@ const ContractorForm = () => {
                   />
                 </FormGroup>
 
-                <FormGroup>
-                  <Label>Country</Label>
-                  <Select name="country" value={formData.country} onChange={handleInputChange}>
-                    <option value="">Select</option>
-                    <option value="India">India</option>
-                  </Select>
-                </FormGroup>
               </FormGrid>
             </FormSection>
 
@@ -758,60 +899,42 @@ const ContractorForm = () => {
                   </FormGroup>
 
                   <FormGroup>
-                    <Label>City</Label>
-                    <Input
-                      type="text"
-                      placeholder="City name"
-                      value={contact.city}
-                      onChange={(e) =>
-                        handleEmergencyContactChange(index, "city", e.target.value)
-                      }
-                    />
-                  </FormGroup>
-
-                <FormGroup>
-                    <Label>District</Label>
-                    <Input
-                      type="text"
-                      placeholder="District"
-                      value={contact.district || ""}
-                      onChange={(e) =>
-                        handleEmergencyContactChange(index, "district", e.target.value)
-                      }
-                    />
+                    <Label>Country</Label>
+                    <Select value={contact.country} onChange={(e) => handleEmergencyContactChange(index, "country", e.target.value)}>
+                      <option value="India">India</option>
+                    </Select>
                   </FormGroup>
 
                   <FormGroup>
                     <Label>State</Label>
-                    <Input
-                      type="text"
-                      placeholder="State"
+                    <Select
                       value={contact.state}
-                      onChange={(e) =>
-                        handleEmergencyContactChange(index, "state", e.target.value)
-                      }
-                    />
+                      onChange={(e) => {
+                        const contacts = [...formData.emergencyContacts];
+                        contacts[index] = { ...contacts[index], state: e.target.value, district: "" };
+                        setFormData({ ...formData, emergencyContacts: contacts });
+                      }}
+                    >
+                      <option value="">Select State</option>
+                      {stateOptions.map((state) => <option key={state.value} value={state.value}>{state.label}</option>)}
+                    </Select>
                   </FormGroup>
 
                   <FormGroup>
-                    <Label>Pin Code</Label>
-                    <Input
-                      type="text"
-                      placeholder="Postal code"
-                      value={contact.pinCode}
-                      onChange={(e) =>
-                        handleEmergencyContactChange(index, "pinCode", e.target.value)
-                      }
-                    />
+                    <Label>District</Label>
+                    <Select value={contact.district || ""} onChange={(e) => handleEmergencyContactChange(index, "district", e.target.value)} disabled={!contact.state}>
+                      <option value="">{contact.state ? "Select District" : "Select State first"}</option>
+                      {(stateDistrictMap[contact.state] || []).map((district) => <option key={district.value} value={district.value}>{district.label}</option>)}
+                    </Select>
+                  </FormGroup>
+
+                  <FormGroup>
+                    <Label>City</Label>
+                    <Input type="text" placeholder="City name" value={contact.city} onChange={(e) => handleEmergencyContactChange(index, "city", e.target.value)} />
                   </FormGroup>
                   <FormGroup>
-                    <Label>Country</Label>
-                    <Select
-                      value={contact.country}
-                      onChange={(e) => handleEmergencyContactChange(index, "country", e.target.value)}
-                    >
-                      <option value="India">India</option>
-                    </Select>
+                    <Label>Pin Code</Label>
+                    <Input type="text" placeholder="Postal code" value={contact.pinCode} onChange={(e) => handleEmergencyContactChange(index, "pinCode", e.target.value)} />
                   </FormGroup>
                 </FormGrid>
               </EmergencySection>
@@ -844,7 +967,7 @@ const ContractorForm = () => {
                     id="aadhar-upload"
                   />
                   <CompactUploadButton as="label" htmlFor="aadhar-upload">
-                    {formData.aadharFileName ? `✓` : "Upload"}
+                    {documentUploading.aadhar ? "Uploading..." : formData.aadharFileName ? `✓` : "Upload"}
                   </CompactUploadButton>
                   {formData.aadharFileName && (
                     <CompactFileNameDisplay>{formData.aadharFileName}</CompactFileNameDisplay>
@@ -872,7 +995,7 @@ const ContractorForm = () => {
                     id="pan-upload"
                   />
                   <CompactUploadButton as="label" htmlFor="pan-upload">
-                    {formData.panFileName ? `✓` : "Upload"}
+                    {documentUploading.pan ? "Uploading..." : formData.panFileName ? `✓` : "Upload"}
                   </CompactUploadButton>
                   {formData.panFileName && (
                     <CompactFileNameDisplay>{formData.panFileName}</CompactFileNameDisplay>
@@ -920,11 +1043,33 @@ const ContractorForm = () => {
                 </FormGroup>
                 <FormGroup>
                   <Label>Branch <Required>*</Required></Label>
-                  <Select name="branch" value={workData.branch} onChange={handleWorkDataChange}>
-                    <option>Select Branch</option>
-                    <option>Headquarters</option>
-                    <option>North Region</option>
-                  </Select>
+                  <BranchPicker ref={branchPickerRef}>
+                    <BranchPickerButton type="button" onClick={() => setIsBranchPickerOpen((open) => !open)}>
+                      {workData.branch.length
+                        ? workData.branch.map(getBranchLabel).join(", ")
+                        : "Select Branch"}
+                      <span>▾</span>
+                    </BranchPickerButton>
+                    {isBranchPickerOpen && (
+                      <BranchOptions>
+                        {branches.map((branch) => {
+                          const branchId = branch._id || branch.id;
+                          const isSelected = workData.branch.includes(branchId);
+                          return (
+                            <BranchOption
+                              key={branchId}
+                              type="button"
+                              $selected={isSelected}
+                              onClick={() => toggleBranch(branchId)}
+                            >
+                              <input type="checkbox" readOnly checked={isSelected} />
+                              {branch.branchName}
+                            </BranchOption>
+                          );
+                        })}
+                      </BranchOptions>
+                    )}
+                  </BranchPicker>
                 </FormGroup>
                 <FormGroup>
                   <Label>Reporting Person <Required>*</Required></Label>
@@ -935,10 +1080,10 @@ const ContractorForm = () => {
               </FormGrid>
             </FormSection>
 
-            {/* Job Items - Headquarters */}
-            <FormSection>
+            {/* Job Items for the first selected branch */}
+            {workData.branch[0] && <FormSection>
               <SectionHeaderRow>
-                <SectionTitle>Job Items - Headquarters</SectionTitle>
+                <SectionTitle>Job Items - {getBranchLabel(workData.branch[0])}</SectionTitle>
                 <AddJobButton type="button" onClick={addHqJobItem}>
                   ＋ Create Job Item
                 </AddJobButton>
@@ -997,12 +1142,12 @@ const ContractorForm = () => {
                   </TableBody>
                 </Table>
               </TableWrapper>
-            </FormSection>
+            </FormSection>}
 
-            {/* Job Items - North Region */}
-            <FormSection>
+            {/* Job Items for the second selected branch */}
+            {workData.branch[1] && <FormSection>
               <SectionHeaderRow>
-                <SectionTitle>Job Items - North Region</SectionTitle>
+                <SectionTitle>Job Items - {getBranchLabel(workData.branch[1])}</SectionTitle>
                 <AddJobButton type="button" onClick={addNorthJobItem}>
                   ＋ Create Job Item
                 </AddJobButton>
@@ -1061,7 +1206,7 @@ const ContractorForm = () => {
                   </TableBody>
                 </Table>
               </TableWrapper>
-            </FormSection>
+            </FormSection>}
           </>
         )}
 
@@ -1381,6 +1526,61 @@ const Select = styled.select`
 
   option {
     padding: 0.5rem;
+  }
+`;
+
+const BranchPicker = styled.div`
+  position: relative;
+  width: 100%;
+`;
+
+const BranchPickerButton = styled.button`
+  width: 100%;
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid #cfd4dc;
+  border-radius: 6px;
+  background: white;
+  color: #101828;
+  font-size: 0.9rem;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-sizing: border-box;
+`;
+
+const BranchOptions = styled.div`
+  position: absolute;
+  z-index: 10;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-height: 180px;
+  overflow-y: auto;
+  padding: 4px;
+  border: 1px solid #cfd4dc;
+  border-radius: 6px;
+  background: white;
+  box-shadow: 0 4px 12px rgba(16, 24, 40, 0.15);
+`;
+
+const BranchOption = styled.button`
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 8px;
+  border: 0;
+  border-radius: 4px;
+  background: ${({ $selected }) => ($selected ? "#e7f3f5" : "white")};
+  color: #101828;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover {
+    background: #f2f4f7;
   }
 `;
 
