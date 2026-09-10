@@ -175,7 +175,7 @@ const PersonalInfo = forwardRef((_, ref) => {
         <Row>
           <Col>
             <SelectWrapper>
-              <Label>Employee Type</Label>
+              <Label>Staff Type</Label>
               <Select
                 options={employeeTypeOptions}
                 value={formData.employeeType}

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import styled from "styled-components";
 import { useNavigate, useParams } from "react-router-dom";
-import { getContractor } from "../../services/apiServices";
+import { getBranchDropdown, getContractor } from "../../services/apiServices";
 import { toast } from "react-toastify";
 import {
   FiChevronDown, FiChevronLeft, FiChevronRight, FiDownload,
@@ -9,25 +9,9 @@ import {
   FiRefreshCw, FiSave, FiTrash2, FiX, FiCheck,
 } from "react-icons/fi";
 
-const hqJobs = [
-  { name: "AC Installation", unit: "Piece", price: "$120.00" },
-  { name: "Duct Cleaning", unit: "Sq. Ft.", price: "$2.50" },
-];
-const northJobs = [{ name: "Routine Maintenance", unit: "Hour", price: "$45.00" }];
-const requests = {
-  hq: [{ date: "22/Apr/2026", day: "Wednesday", job: "AC Installation", quantity: "2 Piece", price: "$120.00", total: "$240.00", remarks: "Server Room 2" }],
-  north: [{ date: "23/Apr/2026", day: "Thursday", job: "Routine Maintenance", quantity: "5 Hour", price: "$45.00", total: "$225.00", remarks: "Lobby HVAC Check" }],
-};
-const logs = {
-  hq: [
-    { date: "10/Apr/2026", job: "AC Installation", qty: "2", unit: "Piece", price: "$120.00", remarks: "Building A, Fl 3", file: "paperclip" },
-    { date: "12/Apr/2026", job: "Duct Cleaning", qty: "500", unit: "Sq. Ft.", price: "$2.50", remarks: "Main Hallway", file: "image" },
-  ],
-  north: [
-    { date: "15/Apr/2026", job: "Routine Maintenance", qty: "10", unit: "Hour", price: "$45.00", remarks: "Monthly checkup" },
-    { date: "20/Apr/2026", job: "AC Installation", qty: "1", unit: "Piece", price: "$120.00", remarks: "Server Room" },
-  ],
-};
+const formatDate = (value) => value
+  ? new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(value))
+  : "-";
 
 const ContractorDetails = () => {
   const navigate = useNavigate();
@@ -36,10 +20,12 @@ const ContractorDetails = () => {
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState(0);
   const [reportOpen, setReportOpen] = useState(false);
+  const [branches, setBranches] = useState([]);
+  const [branchesLoading, setBranchesLoading] = useState(false);
   const [monthOffset, setMonthOffset] = useState(0);
-  const [requestRows, setRequestRows] = useState(requests);
-  const [logRows, setLogRows] = useState(logs);
-  const [jobRows, setJobRows] = useState({ hq: hqJobs, north: northJobs });
+  const [requestRows, setRequestRows] = useState({ hq: [], north: [] });
+  const [logRows, setLogRows] = useState({});
+  const [jobRows, setJobRows] = useState({ hq: [], north: [] });
   const [reportFilters, setReportFilters] = useState({ branch: "All Branches", type: "Custom", from: "2026-04-01", to: "2026-04-30" });
 
   useEffect(() => {
@@ -47,6 +33,31 @@ const ContractorDetails = () => {
       try {
         const data = await getContractor(id);
         setContractor(data);
+        const workItems = data?.workInformation?.jobItems || data?.jobItems || [];
+        setJobRows({
+          hq: workItems.filter((item) => (item.region || "").toLowerCase() !== "north")
+            .map((item) => ({ name: item.jobItems || item.jobItem || item.contractorJobItem || "-", unit: item.unit || "-", price: `$${Number(item.price ?? item.pricePerUnit ?? 0).toFixed(2)}` })),
+          north: workItems.filter((item) => (item.region || "").toLowerCase() === "north")
+            .map((item) => ({ name: item.jobItems || item.jobItem || item.contractorJobItem || "-", unit: item.unit || "-", price: `$${Number(item.price ?? item.pricePerUnit ?? 0).toFixed(2)}` })),
+        });
+        setRequestRows({ hq: [], north: [] });
+        const workLogs = Array.isArray(data?.logWork) ? data.logWork : [];
+        setLogRows(workLogs.reduce((groups, log) => {
+          const branchId = log.branch?._id || log.branch?.id || "unassigned";
+          const branchName = log.branch?.branchName || "Unassigned Branch";
+          const item = log.jobItems?.[0] || {};
+          (groups[branchId] ||= { name: branchName, rows: [] }).rows.push({
+            logId: log._id,
+            date: formatDate(log.workDoneDate || log.entryDate),
+            job: item.contractorJobItem || "-",
+            qty: item.quantity || 0,
+            unit: item.unit || "-",
+            price: `$${Number(item.pricePerUnit || 0).toFixed(2)}`,
+            remarks: log.reference || item.remarks || "-",
+            file: log.attachments?.length ? "paperclip" : null,
+          });
+          return groups;
+        }, {}));
       } catch (error) {
         toast.error(error.response?.data?.message || "Failed to load contractor details");
       } finally { setLoading(false); }
@@ -54,16 +65,32 @@ const ContractorDetails = () => {
     if (id) load(); else setLoading(false);
   }, [id]);
 
+  useEffect(() => {
+    if (!reportOpen || branches.length) return;
+    const loadBranches = async () => {
+      setBranchesLoading(true);
+      try {
+        const data = await getBranchDropdown({ skipGlobalLoading: true });
+        setBranches(Array.isArray(data) ? data : []);
+      } catch (error) {
+        toast.error(error.response?.data?.message || "Failed to load branches");
+      } finally {
+        setBranchesLoading(false);
+      }
+    };
+    loadBranches();
+  }, [reportOpen, branches.length]);
+
   if (loading) return <State><Spinner />Loading contractor details...</State>;
 
   const raw = contractor || {};
   const work = raw.workInformation || {};
-  const name = raw.name || "Manoj";
-  const contractorId = raw.contractorId || raw.employeeId || "CON-10024";
-  const specialty = work.specialty || "HVAC";
-  const company = raw.companyName || work.companyName || "itboomi";
-  const gst = raw.gstNumber || work.gstNumber || "29ABCDE1234F1Z5";
-  const license = raw.licenseNumber || work.licenseNumber || "LIC-99082-TN";
+  const name = raw.name || "-";
+  const contractorId = raw.contractorId || raw.employeeId || "-";
+  const specialty = work.specialty || "-";
+  const company = raw.companyName || work.companyName || "-";
+  const gst = raw.gstNumber || work.gstNumber || "-";
+  const license = raw.licenseNumber || work.licenseNumber || work.LicenseNo || "-";
 
   const print = (section) => navigate(`/admin/contractors/${id}/print`, { state: { section } });
   const monthLabel = new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric" }).format(new Date(2026, 3 + monthOffset, 1));
@@ -116,18 +143,19 @@ const ContractorDetails = () => {
       <RequestTable title="Requests - North Region" rows={requestRows.north} onDecision={(i, d) => decideRequest("north", i, d)} />
 
       <Stats>
-        <Stat $color="#08af67"><small>Total Earned</small><b>${raw.totalEarned || "1,450.00"}</b></Stat>
-        <Stat $color="#066C78"><small>Pay Out</small><b>${raw.payOut || "1,000.00"}</b></Stat>
-        <Stat $color="#ef3d45"><small>Outstanding</small><b>${raw.outstanding || "450.00"}</b></Stat>
+        <Stat $color="#08af67"><small>Total Earned</small><b>${Number(raw.totalEarned || 0).toFixed(2)}</b></Stat>
+        <Stat $color="#066C78"><small>Pay Out</small><b>${Number(raw.payOut || 0).toFixed(2)}</b></Stat>
+        <Stat $color="#ef3d45"><small>Outstanding</small><b>${Number(raw.outstanding || 0).toFixed(2)}</b></Stat>
       </Stats>
 
-      <LogTable title="Day-wise Work Log - Headquarters" rows={logRows.hq} onDelete={(i) => removeLog("hq", i)} />
-      <LogTable title="Day-wise Work Log - North Region" rows={logRows.north} onDelete={(i) => removeLog("north", i)} />
+      {Object.entries(logRows).map(([branchId, branch]) => (
+        <LogTable key={branchId} title={`Day-wise Work Log - ${branch.name}`} rows={branch.rows} onDelete={(i) => removeLog(branchId, i)} />
+      ))}
 
       <Footer><OutlineButton onClick={() => navigate(-1)}>Close</OutlineButton><BlueButton onClick={() => toast.success("Work saved successfully")}><FiSave />Save Work</BlueButton></Footer>
       {reportOpen && <ModalOverlay onMouseDown={() => setReportOpen(false)}><ReportModal onMouseDown={(e) => e.stopPropagation()}>
         <ModalTitle>Generate Report</ModalTitle>
-        <Field><label>Branch</label><select value={reportFilters.branch} onChange={(e) => setReportFilters({ ...reportFilters, branch: e.target.value })}><option>All Branches</option><option>Headquarters</option><option>North Region</option></select></Field>
+        <Field><label>Branch</label><select value={reportFilters.branch} disabled={branchesLoading} onChange={(e) => setReportFilters({ ...reportFilters, branch: e.target.value })}><option value="All Branches">{branchesLoading ? "Loading branches..." : "All Branches"}</option>{branches.map((branch) => { const branchId = branch._id || branch.id; return <option key={branchId} value={branchId}>{branch.branchName || branch.name || "Unnamed Branch"}</option>; })}</select></Field>
         <Field><label>Report Type</label><select value={reportFilters.type} onChange={(e) => setReportFilters({ ...reportFilters, type: e.target.value })}><option>Custom</option><option>Summary</option><option>Detailed</option></select></Field>
         <DateFields><Field><label>From Date</label><input type="date" value={reportFilters.from} onChange={(e) => setReportFilters({ ...reportFilters, from: e.target.value })} /></Field><Field><label>To Date</label><input type="date" value={reportFilters.to} onChange={(e) => setReportFilters({ ...reportFilters, to: e.target.value })} /></Field></DateFields>
         <ModalFooter><OutlineButton onClick={() => setReportOpen(false)}><FiX />Close</OutlineButton><BlueButton onClick={openReport}>View Report <FiChevronRight /></BlueButton></ModalFooter>

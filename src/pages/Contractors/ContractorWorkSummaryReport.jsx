@@ -2,12 +2,28 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation, useParams } from "react-router-dom";
 import styled from "styled-components";
 import { FiDownload, FiZoomIn, FiZoomOut, FiCalendar } from "react-icons/fi";
+import { getContractor } from "../../services/apiServices";
+
+const formatReportDate = (value) => value ? new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" }).format(new Date(value)) : "-";
+const formatReportDay = (value) => value ? new Intl.DateTimeFormat("en-US", { weekday: "long" }).format(new Date(value)) : "-";
+const groupApiLogs = (logs = []) => logs.reduce((groups, log) => {
+  const branchId = log.branch?._id || log.branch?.id || "unassigned";
+  const branchName = log.branch?.branchName || "Unassigned Branch";
+  const items = (log.jobItems || []).map((item, index) => ({
+    sNo: index + 1, jobItem: item.contractorJobItem || item.jobItem || "-", quantity: item.quantity || 0,
+    unit: item.unit || "-", pricePerUnit: `$${Number(item.pricePerUnit || 0).toFixed(2)}`,
+    remarks: item.remarks || log.reference || "-", total: `$${Number(item.total || 0).toFixed(2)}`,
+  }));
+  (groups[branchId] ||= []).push({ date: formatReportDate(log.workDoneDate || log.entryDate), dayOfWeek: formatReportDay(log.workDoneDate || log.entryDate), totalAmount: `$${Number(log.grandTotal || 0).toFixed(2)}`, items });
+  return groups;
+}, {});
 
 const ContractorWorkSummaryReport = () => {
   const navigate = useNavigate();
   const { id } = useParams();
   const location = useLocation();
   const [zoomLevel, setZoomLevel] = useState(100);
+  const [apiContractor, setApiContractor] = useState(null);
   const [reportFilters, setReportFilters] = useState({
     branch: "All Branches",
     reportType: "Custom",
@@ -20,6 +36,10 @@ const ContractorWorkSummaryReport = () => {
       setReportFilters(location.state.filters);
     }
   }, [location]);
+
+  useEffect(() => {
+    if (id) getContractor(id).then(setApiContractor).catch(() => setApiContractor({}));
+  }, [id]);
 
   // Sample contractor data - in production, fetch from API
   const contractorData = {
@@ -107,8 +127,8 @@ const ContractorWorkSummaryReport = () => {
   // Calculate totals
   const calculateTotals = () => {
     let totalEarned = 0;
-    Object.values(workLogsByBranch).forEach((branch) => {
-      branch.forEach((log) => {
+    Object.values(displayedLogs).forEach((branch) => {
+      (Array.isArray(branch) ? branch : branch.logs || []).forEach((log) => {
         const amount = parseFloat(log.totalAmount.replace("$", "").replace(",", ""));
         totalEarned += amount;
       });
@@ -116,6 +136,7 @@ const ContractorWorkSummaryReport = () => {
     return totalEarned;
   };
 
+  const displayedLogs = apiContractor?.logWork ? groupApiLogs(apiContractor.logWork) : workLogsByBranch;
   const totalEarned = calculateTotals();
 
   const handleDownloadReport = () => {
@@ -208,7 +229,7 @@ const ContractorWorkSummaryReport = () => {
         <DetailedWorkLogsSection>
           <SectionTitle>Detailed Work Logs</SectionTitle>
 
-          {Object.entries(workLogsByBranch).map(([branch, logs]) => (
+          {Object.entries(displayedLogs).map(([branch, logs]) => (
             <BranchSection key={branch}>
               <BranchTitle>{branch}</BranchTitle>
 

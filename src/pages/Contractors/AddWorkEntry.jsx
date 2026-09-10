@@ -11,6 +11,13 @@ const AddWorkEntry = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const contractor = location.state?.contractor;
+  const contractorJobItems = (contractor?._originalData?.jobItems || contractor?.jobItems || [])
+    .map((item) => typeof item === "string" ? item : item?.jobItems || item?.contractorJobItem || item?.jobItem || "")
+    .filter(Boolean);
+  const jobItemOptions = contractorJobItems.length
+    ? contractorJobItems
+    : ["AC Installation", "Duct Cleaning", "Routine Maintenance"];
+  const uniqueJobItemOptions = [...new Set(jobItemOptions)];
 
   // Get today's date in YYYY-MM-DD format
   const getTodayDate = () => {
@@ -32,11 +39,11 @@ const AddWorkEntry = () => {
   const [jobItems, setJobItems] = useState([
     {
       id: 1,
-      jobItem: "",
-      quantity: "",
-      unit: "",
-      priceUnit: "",
-      remarks: ""
+      jobItem: "AC Installation",
+      quantity: "2",
+      unit: "Piece",
+      priceUnit: "120",
+      remarks: "Building A, Floor 3"
     }
   ]);
 
@@ -356,14 +363,17 @@ const AddWorkEntry = () => {
                   <TableRow key={item.id}>
                     <Td>{index + 1}</Td>
                     <Td>
-                      <CellInput
-                        type="text"
+                      <CellSelect
                         value={item.jobItem}
-                        placeholder="Select Job Item"
                         onChange={(e) =>
                           handleJobItemChange(index, "jobItem", e.target.value)
                         }
-                      />
+                      >
+                        <option value="">Select Job Item</option>
+                        {uniqueJobItemOptions.map((jobItem) => (
+                          <option key={jobItem} value={jobItem}>{jobItem}</option>
+                        ))}
+                      </CellSelect>
                     </Td>
                     <Td>
                       <CellInput
