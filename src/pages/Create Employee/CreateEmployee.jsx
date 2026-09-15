@@ -1,10 +1,11 @@
 import { useState, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import { FiCheck } from "react-icons/fi";
 import theme from "../../theme/theme";
 import PersonalInfo from "./PersonalInfo/PersonalInfo";
 import AddWorkDetails from "./Work Details/AddWorkDetails";
+import CommissionDetails from "../Create Agent/Commission Details/CommissionDetails";
 import Documents from "./Documents/Documents";
 import Button from "../../components/Button";
 import { createEmployee } from "../../services/apiServices";
@@ -12,8 +13,13 @@ import { toast } from "react-toastify";
 
 const CreateEmployee = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const initialType = ["employee", "agent", "staff"].includes(location.state?.employeeType)
+    ? location.state.employeeType
+    : "employee";
   const [currentStep, setCurrentStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedType, setSelectedType] = useState(initialType);
 
   // Use refs (not state) to store form data across steps.
   // State updates are async and cause stale closure bugs inside async handlers.
@@ -23,9 +29,10 @@ const CreateEmployee = () => {
 
   const personalInfoRef = useRef();
   const workDetailsRef = useRef();
+  const commissionDetailsRef = useRef();
   const documentsRef = useRef();
 
-  const steps = ["Personal Information", "Document Upload", "Work Details"];
+  const steps = ["Personal Information", "Document Upload", selectedType === "agent" ? "Commission Details" : "Work Details"];
 
   const handleBack = () => {
     if (currentStep > 1) {
@@ -48,12 +55,15 @@ const CreateEmployee = () => {
       // Snapshot step 1 data into ref before PersonalInfo unmounts
       if (currentStep === 1 && personalInfoRef.current?.formData) {
         savedPersonalData.current = personalInfoRef.current.formData;
+        setSelectedType(personalInfoRef.current.formData.employeeType?.value || "employee");
         console.log("Saved personal data:", savedPersonalData.current);
       }
       setCurrentStep((s) => s + 1);
     } else {
       // Step 3 is still mounted — read directly from its ref
-      if (workDetailsRef.current?.formData) {
+      if (selectedType === "agent" && commissionDetailsRef.current?.formData) {
+        savedWorkData.current = commissionDetailsRef.current.formData;
+      } else if (workDetailsRef.current?.formData) {
         savedWorkData.current = workDetailsRef.current.formData;
         console.log("Saved work data:", savedWorkData.current);
       }
@@ -81,7 +91,9 @@ const CreateEmployee = () => {
         email: personalData.email,
         password: personalData.password,
         phone: Number(personalData.contact),
-        role: "employee",
+        role: selectedType,
+        ...(selectedType === "agent" ? { agentId: personalData.employeeId } : {}),
+        ...(selectedType === "staff" ? { employeeId: personalData.employeeId } : {}),
         gender: personalData.gender?.value,
         dateOfBirth: personalData.dob,
         age: Number(personalData.age),
@@ -182,8 +194,11 @@ const CreateEmployee = () => {
         toast.success(`${selectedDocuments.length} document${selectedDocuments.length > 1 ? "s" : ""} uploaded`);
       }
 
-      toast.success("Employee created successfully!");
-      navigate("/admin/peopleHub/employees", { state: { activeTab: "Employee", refresh: true } });
+      const label = selectedType.charAt(0).toUpperCase() + selectedType.slice(1);
+      toast.success(`${label} created successfully!`);
+      navigate(selectedType === "agent" ? "/admin/people/agents" : "/admin/peopleHub/employees", {
+        state: { activeTab: selectedType === "staff" ? "Staffs" : "Employee", refresh: true },
+      });
     } catch (error) {
       const errorMessage =
         error.response?.data?.message ||
@@ -220,13 +235,17 @@ const CreateEmployee = () => {
 
       <FormContent>
         <StepPanel $active={currentStep === 1} aria-hidden={currentStep !== 1}>
-          <PersonalInfo ref={personalInfoRef} />
+          <PersonalInfo ref={personalInfoRef} initialType={initialType} onTypeChange={setSelectedType} />
         </StepPanel>
         <StepPanel $active={currentStep === 2} aria-hidden={currentStep !== 2}>
           <Documents ref={documentsRef} />
         </StepPanel>
         <StepPanel $active={currentStep === 3} aria-hidden={currentStep !== 3}>
-          <AddWorkDetails ref={workDetailsRef} />
+          {selectedType === "agent" ? (
+            <CommissionDetails ref={commissionDetailsRef} />
+          ) : (
+            <AddWorkDetails ref={workDetailsRef} />
+          )}
         </StepPanel>
       </FormContent>
 
@@ -280,6 +299,7 @@ const Container = styled.div`
   min-height: calc(100vh - 5.625rem);
   padding: 1.5rem 0 1rem;
 `;
+
 
 const Progress = styled.div`
   display: flex;

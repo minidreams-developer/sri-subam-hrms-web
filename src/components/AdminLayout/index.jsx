@@ -278,9 +278,11 @@ const AdminLayout = () => {
               ? getActiveSubmenu(item.submenu, location.pathname, location.state)
               : null;
             const isParentActive = Boolean(activeSubmenu);
+            // Keep grouped menus expanded for the current route, but highlight
+            // only the actual selected item instead of its parent group too.
             const isActive = item.path
               ? pathMatches(location.pathname, item.path)
-              : isParentActive;
+              : false;
             const isExpanded =
               expandedMenu[item.name] !== undefined
                 ? expandedMenu[item.name]

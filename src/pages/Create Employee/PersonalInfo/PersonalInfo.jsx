@@ -6,13 +6,21 @@ import CalenderInput from "../../../components/CalenderInput";
 import Select from "react-select";
 import { customSelectStyles } from "../../../theme/reactSelectStyles";
 import ProfileImageUpload from "../../../components/ProfileImageUpload";
-import { generateEmployeeId as requestEmployeeId, getBranches } from "../../../services/apiServices";
+import {
+  generateEmployeeId as requestEmployeeId,
+  generateStaffId as requestStaffId,
+  generateAgentId as requestAgentId,
+  getBranches,
+} from "../../../services/apiServices";
 import { stateDistrictMap, stateOptions } from "../../../utils/statesAndDistricts";
 import { toast } from "react-toastify";
 
-const PersonalInfo = forwardRef((_, ref) => {
+const PersonalInfo = forwardRef(({ initialType = "employee", onTypeChange }, ref) => {
   const [formData, setFormData] = useState(() => ({
-    employeeType: { value: "full_time", label: "Full Time" },
+    employeeType: {
+      value: initialType,
+      label: initialType.charAt(0).toUpperCase() + initialType.slice(1),
+    },
     employeeId: "",
     employeeName: "Test Employee",
     gender: { value: "male", label: "Male" },
@@ -54,11 +62,11 @@ const PersonalInfo = forwardRef((_, ref) => {
   const [branches, setBranches] = useState([]);
   const [branchesLoading, setBranchesLoading] = useState(false);
 
-  // Generate Employee ID on component mount
+  // Generate the ID for the default type and load branches once.
   useEffect(() => {
-    generateEmployeeId();
+    generateIdForType(formData.employeeType.value);
     fetchBranches();
-  }, []);
+  }, [initialType]);
 
   const fetchBranches = async () => {
     setBranchesLoading(true);
@@ -91,18 +99,19 @@ const PersonalInfo = forwardRef((_, ref) => {
     }
   };
 
-  const generateEmployeeId = async () => {
+  const generateIdForType = async (type) => {
     setEmployeeIdLoading(true);
     try {
-      const response = await requestEmployeeId({ skipGlobalLoading: true });
-      console.log("Employee ID generated:", response);
+      const requestId = type === "agent" ? requestAgentId : type === "staff" ? requestStaffId : requestEmployeeId;
+      const response = await requestId({ skipGlobalLoading: true });
+      console.log(`${type} ID generated:`, response);
       
       // Handle different response structures
       let employeeId = "";
       if (typeof response === "string") {
         employeeId = response;
-      } else if (response?.employeeId) {
-        employeeId = response.employeeId;
+      } else if (response?.employeeId || response?.staffId || response?.agentId) {
+        employeeId = response.employeeId || response.staffId || response.agentId;
       } else if (response?.data) {
         employeeId = response.data;
       } else if (response?.id) {
@@ -111,8 +120,8 @@ const PersonalInfo = forwardRef((_, ref) => {
       
       setFormData((prev) => ({ ...prev, employeeId }));
     } catch (error) {
-      console.error("Error generating employee ID:", error);
-      toast.error("Failed to generate employee ID");
+      console.error(`Error generating ${type} ID:`, error);
+      toast.error(`Failed to generate ${type} ID`);
     } finally {
       setEmployeeIdLoading(false);
     }
@@ -124,10 +133,21 @@ const PersonalInfo = forwardRef((_, ref) => {
   }));
 
   const employeeTypeOptions = [
-    { value: "full_time", label: "Full Time" },
-    { value: "part_time", label: "Part Time" },
-    { value: "contract", label: "Contract" },
+    { value: "employee", label: "Employee" },
+    { value: "staff", label: "Staff" },
+    { value: "agent", label: "Agent" },
   ];
+
+  // Keep the shared form data keys unchanged, but show the selected role in
+  // the user-facing labels so the form reads Agent ID/Agent Name, Staff
+  // ID/Staff Name, or Employee ID/Employee Name dynamically.
+  const profileTypeLabel = {
+    agent: "Agent",
+    staff: "Staff",
+    employee: "Employee",
+  }[formData.employeeType?.value] || "Employee";
+  const profileIdLabel = `${profileTypeLabel} ID`;
+  const profileNameLabel = `${profileTypeLabel} Name`;
 
   const genderOptions = [
     { value: "male", label: "Male" },
@@ -282,7 +302,12 @@ const PersonalInfo = forwardRef((_, ref) => {
               <Select
                 options={employeeTypeOptions}
                 value={formData.employeeType}
-                onChange={(v) => handleChange("employeeType", v)}
+                onChange={(v) => {
+                  handleChange("employeeType", v);
+                  const type = v?.value || "employee";
+                  onTypeChange?.(type);
+                  generateIdForType(type);
+                }}
                 placeholder="Select Type"
                 styles={customSelectStyles}
                 isSearchable
@@ -291,7 +316,8 @@ const PersonalInfo = forwardRef((_, ref) => {
           </Col>
           <Col>
             <InputComponent
-              label="Employee ID"
+              key={`id-${formData.employeeType?.value || "employee"}`}
+              label={profileIdLabel}
               placeholder="Auto-generated"
               value={formData.employeeId}
               onChange={(e) => handleChange("employeeId", e.target.value)}
@@ -303,8 +329,9 @@ const PersonalInfo = forwardRef((_, ref) => {
         <Row>
           <Col>
             <InputComponent
-              label="Employee Name"
-              placeholder="Enter Employee Name"
+              key={`name-${formData.employeeType?.value || "employee"}`}
+              label={profileNameLabel}
+              placeholder={`Enter ${profileNameLabel}`}
               value={formData.employeeName}
               onChange={(e) => handleChange("employeeName", e.target.value)}
               labelMargin="0 0 0.625rem 0"

@@ -13,6 +13,10 @@ import CalendarView from "../../../components/CalendarView";
 export const Attendance = ({ employee }) => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("List View");
+  const leaveDates = employee?.leaveDates || employee?.leaves?.map((leave) => leave.date || leave.leaveDate).filter(Boolean) || [];
+  const leaveDateText = Array.isArray(leaveDates)
+    ? leaveDates.join(", ") || "N/A"
+    : leaveDates || "N/A";
 
   const handleTabChange = (val) => {
     setActiveTab(val);
@@ -112,6 +116,10 @@ export const Attendance = ({ employee }) => {
           {
             label: "Holidays",
             value: "0",
+          },
+          {
+            label: "Leave Dates",
+            value: leaveDateText,
           },
         ]}
       />

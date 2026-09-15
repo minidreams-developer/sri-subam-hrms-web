@@ -9,7 +9,6 @@ import Employees from "../pages/Employees/Employees";
 import EmployeeProfile from "../pages/EmployeeProfile/EmployeeProfile";
 import EditAttendanceDetails from "../pages/EmployeeProfile/Attendance/EditAttendanceDetails";
 import CreateEmployee from "../pages/Create Employee/CreateEmployee";
-import CreateStaff from "../pages/Create Staff/CreateStaff";
 import Teams from "../pages/Teams/Teams";
 import TeamDetails from "../pages/Teams/TeamDetails";
 import Hierarchy from "../pages/Hierarchy/Hierarchy";
@@ -63,7 +62,6 @@ import ContractorWorkSummaryReport from "../pages/Contractors/ContractorWorkSumm
 import AddWorkEntry from "../pages/Contractors/AddWorkEntry";
 import Announcement from "../pages/Announcement/Announcement";
 import Agents from "../pages/People/Agents";
-import CreateAgent from "../pages/Create Agent/CreateAgent";
 import AgentProfile from "../pages/AgentProfile/AgentProfile";
 import LogWorkEntry from "../pages/Contractors/LogWorkEntry";
 import Help from "../pages/Help/Help";
@@ -99,7 +97,7 @@ const privateRoutes = [
       },
       {
         path: "peopleHub/staff/create",
-        element: <CreateStaff />,
+        element: <CreateEmployee />,
       },
       
       {
@@ -328,7 +326,7 @@ const privateRoutes = [
         },
         {
           path: "people/agents/create",
-          element: <CreateAgent />,
+          element: <CreateEmployee />,
         },
         {
           path: "people/agents/agentProfile",

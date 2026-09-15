@@ -180,7 +180,7 @@ const Agents = () => {
         console.log(`Agent ${idx}:`, agent);
         return {
           id: agent?.id || agent?._id,
-          agentId: agent?.employeeId || agent?.agentId || "N/A",
+          agentId: agent?.agentId || "N/A",
           name: agent?.name || "N/A",
           laboursCount: Number(agent?.memberCount) || 0,
           joinedDate: formatDate(agent?.workInformation?.joinedDate),
@@ -341,7 +341,7 @@ const Agents = () => {
         onFilterClick={handleFilterOpen}
         actionText="New Agent"
         actionIcon={<img src={PlusIcon} alt="add" width="16" height="16" />}
-        onActionClick={() => navigate("/admin/people/agents/create")}
+        onActionClick={() => navigate("/admin/peopleHub/employees/create", { state: { from: "onboarding", employeeType: "agent" } })}
       />
 
       <ReusableTable

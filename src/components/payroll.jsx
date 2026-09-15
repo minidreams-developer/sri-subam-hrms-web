@@ -18,17 +18,14 @@ const PayrollComponent = ({ employee, onEmployeeUpdated }) => {
   const workInformation = employee?.workInformation || {};
   const salaryDetails = workInformation.salaryDetails || workInformation.SalaryDetails || employee?.salaryDetails || {};
   const currentSalary = employee?.currentMonthSalary || employee?.payrollDetails || {};
+  const commission = employee?.commission || employee?.commissionDetails || workInformation.commission || {};
+  const salaryHistory = employee?.salaryHistory || employee?.payrollHistory || {};
 
   const openBasicEditor = () => {
     setForm({
-      annualCTC: salaryDetails.annualCTC ?? employee?.annualCTC ?? "",
-      monthlyCTC: salaryDetails.monthlyCTC ?? employee?.monthlyCTC ?? "",
-      effectiveFrom: salaryDetails.effectiveFrom ?? "",
-      basicSalary: salaryDetails.basicSalary ?? salaryDetails.baseSalary ?? employee?.salary ?? "",
-      houseRentAllowance: salaryDetails.houseRentAllowance ?? salaryDetails.hra ?? "",
-      conveyanceAllowance: salaryDetails.conveyanceAllowance ?? "",
-      specialAllowance: salaryDetails.specialAllowance ?? "",
-      otherFixedAllowance: salaryDetails.otherFixedAllowance ?? salaryDetails.otherFixedAllowances ?? "",
+      commissionPerPerson: commission.commissionPerPerson ?? commission.commission ?? "",
+      gasAllowance: commission.gasAllowance ?? commission.allowance ?? "",
+      salaryDisbursementType: commission.salaryDisbursementType ?? "",
     });
     setEditor("basic");
   };
@@ -51,7 +48,7 @@ const PayrollComponent = ({ employee, onEmployeeUpdated }) => {
     if (!employeeId) return toast.error("Employee ID is missing");
     const numericForm = Object.fromEntries(Object.entries(form).map(([key, value]) => [key, key === "effectiveFrom" ? value : (value === "" ? "" : Number(value))]));
     const payload = editor === "basic"
-      ? { workInformation: { ...workInformation, salaryDetails: { ...salaryDetails, ...numericForm } } }
+      ? { commission: { ...commission, ...numericForm } }
       : { currentMonthSalary: { ...currentSalary, ...numericForm } };
     setSaving(true);
     try {
@@ -59,7 +56,7 @@ const PayrollComponent = ({ employee, onEmployeeUpdated }) => {
       const updated = response?.data || response?.user || response;
       onEmployeeUpdated?.({ ...employee, ...payload, ...(updated || {}) });
       setEditor(null);
-      toast.success(editor === "basic" ? "Payroll details updated successfully" : "Salary updated successfully");
+      toast.success(editor === "basic" ? "Commission details updated successfully" : "Salary updated successfully");
     } catch (error) {
       toast.error(error.response?.data?.message || "Failed to update payroll details");
     } finally {
@@ -80,7 +77,7 @@ const PayrollComponent = ({ employee, onEmployeeUpdated }) => {
       
       <PayrollDetailsHeader>
         <PayrollHeaderIcon src={PayrollIcon} alt="payroll" />
-        <PayrollDetailsTitle>Payroll details</PayrollDetailsTitle>
+        <PayrollDetailsTitle>Commission Details</PayrollDetailsTitle>
       </PayrollDetailsHeader>
       <CardDetails
         title="Basic Details"
@@ -91,36 +88,16 @@ const PayrollComponent = ({ employee, onEmployeeUpdated }) => {
         onEdit={openBasicEditor}
         items={[
           {
-            label: "CTC (Annual)",
-            value: money(salaryDetails.annualCTC ?? employee?.annualCTC),
+            label: "Commission Per Person",
+            value: money(commission.commissionPerPerson ?? commission.commission),
           },
           {
-            label: "Monthly CTC",
-            value: money(salaryDetails.monthlyCTC ?? employee?.monthlyCTC),
+            label: "Allowance (Gas)",
+            value: money(commission.gasAllowance ?? commission.allowance),
           },
           {
-            label: "Effective From",
-            value: salaryDetails.effectiveFrom || "N/A",
-          },
-          {
-            label: "Basic Salary",
-            value: money(salaryDetails.basicSalary ?? salaryDetails.baseSalary ?? employee?.salary),
-          },
-          {
-            label: "HRA (House Rent Allowance)",
-            value: money(salaryDetails.houseRentAllowance ?? salaryDetails.hra),
-          },
-          {
-            label: "Conveyance Allowance",
-            value: money(salaryDetails.conveyanceAllowance),
-          },
-          {
-            label: "Special Allowance",
-            value: money(salaryDetails.specialAllowance),
-          },
-          {
-            label: "Other Fixed Allowances",
-            value: money(salaryDetails.otherFixedAllowance ?? salaryDetails.otherFixedAllowances),
+            label: "Salary Disbursement Type",
+            value: commission.salaryDisbursementType?.label || commission.salaryDisbursementType || "N/A",
           },
         ]}
       />
@@ -134,12 +111,12 @@ const PayrollComponent = ({ employee, onEmployeeUpdated }) => {
         onEdit={openSalaryEditor}
         items={[
           {
-            label: "Total Salary",
-            value: money(currentSalary.totalSalary ?? salaryDetails.monthlyCTC),
+            label: "Total Commission",
+            value: money(currentSalary.totalCommission ?? currentSalary.totalSalary ?? commission.commission),
           },
           {
-            label: "Overtime Payment",
-            value: money(currentSalary.overtimePayment),
+            label: "Total Allowance (Gas)",
+            value: money(currentSalary.totalAllowanceGas ?? currentSalary.allowance ?? commission.gasAllowance ?? commission.allowance),
           },
           {
             label: "Addition Payment",
@@ -159,7 +136,6 @@ const PayrollComponent = ({ employee, onEmployeeUpdated }) => {
       <Section>
         <SectionHeader>
           <SectionTitleWithIcon>
-            <SectionIcon src={PayrollIcon} alt="payroll" />
             <SectionTitle>Salary History</SectionTitle>
           </SectionTitleWithIcon>
         </SectionHeader>
@@ -190,23 +166,23 @@ const PayrollComponent = ({ employee, onEmployeeUpdated }) => {
                     <DetailsGrid>
                       <DetailItem>
                         <DetailLabel>Total Salary</DetailLabel>
-                        <DetailValue>4,00,000</DetailValue>
+                      <DetailValue>{money(salaryHistory.february?.totalSalary ?? currentSalary.totalSalary)}</DetailValue>
                       </DetailItem>
                       <DetailItem>
                         <DetailLabel>Overtime Payment</DetailLabel>
-                        <DetailValue>5000</DetailValue>
+                      <DetailValue>{money(salaryHistory.february?.overtimePayment ?? currentSalary.overtimePayment)}</DetailValue>
                       </DetailItem>
                       <DetailItem>
                         <DetailLabel>Addition Payment</DetailLabel>
-                        <DetailValue>2500</DetailValue>
+                      <DetailValue>{money(salaryHistory.february?.additionPayment ?? currentSalary.additionPayment)}</DetailValue>
                       </DetailItem>
                       <DetailItem>
                         <DetailLabel>Deductions</DetailLabel>
-                        <DetailValue>0</DetailValue>
+                      <DetailValue>{money(salaryHistory.february?.deductions ?? currentSalary.deductions)}</DetailValue>
                       </DetailItem>
                       <DetailItem>
                         <DetailLabel>Total Payable Amount</DetailLabel>
-                        <DetailValue>28</DetailValue>
+                      <DetailValue>{money(salaryHistory.february?.totalPayableAmount ?? currentSalary.totalPayableAmount)}</DetailValue>
                       </DetailItem>
                     </DetailsGrid>
                   </MonthDetails>
@@ -251,10 +227,8 @@ const PayrollComponent = ({ employee, onEmployeeUpdated }) => {
             <ModalTitle id="payroll-editor-title">{editor === "basic" ? "Edit Payroll Details" : "Edit Salary"}</ModalTitle>
             <EditForm onSubmit={save}>
               {(editor === "basic" ? [
-                ["annualCTC", "CTC (Annual)", "number"], ["monthlyCTC", "Monthly CTC", "number"],
-                ["effectiveFrom", "Effective From", "text"], ["basicSalary", "Basic Salary", "number"],
-                ["houseRentAllowance", "HRA", "number"], ["conveyanceAllowance", "Conveyance Allowance", "number"],
-                ["specialAllowance", "Special Allowance", "number"], ["otherFixedAllowance", "Other Fixed Allowances", "number"],
+                ["commissionPerPerson", "Commission Per Person", "number"], ["gasAllowance", "Allowance (Gas)", "number"],
+                ["salaryDisbursementType", "Salary Disbursement Type", "text"],
               ] : [
                 ["totalSalary", "Total Salary", "number"], ["overtimePayment", "Overtime Payment", "number"],
                 ["additionPayment", "Addition Payment", "number"], ["deductions", "Deductions", "number"],
@@ -277,18 +251,18 @@ const Wrapper = styled.div`
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
+  gap: 2rem;
   border-radius: 12px;
   background: ${theme.colors.white};
-  border: 1px solid ${theme.colors.border};
-  padding: 1rem;
+  border: 0;
+  padding: 1.5rem 1.25rem;
 `;
 
 const PayrollDetailsHeader = styled.div`
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.25rem;
 `;
 
 const PayrollHeaderIcon = styled.img`
@@ -308,7 +282,7 @@ const Section = styled.div`
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 1.5rem;
 `;
 
 const SectionHeader = styled.div`
@@ -339,7 +313,7 @@ const SectionIcon = styled.img`
 `;
 
 const YearSection = styled.div`
-  margin-bottom: 1rem;
+  margin-bottom: 0;
   border: 1px solid ${theme.colors.border};
   border-radius: 0.625rem;
   overflow: hidden;
@@ -351,7 +325,7 @@ const YearHeader = styled.div`
   justify-content: space-between;
   align-items: center;
   padding: 1rem;
-  background: ${theme.colors.bgColor};
+  background: ${theme.colors.white};
   cursor: pointer;
   transition: background 0.2s ease;
 
@@ -430,7 +404,7 @@ const ChevronIcon = styled.span`
 
 const MonthDetails = styled.div`
   padding: 1rem;
-  background: ${theme.colors.bgColor};
+  background: #f8fafc;
   border-top: 1px solid ${theme.colors.border};
 `;
 

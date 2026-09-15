@@ -406,13 +406,13 @@ const Employees = () => {
 
   const handleNewEmployee = () => {
     navigate("/admin/peopleHub/employees/create", {
-      state: { from: "employees" },
+      state: { from: "onboarding", employeeType: "employee" },
     });
   };
 
   const handleNewStaff = () => {
     navigate("/admin/peopleHub/staff/create", {
-      state: { from: "staff" },
+      state: { from: "onboarding", employeeType: "staff" },
     });
   };
 
