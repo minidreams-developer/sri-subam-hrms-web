@@ -7,7 +7,7 @@ import UploadIcon from "../../../assets/images/employee/upload.svg";
 import DocumentIcon from "../../../assets/images/employee/document.svg";
 import EyeIcon from "../../../assets/images/employee/eye.svg";
 import SampleProfile from "../../../assets/images/employee/sampleProfile.jpg";
-import { deleteUserDocument, updateUser } from "../../../services/apiServices";
+import { addUserDocuments, deleteUserDocument, updateUser } from "../../../services/apiServices";
 import { uploadMedia } from "../../../helpers/uploadMedia";
 import DocumentUploadForm from "../../Create Employee/Documents/Documents";
 import { toast } from "react-toastify";
@@ -321,30 +321,9 @@ export const PersonalDetails = ({
         mimeType: document.file.mimeType,
         keepOriginal: Boolean(document.keepOriginal),
       }));
-      const existingDocuments = documents.map((document) => ({
-        documentName: document.documentName || document.name || document.fileName,
-        documentType: document.documentType || document.type || "personal",
-        fileName: document.fileName || document.originalName || document.name,
-        fileUrl: document.fileUrl || document.url,
-        publicId: document.publicId,
-        mimeType: document.mimeType,
-        keepOriginal: Boolean(document.keepOriginal),
-      }));
-      const response = await updateUser(employeeId(), {
-        documentImage: [...existingDocuments, ...newDocuments],
-      });
-      const updated = response?.data || response?.user || response;
-      const serverDocuments =
-        updated?.userDocuments || updated?.documents || updated?.documentImage;
-      if (serverDocuments) {
-        setUploadedDocuments([]);
-        onEmployeeUpdated?.({ ...employee, ...(updated || {}) });
-      } else {
-        setUploadedDocuments((items) => [
-          ...items,
-          ...newDocuments,
-        ]);
-      }
+      await addUserDocuments(employeeId(), newDocuments);
+      setUploadedDocuments([]);
+      await onRefresh?.();
       setDocumentUploadOpen(false);
       toast.success("Document uploaded successfully");
     } catch (error) {
