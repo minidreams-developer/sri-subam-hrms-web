@@ -7,7 +7,7 @@ import UploadIcon from "../../../assets/images/employee/upload.svg";
 import DocumentIcon from "../../../assets/images/employee/document.svg";
 import EyeIcon from "../../../assets/images/employee/eye.svg";
 import SampleProfile from "../../../assets/images/employee/sampleProfile.jpg";
-import { addUserDocuments, deleteUserDocument, updateUser } from "../../../services/apiServices";
+import { addUserDocuments, deleteUserDocument, updateUser, updateUserDocument } from "../../../services/apiServices";
 import { uploadMedia } from "../../../helpers/uploadMedia";
 import DocumentUploadForm from "../../Create Employee/Documents/Documents";
 import { toast } from "react-toastify";
@@ -432,28 +432,22 @@ export const PersonalDetails = ({
         mimeType: uploadedFile.mimeType,
         documentType,
       };
-      const nextDocuments = documents.map((item, index) =>
-        index === documentToChange.index ? replacement : item,
-      );
-      const response = await updateUser(employeeId(), {
-        documentImage: nextDocuments.map((document) => ({
-          documentName: document.documentName || document.name || document.fileName,
-          documentType: document.documentType || document.type || "personal",
-          fileName: document.fileName || document.name,
-          fileUrl: document.fileUrl || document.url,
-          publicId: document.publicId,
-          mimeType: document.mimeType,
-          keepOriginal: Boolean(document.keepOriginal),
-        })),
+      const documentId = oldDocument?.id || oldDocument?._id;
+      if (!documentId) {
+        toast.error("Document ID is missing; the document cannot be changed");
+        return;
+      }
+      await updateUserDocument(employeeId(), documentId, {
+        documentName: replacement.documentName || replacement.name || replacement.fileName,
+        documentType: replacement.documentType,
+        fileName: replacement.fileName,
+        fileUrl: replacement.fileUrl,
+        publicId: replacement.publicId,
+        mimeType: replacement.mimeType,
+        keepOriginal: Boolean(replacement.keepOriginal),
       });
-      const updatedUser =
-        response?.data?.user || response?.data || response?.user || response;
       setUploadedDocuments([]);
-      onEmployeeUpdated?.({
-        ...employee,
-        documentImage: nextDocuments,
-        ...(updatedUser || {}),
-      });
+      await onRefresh?.();
       toast.success("Document changed successfully");
     } catch (error) {
       toast.error(error.response?.data?.message || "Failed to change document");

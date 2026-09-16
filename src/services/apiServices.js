@@ -55,6 +55,8 @@ export const deleteUserDocument = (userId, documentId) =>
   data(api.delete(`/v1/users/${userId}/documents/${documentId}`));
 export const addUserDocuments = (userId, documents) =>
   data(api.post(`/v1/users/${userId}/documents`, { documents }));
+export const updateUserDocument = (userId, documentId, document) =>
+  data(api.patch(`/v1/users/${userId}/documents/${documentId}`, document));
 export const generateEmployeeId = (config) =>
   data(api.get("/v1/users/generate-employeeId", config));
 
