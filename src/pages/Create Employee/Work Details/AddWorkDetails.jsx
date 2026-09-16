@@ -8,7 +8,7 @@ import { customSelectStyles } from "../../../theme/reactSelectStyles";
 import { getBranches, getDepartments, getShifts, getTeams, getUsers } from "../../../services/apiServices";
 import { toast } from "react-toastify";
 
-const AddWorkDetails = forwardRef(({ onNext, onBack }, ref) => {
+const AddWorkDetails = forwardRef(({ onNext, onBack, showContractAgent = false }, ref) => {
   const [formData, setFormData] = useState({
     dateOfJoining: new Date(),
     experienceType: { value: "experienced", label: "Experienced" },
@@ -357,7 +357,7 @@ const AddWorkDetails = forwardRef(({ onNext, onBack }, ref) => {
           </Col>
         </Row>
         <Row>
-          <Col>
+          {showContractAgent && <Col>
             <SelectWrapper>
               <Label>Contract Agent</Label>
               <Select
@@ -370,7 +370,7 @@ const AddWorkDetails = forwardRef(({ onNext, onBack }, ref) => {
                 isLoading={contractAgentsLoading}
               />
             </SelectWrapper>
-          </Col>
+          </Col>}
           <Col>
             <SelectWrapper>
               <Label>Reporting Person</Label>
