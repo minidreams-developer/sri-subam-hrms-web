@@ -166,6 +166,17 @@ const CreateEmployee = () => {
           otherFixedAllowance: Number(workData.otherFixedAllowances) || 0,
         },
 
+        ...(selectedType === "agent"
+          ? {
+              commissionDetails: {
+                commission: Number(workData.commissionPercentage) || 0,
+                allowance: Number(workData.allowance) || 0,
+                salaryDisbursementType:
+                  workData.salaryDisbursementType?.value || "monthly",
+              },
+            }
+          : {}),
+
         bankDetails: [
           {
             accountHolderName: workData.accHolderName,

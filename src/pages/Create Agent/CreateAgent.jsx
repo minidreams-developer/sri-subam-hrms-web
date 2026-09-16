@@ -141,7 +141,7 @@ const CreateAgent = () => {
             keepOriginal: Boolean(doc.keepOriginal),
           })),
 
-        commission: {
+        commissionDetails: {
           commission: Number(commissionData.commissionPercentage) || 0,
           allowance: Number(commissionData.allowance) || 0,
           salaryDisbursementType: commissionData.salaryDisbursementType?.value || "monthly",
