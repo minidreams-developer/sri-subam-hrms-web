@@ -538,6 +538,14 @@ const PersonalInfo = forwardRef(({ initialType = "employee", onTypeChange }, ref
           </Col>
           <Col>
             <SelectWrapper>
+              <Label>State</Label>
+              <Select options={stateOptions} value={formData.state} onChange={(v) => { handleChange("state", v); handleChange("district", null); }} placeholder="Select State" styles={customSelectStyles} isSearchable />
+            </SelectWrapper>
+          </Col>
+        </Row>
+        <Row>
+          <Col>
+            <SelectWrapper>
               <Label>District</Label>
               <Select
                 options={formData.state ? stateDistrictMap[formData.state.value] || [] : []}
@@ -547,21 +555,6 @@ const PersonalInfo = forwardRef(({ initialType = "employee", onTypeChange }, ref
                 styles={customSelectStyles}
                 isSearchable
                 isDisabled={!formData.state}
-              />
-            </SelectWrapper>
-          </Col>
-        </Row>
-        <Row>
-          <Col>
-            <SelectWrapper>
-              <Label>State</Label>
-              <Select
-                options={stateOptions}
-                value={formData.state}
-                onChange={(v) => handleChange("state", v)}
-                placeholder="Select State"
-                styles={customSelectStyles}
-                isSearchable
               />
             </SelectWrapper>
           </Col>

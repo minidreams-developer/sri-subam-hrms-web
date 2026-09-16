@@ -127,6 +127,8 @@ const CreateEmployee = () => {
             addressLine1: personalData.address,
             addressLine2: personalData.addressLine2 || "",
             city: personalData.city,
+            district: personalData.district?.value,
+            state: personalData.state?.value,
             pincode: Number(personalData.pinCode),
           },
         ],
@@ -255,7 +257,7 @@ const CreateEmployee = () => {
           {selectedType === "agent" ? (
             <CommissionDetails ref={commissionDetailsRef} />
           ) : (
-            <AddWorkDetails ref={workDetailsRef} />
+            <AddWorkDetails ref={workDetailsRef} showContractAgent={selectedType === "employee"} />
           )}
         </StepPanel>
       </FormContent>
