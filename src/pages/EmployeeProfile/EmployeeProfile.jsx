@@ -62,7 +62,7 @@ const EmployeeProfile = () => {
       ) : selectedEmployee ? (
         <>
           {active === "Personal Details" && (
-            <PersonalDetails employee={selectedEmployee} onEmployeeUpdated={setSelectedEmployee} />
+            <PersonalDetails employee={selectedEmployee} onEmployeeUpdated={setSelectedEmployee} onRefresh={() => fetchEmployee(userId)} />
           )}
           {active === "Work Details" && <WorkDetails employee={selectedEmployee} onEmployeeUpdated={setSelectedEmployee} />}
           {active === "Attendance" && <Attendance employee={selectedEmployee} />}

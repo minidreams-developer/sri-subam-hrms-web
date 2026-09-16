@@ -7,7 +7,7 @@ import UploadIcon from "../../../assets/images/employee/upload.svg";
 import DocumentIcon from "../../../assets/images/employee/document.svg";
 import EyeIcon from "../../../assets/images/employee/eye.svg";
 import SampleProfile from "../../../assets/images/employee/sampleProfile.jpg";
-import { updateUser } from "../../../services/apiServices";
+import { deleteUserDocument, updateUser } from "../../../services/apiServices";
 import { uploadMedia } from "../../../helpers/uploadMedia";
 import DocumentUploadForm from "../../Create Employee/Documents/Documents";
 import { toast } from "react-toastify";
@@ -42,6 +42,7 @@ const formatDate = (value) => {
 export const PersonalDetails = ({
   employee,
   onEmployeeUpdated,
+  onRefresh,
   entity = "employee",
 }) => {
   const isAgent = entity === "agent";
@@ -399,31 +400,21 @@ export const PersonalDetails = ({
     if (!window.confirm("Remove this document?")) return;
     const id = employee?.id || employee?._id;
     if (!id) return toast.error(`${entityLabel} ID is missing`);
+    const documentId = document?.id || document?._id;
+    if (!documentId)
+      return toast.error("Document ID is missing; the document cannot be removed");
     const remaining = documents.filter(
       (_, documentIndex) => documentIndex !== index,
     );
     setDocumentSaving(true);
     try {
-      const normalizedDocuments = remaining.map((item) => ({
-        documentName: item.documentName || item.name || item.fileName,
-        documentType: item.documentType || item.type || "personal",
-        fileName: item.fileName || item.originalName || item.name,
-        fileUrl: item.fileUrl || item.url,
-        publicId: item.publicId,
-        mimeType: item.mimeType,
-        keepOriginal: Boolean(item.keepOriginal),
-      }));
-      const response = await updateUser(employeeId(), {
-        documentImage: normalizedDocuments,
-      });
-      const updated =
-        response?.data?.user || response?.data || response?.user || response;
+      await deleteUserDocument(id, documentId);
       setUploadedDocuments([]);
       onEmployeeUpdated?.({
         ...employee,
-        documentImage: normalizedDocuments,
-        ...(updated || {}),
+        documentImage: remaining,
       });
+      await onRefresh?.();
       if (
         documentPreview &&
         documentPreview.name ===

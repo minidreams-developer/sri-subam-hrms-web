@@ -17,9 +17,8 @@ const AgentProfile = () => {
   const location = useLocation();
   const agentId = location.state?.agentId;
 
-  useEffect(() => {
+  const fetchAgent = async () => {
     if (!agentId) return;
-    const fetchAgent = async () => {
       setLoading(true);
       try {
         const response = await getUser(agentId);
@@ -31,6 +30,8 @@ const AgentProfile = () => {
         setLoading(false);
       }
     };
+
+  useEffect(() => {
     fetchAgent();
   }, [agentId]);
 
@@ -47,7 +48,7 @@ const AgentProfile = () => {
         onChange={setActive}
       />
 
-      {loading ? <Section>Loading agent data...</Section> : active === "Personal Details" && <PersonalDetails employee={agent} onEmployeeUpdated={setAgent} entity="agent" />}
+      {loading ? <Section>Loading agent data...</Section> : active === "Personal Details" && <PersonalDetails employee={agent} onEmployeeUpdated={setAgent} onRefresh={fetchAgent} entity="agent" />}
       {active === "Employment List" && <EmploymentList agentId={agent?._id || agent?.id || agentId} />}
       {active === "Payroll" && (
         <PayrollComponent employee={agent} onEmployeeUpdated={setAgent} />
