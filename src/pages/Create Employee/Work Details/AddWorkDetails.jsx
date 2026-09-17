@@ -270,6 +270,10 @@ const AddWorkDetails = forwardRef(({ onNext, onBack, showContractAgent = false }
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
+  const handleNumericChange = (field, event) => {
+    handleChange(field, event.target.value.replace(/\D/g, ""));
+  };
+
   return (
     <Container>
       <Section>
@@ -413,7 +417,7 @@ const AddWorkDetails = forwardRef(({ onNext, onBack, showContractAgent = false }
               label="Total Years of Experience"
               placeholder="Enter PF Number"
               value={formData.totalYearsOfExperience}
-              onChange={(e) => handleChange("totalYearsOfExperience", e.target.value)}
+              onChange={(e) => handleNumericChange("totalYearsOfExperience", e)}
               labelMargin="0 0 0.625rem 0"
             />
           </Col>
@@ -520,7 +524,7 @@ const AddWorkDetails = forwardRef(({ onNext, onBack, showContractAgent = false }
               label="CTC (Annual)"
               placeholder="4,00,000"
               value={formData.ctcAnnual}
-              onChange={(e) => handleChange("ctcAnnual", e.target.value)}
+              onChange={(e) => handleNumericChange("ctcAnnual", e)}
               labelMargin="0 0 0.625rem 0"
             />
           </Col>
@@ -529,7 +533,7 @@ const AddWorkDetails = forwardRef(({ onNext, onBack, showContractAgent = false }
               label="Monthly CTC"
               placeholder="33,333"
               value={formData.monthlyCTC}
-              onChange={(e) => handleChange("monthlyCTC", e.target.value)}
+              onChange={(e) => handleNumericChange("monthlyCTC", e)}
               labelMargin="0 0 0.625rem 0"
             />
           </Col>
@@ -540,7 +544,7 @@ const AddWorkDetails = forwardRef(({ onNext, onBack, showContractAgent = false }
               label="Basic Salary"
               placeholder="1500"
               value={formData.basicSalary}
-              onChange={(e) => handleChange("basicSalary", e.target.value)}
+              onChange={(e) => handleNumericChange("basicSalary", e)}
               labelMargin="0 0 0.625rem 0"
               prefix="₹"
             />
@@ -550,7 +554,7 @@ const AddWorkDetails = forwardRef(({ onNext, onBack, showContractAgent = false }
               label="HRA (House Rent Allowance)"
               placeholder="1500"
               value={formData.hra}
-              onChange={(e) => handleChange("hra", e.target.value)}
+              onChange={(e) => handleNumericChange("hra", e)}
               labelMargin="0 0 0.625rem 0"
               prefix="₹"
             />
@@ -562,7 +566,7 @@ const AddWorkDetails = forwardRef(({ onNext, onBack, showContractAgent = false }
               label="Conveyance Allowance"
               placeholder="1500"
               value={formData.conveyanceAllowance}
-              onChange={(e) => handleChange("conveyanceAllowance", e.target.value)}
+              onChange={(e) => handleNumericChange("conveyanceAllowance", e)}
               labelMargin="0 0 0.625rem 0"
               prefix="₹"
             />
@@ -572,7 +576,7 @@ const AddWorkDetails = forwardRef(({ onNext, onBack, showContractAgent = false }
               label="Special Allowance"
               placeholder="0"
               value={formData.specialAllowance}
-              onChange={(e) => handleChange("specialAllowance", e.target.value)}
+              onChange={(e) => handleNumericChange("specialAllowance", e)}
               labelMargin="0 0 0.625rem 0"
               prefix="₹"
             />
@@ -584,7 +588,7 @@ const AddWorkDetails = forwardRef(({ onNext, onBack, showContractAgent = false }
               label="Special Allowance"
               placeholder="0"
               value={formData.specialAllowance2}
-              onChange={(e) => handleChange("specialAllowance2", e.target.value)}
+              onChange={(e) => handleNumericChange("specialAllowance2", e)}
               labelMargin="0 0 0.625rem 0"
               prefix="₹"
             />
@@ -594,7 +598,7 @@ const AddWorkDetails = forwardRef(({ onNext, onBack, showContractAgent = false }
               label="Other Fixed Allowances"
               placeholder="0"
               value={formData.otherFixedAllowances}
-              onChange={(e) => handleChange("otherFixedAllowances", e.target.value)}
+              onChange={(e) => handleNumericChange("otherFixedAllowances", e)}
               labelMargin="0 0 0.625rem 0"
               prefix="₹"
             />
@@ -647,7 +651,7 @@ const AddWorkDetails = forwardRef(({ onNext, onBack, showContractAgent = false }
               label="Acc Number"
               placeholder="Enter Acc Number"
               value={formData.accNumber}
-              onChange={(e) => handleChange("accNumber", e.target.value)}
+              onChange={(e) => handleNumericChange("accNumber", e)}
               labelMargin="0 0 0.625rem 0"
             />
           </Col>

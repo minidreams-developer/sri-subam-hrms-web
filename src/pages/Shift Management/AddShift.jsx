@@ -225,6 +225,25 @@ const AddShift = () => {
   const [workingOnHoliday, setWorkingOnHoliday] = useState(null);
   const [compOff, setCompOff] = useState(null);
 
+  // Keep the duration in sync with the selected shift times. Only the time
+  // portion is used because the time picker assigns today's date to both values.
+  useEffect(() => {
+    if (!startTime || !endTime) return;
+
+    const start = startTime instanceof Date ? startTime : new Date(startTime);
+    const end = endTime instanceof Date ? endTime : new Date(endTime);
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return;
+
+    const startMinutes = start.getHours() * 60 + start.getMinutes();
+    const endMinutes = end.getHours() * 60 + end.getMinutes();
+    const durationMinutes = endMinutes > startMinutes
+      ? endMinutes - startMinutes
+      : endMinutes + 24 * 60 - startMinutes;
+    const durationHours = durationMinutes / 60;
+
+    setTotalShiftDuration(`${durationHours.toFixed(2)} Hrs`);
+  }, [startTime, endTime]);
+
   const handleAddBreak = () => {
     setBreaks([...breaks, { id: Date.now() }]);
   };
@@ -696,11 +715,11 @@ const AddShift = () => {
               <Col>
                 <InputComponent
                   label="Total Shift Duration "
-                  placeholder="Enter Total Shift Duration"
+                  placeholder="Select start and end time"
                   labelMargin="0 0 0.625rem 0"
                   height="45px"
                   value={totalShiftDuration}
-                  onChange={(e) => setTotalShiftDuration(e.target.value)}
+                  readOnly
                 />
               </Col>
               <Col>

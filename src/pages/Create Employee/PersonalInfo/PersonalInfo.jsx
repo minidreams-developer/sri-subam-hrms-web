@@ -26,7 +26,7 @@ const PersonalInfo = forwardRef(({ initialType = "employee", onTypeChange }, ref
     employeeName: "Test Employee",
     gender: { value: "male", label: "Male" },
     dob: new Date(1997, 4, 15),
-    age: "29",
+    age: "",
     contact: "9876543210",
     email: `test.employee.${Date.now()}@example.com`,
     password: "Test@12345",
@@ -131,14 +131,19 @@ const PersonalInfo = forwardRef(({ initialType = "employee", onTypeChange }, ref
 
   // Expose form data via ref
   const calculateAge = (date) => {
-    if (!date) return "";
+    const birthDate = date instanceof Date ? date : new Date(date);
+    if (!date || Number.isNaN(birthDate.getTime())) return "";
     const today = new Date();
-    let age = today.getFullYear() - date.getFullYear();
+    let age = today.getFullYear() - birthDate.getFullYear();
     const birthday未Passed =
-      today.getMonth() < date.getMonth() ||
-      (today.getMonth() === date.getMonth() && today.getDate() < date.getDate());
+      today.getMonth() < birthDate.getMonth() ||
+      (today.getMonth() === birthDate.getMonth() && today.getDate() < birthDate.getDate());
     if (birthday未Passed) age -= 1;
     return String(age);
+  };
+
+  const handleDobChange = (date) => {
+    setFormData((prev) => ({ ...prev, dob: date, age: calculateAge(date) }));
   };
 
   const validate = () => {
@@ -399,7 +404,7 @@ const PersonalInfo = forwardRef(({ initialType = "employee", onTypeChange }, ref
           <Col>
             <CalenderInput
               label="DOB"
-              onDateSelect={(date) => { handleChange("dob", date); handleChange("age", calculateAge(date)); }}
+              onDateSelect={handleDobChange}
               initialDate={formData.dob}
               labelMargin="0 0 0.625rem 0"
             />
