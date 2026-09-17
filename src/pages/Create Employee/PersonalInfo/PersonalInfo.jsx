@@ -156,6 +156,7 @@ const PersonalInfo = forwardRef(({ initialType = "employee", onTypeChange }, ref
     if (!/^\d{10}$/.test(String(formData.contact).trim())) errors.push("Contact must be exactly 10 digits");
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(formData.email).trim())) errors.push("Enter a valid email");
     if (!/^(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}$/.test(String(formData.password))) errors.push("Password must be 8+ characters with a number, uppercase and lowercase letter");
+    // Password mismatch is shown inline below Confirm Password.
     if (!/^\d{16}$/.test(String(formData.aadharNo).trim())) errors.push("Aadhaar must be exactly 16 digits");
     if (!/^[A-Z]{5}\d{4}[A-Z]$/.test(String(formData.panNo).trim().toUpperCase())) errors.push("Enter a valid PAN number");
     if (!/^\d{6}$/.test(String(formData.pinCode).trim())) errors.push("PIN code must be exactly 6 digits");
@@ -166,9 +167,8 @@ const PersonalInfo = forwardRef(({ initialType = "employee", onTypeChange }, ref
     });
     if (errors.length) {
       toast.error(`Please correct: ${errors.slice(0, 4).join(", ")}${errors.length > 4 ? " and other fields" : ""}`);
-      return false;
     }
-    return true;
+    return errors.length === 0;
   };
 
   useImperativeHandle(ref, () => ({
