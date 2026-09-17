@@ -9,6 +9,7 @@ const InputComponent = ({
   labelMargin = "1rem 0 0.625rem 0",
   height,
   suffix,
+  endAdornment,
   ...rest
 }) => {
   return (
@@ -17,6 +18,7 @@ const InputComponent = ({
       <InputWrapper width={width} height={height}>
         <Input placeholder={placeholder} {...rest} />
         {suffix && <Suffix>{suffix}</Suffix>}
+        {endAdornment}
       </InputWrapper>
     </FieldWrapper>
   );

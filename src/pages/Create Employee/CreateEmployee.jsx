@@ -51,6 +51,7 @@ const CreateEmployee = () => {
 
   const handleNext = async () => {
     console.log("handleNext called, currentStep:", currentStep);
+    if (currentStep === 1 && !personalInfoRef.current?.validate?.()) return;
     if (currentStep < 3) {
       // Snapshot step 1 data into ref before PersonalInfo unmounts
       if (currentStep === 1 && personalInfoRef.current?.formData) {

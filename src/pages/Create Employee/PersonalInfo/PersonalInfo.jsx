@@ -14,6 +14,7 @@ import {
 } from "../../../services/apiServices";
 import { stateDistrictMap, stateOptions } from "../../../utils/statesAndDistricts";
 import { toast } from "react-toastify";
+import { FiEye, FiEyeOff } from "react-icons/fi";
 
 const PersonalInfo = forwardRef(({ initialType = "employee", onTypeChange }, ref) => {
   const [formData, setFormData] = useState(() => ({
@@ -61,6 +62,7 @@ const PersonalInfo = forwardRef(({ initialType = "employee", onTypeChange }, ref
   const [employeeIdLoading, setEmployeeIdLoading] = useState(false);
   const [branches, setBranches] = useState([]);
   const [branchesLoading, setBranchesLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   // Generate the ID for the default type and load branches once.
   useEffect(() => {
@@ -128,8 +130,50 @@ const PersonalInfo = forwardRef(({ initialType = "employee", onTypeChange }, ref
   };
 
   // Expose form data via ref
+  const calculateAge = (date) => {
+    if (!date) return "";
+    const today = new Date();
+    let age = today.getFullYear() - date.getFullYear();
+    const birthday未Passed =
+      today.getMonth() < date.getMonth() ||
+      (today.getMonth() === date.getMonth() && today.getDate() < date.getDate());
+    if (birthday未Passed) age -= 1;
+    return String(age);
+  };
+
+  const validate = () => {
+    const required = [
+      ["Name", formData.employeeName], ["Gender", formData.gender?.value],
+      ["DOB", formData.dob], ["Email", formData.email], ["Password", formData.password],
+      ["Marital status", formData.maritalStatus?.value], ["Mother tongue", formData.motherTongue?.value],
+      ["Religion", formData.religion?.value], ["Identification mark", formData.identificationMark],
+      ["Aadhaar number", formData.aadharNo], ["PAN number", formData.panNo],
+      ["Address", formData.address], ["City", formData.city], ["State", formData.state?.value],
+      ["District", formData.district?.value], ["PIN code", formData.pinCode], ["Branch", formData.branch?.value],
+    ];
+    const missing = required.filter(([, value]) => !String(value ?? "").trim()).map(([label]) => label);
+    const errors = [...missing];
+    if (!/^\d{10}$/.test(String(formData.contact).trim())) errors.push("Contact must be exactly 10 digits");
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(formData.email).trim())) errors.push("Enter a valid email");
+    if (!/^(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}$/.test(String(formData.password))) errors.push("Password must be 8+ characters with a number, uppercase and lowercase letter");
+    if (!/^\d{16}$/.test(String(formData.aadharNo).trim())) errors.push("Aadhaar must be exactly 16 digits");
+    if (!/^[A-Z]{5}\d{4}[A-Z]$/.test(String(formData.panNo).trim().toUpperCase())) errors.push("Enter a valid PAN number");
+    if (!/^\d{6}$/.test(String(formData.pinCode).trim())) errors.push("PIN code must be exactly 6 digits");
+    emergencyContacts.forEach((contact, index) => {
+      if (!/^\d{10}$/.test(String(contact.emergencyContact).trim())) errors.push(`Emergency contact ${index + 1} must be exactly 10 digits`);
+      if (!String(contact.emergencyContactName || "").trim()) errors.push(`Emergency contact ${index + 1} name is required`);
+      if (!contact.relationship?.value) errors.push(`Emergency contact ${index + 1} relationship is required`);
+    });
+    if (errors.length) {
+      toast.error(`Please correct: ${errors.slice(0, 4).join(", ")}${errors.length > 4 ? " and other fields" : ""}`);
+      return false;
+    }
+    return true;
+  };
+
   useImperativeHandle(ref, () => ({
     formData: { ...formData, emergencyContacts },
+    validate,
   }));
 
   const employeeTypeOptions = [
@@ -355,7 +399,7 @@ const PersonalInfo = forwardRef(({ initialType = "employee", onTypeChange }, ref
           <Col>
             <CalenderInput
               label="DOB"
-              onDateSelect={(date) => handleChange("dob", date)}
+              onDateSelect={(date) => { handleChange("dob", date); handleChange("age", calculateAge(date)); }}
               initialDate={formData.dob}
               labelMargin="0 0 0.625rem 0"
             />
@@ -365,7 +409,7 @@ const PersonalInfo = forwardRef(({ initialType = "employee", onTypeChange }, ref
               label="Age"
               placeholder="Enter Age"
               value={formData.age}
-              onChange={(e) => handleChange("age", e.target.value)}
+              readOnly
               labelMargin="0 0 0.625rem 0"
             />
           </Col>
@@ -376,7 +420,7 @@ const PersonalInfo = forwardRef(({ initialType = "employee", onTypeChange }, ref
               label="Contact"
               placeholder="Enter Contact Number"
               value={formData.contact}
-              onChange={(e) => handleChange("contact", e.target.value)}
+              onChange={(e) => handleChange("contact", e.target.value.replace(/\D/g, "").slice(0, 10))}
               labelMargin="0 0 0.625rem 0"
               suffix="+91"
             />
@@ -386,7 +430,7 @@ const PersonalInfo = forwardRef(({ initialType = "employee", onTypeChange }, ref
               label="Email"
               placeholder="Enter Email"
               value={formData.email}
-              onChange={(e) => handleChange("email", e.target.value)}
+              onChange={(e) => handleChange("email", e.target.value.replace(/\s/g, "").slice(0, 254))}
               labelMargin="0 0 0.625rem 0"
             />
           </Col>
@@ -399,7 +443,12 @@ const PersonalInfo = forwardRef(({ initialType = "employee", onTypeChange }, ref
               value={formData.password}
               onChange={(e) => handleChange("password", e.target.value)}
               labelMargin="0 0 0.625rem 0"
-              type="password"
+              type={showPassword ? "text" : "password"}
+              endAdornment={
+                <PasswordToggle type="button" onClick={() => setShowPassword((visible) => !visible)} aria-label={showPassword ? "Hide password" : "Show password"}>
+                  {showPassword ? <FiEyeOff /> : <FiEye />}
+                </PasswordToggle>
+              }
             />
           </Col>
           <Col>
@@ -492,7 +541,7 @@ const PersonalInfo = forwardRef(({ initialType = "employee", onTypeChange }, ref
               label="Aadhaar Number"
               placeholder="Enter Aadhaar Number"
               value={formData.aadharNo}
-              onChange={(e) => handleChange("aadharNo", e.target.value)}
+              onChange={(e) => handleChange("aadharNo", e.target.value.replace(/\D/g, "").slice(0, 16))}
               labelMargin="0 0 0.625rem 0"
             />
           </Col>
@@ -501,7 +550,7 @@ const PersonalInfo = forwardRef(({ initialType = "employee", onTypeChange }, ref
               label="PAN Number"
               placeholder="Enter PAN Number"
               value={formData.panNo}
-              onChange={(e) => handleChange("panNo", e.target.value)}
+              onChange={(e) => handleChange("panNo", e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 10))}
               labelMargin="0 0 0.625rem 0"
             />
           </Col>
@@ -563,7 +612,7 @@ const PersonalInfo = forwardRef(({ initialType = "employee", onTypeChange }, ref
               label="Pin Code"
               placeholder="Enter Pin Code"
               value={formData.pinCode}
-              onChange={(e) => handleChange("pinCode", e.target.value)}
+              onChange={(e) => handleChange("pinCode", e.target.value.replace(/\D/g, "").slice(0, 6))}
               labelMargin="0 0 0.625rem 0"
             />
           </Col>
@@ -604,7 +653,7 @@ const PersonalInfo = forwardRef(({ initialType = "employee", onTypeChange }, ref
                 placeholder="Enter Contact Number"
                 value={contact.emergencyContact}
                 onChange={(e) =>
-                  handleEmergencyContactChange(index, "emergencyContact", e.target.value)
+                  handleEmergencyContactChange(index, "emergencyContact", e.target.value.replace(/\D/g, "").slice(0, 10))
                 }
                 labelMargin="0 0 0.625rem 0"
                 suffix="+91"
@@ -713,6 +762,17 @@ const FullCol = styled.div`
 
 const SelectWrapper = styled.div`
   width: 100%;
+`;
+
+const PasswordToggle = styled.button`
+  display: flex;
+  align-items: center;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: ${theme.colors.secondaryTextColor};
+  cursor: pointer;
+  font-size: 1.1rem;
 `;
 
 const Label = styled.label`
