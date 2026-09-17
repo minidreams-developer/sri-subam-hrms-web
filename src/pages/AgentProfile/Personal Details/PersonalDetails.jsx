@@ -11,6 +11,17 @@ import FileUploadComponent from "../../../components/FileUploadComponent";
 import Button from "../../../components/Button";
 import { updateUser } from "../../../services/apiServices";
 import { toast } from "react-toastify";
+import Select from "react-select";
+import { customSelectStyles } from "../../../theme/reactSelectStyles";
+
+const languageOptions = [
+  { value: "tamil", label: "Tamil" },
+  { value: "english", label: "English" },
+  { value: "hindi", label: "Hindi" },
+  { value: "telugu", label: "Telugu" },
+  { value: "kannada", label: "Kannada" },
+  { value: "malayalam", label: "Malayalam" },
+];
 
 export const PersonalDetails = ({ agent, onAgentUpdated }) => {
   const fallback = agent || {};
@@ -37,7 +48,9 @@ export const PersonalDetails = ({ agent, onAgentUpdated }) => {
       gender: fallback.gender || "", dateOfBirth: String(fallback.dateOfBirth || "").slice(0, 10),
       age: fallback.age ?? "", phone: fallback.phone || "", email: fallback.email || "",
       maritalStatus: fallback.maritalStatus || fallback.martialStatus || "",
-      motherTongue: fallback.motherTongue || "", identificationMark: fallback.identificationMark || "",
+      motherTongue: fallback.motherTongue || "", spokenLanguages: Array.isArray(fallback.spokenLanguages)
+        ? fallback.spokenLanguages.map((language) => typeof language === "string" ? language : language.value)
+        : [], identificationMark: fallback.identificationMark || "",
       address1: address.addressLine1 || "", address2: address.addressLine2 || "",
       city: address.city || "", state: address.state || "", zipCode: address.pincode || "",
     });
@@ -48,13 +61,16 @@ export const PersonalDetails = ({ agent, onAgentUpdated }) => {
     event.preventDefault();
     const id = fallback.id || fallback._id;
     if (!id) return toast.error("Agent ID is missing");
+    if (!/^\d{10}$/.test(String(form.phone || ""))) {
+      return toast.error("Contact must be exactly 10 digits");
+    }
     setSaving(true);
     try {
       const payload = {
         name: form.name, employeeId: form.employeeId, gender: form.gender,
         dateOfBirth: form.dateOfBirth, age: form.age === "" ? null : Number(form.age),
         phone: form.phone, email: form.email, martialStatus: form.maritalStatus,
-        motherTongue: form.motherTongue, identificationMark: form.identificationMark,
+        motherTongue: form.motherTongue, spokenLanguages: form.spokenLanguages || [], identificationMark: form.identificationMark,
         address: [{ ...address, addressLine1: form.address1, addressLine2: form.address2,
           city: form.city, state: form.state, pincode: form.zipCode }],
       };
@@ -212,10 +228,11 @@ export const PersonalDetails = ({ agent, onAgentUpdated }) => {
             <Field><label>Gender</label><select name="gender" value={form.gender || ""} onChange={change}><option value="">Select</option><option value="male">Male</option><option value="female">Female</option><option value="other">Other</option></select></Field>
             <Field><label>Date of Birth</label><input type="date" name="dateOfBirth" value={form.dateOfBirth || ""} onChange={change} /></Field>
             <Field><label>Age</label><input type="number" min="0" name="age" value={form.age ?? ""} onChange={change} /></Field>
-            <Field><label>Contact</label><input name="phone" value={form.phone || ""} onChange={change} /></Field>
+            <Field><label>Contact</label><input name="phone" inputMode="numeric" maxLength={10} pattern="[0-9]{10}" value={form.phone || ""} onChange={(event) => setForm((current) => ({ ...current, phone: event.target.value.replace(/\D/g, "").slice(0, 10) }))} required /></Field>
             <Field><label>Email</label><input type="email" name="email" value={form.email || ""} onChange={change} required /></Field>
             <Field><label>Marital Status</label><select name="maritalStatus" value={form.maritalStatus || ""} onChange={change}><option value="">Select</option><option value="single">Single</option><option value="married">Married</option><option value="divorced">Divorced</option></select></Field>
-            <Field><label>Mother Tongue</label><input name="motherTongue" value={form.motherTongue || ""} onChange={change} /></Field>
+            <Field><label>Mother Tongue</label><Select options={languageOptions} styles={customSelectStyles} value={languageOptions.find((option) => option.value === form.motherTongue) || null} onChange={(option) => setForm((current) => ({ ...current, motherTongue: option?.value || "" }))} placeholder="Select mother tongue" /></Field>
+            <Field><label>Spoken Languages</label><Select isMulti options={languageOptions} styles={customSelectStyles} value={languageOptions.filter((option) => (form.spokenLanguages || []).includes(option.value))} onChange={(options) => setForm((current) => ({ ...current, spokenLanguages: (options || []).map((option) => option.value) }))} placeholder="Select languages" /></Field>
             <Field><label>Identification Mark</label><input name="identificationMark" value={form.identificationMark || ""} onChange={change} /></Field>
             <Field><label>Address 1</label><input name="address1" value={form.address1 || ""} onChange={change} /></Field>
             <Field><label>Address 2</label><input name="address2" value={form.address2 || ""} onChange={change} /></Field>

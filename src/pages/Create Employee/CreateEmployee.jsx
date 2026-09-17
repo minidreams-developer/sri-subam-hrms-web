@@ -114,7 +114,7 @@ const CreateEmployee = () => {
             fileName: doc.file.name,
             fileUrl: doc.file.url,
             publicId: doc.file.publicId,
-            mimeType: doc.file.mimeType,
+            mimeType: doc.file.mimeType || doc.file.type,
             keepOriginal: Boolean(doc.keepOriginal),
           })),
 

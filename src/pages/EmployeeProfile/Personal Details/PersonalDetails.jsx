@@ -11,6 +11,14 @@ import { addUserDocuments, deleteUserDocument, updateUser, updateUserDocument } 
 import { uploadMedia } from "../../../helpers/uploadMedia";
 import DocumentUploadForm from "../../Create Employee/Documents/Documents";
 import { toast } from "react-toastify";
+import Select from "react-select";
+import { customSelectStyles } from "../../../theme/reactSelectStyles";
+
+const languageOptions = [
+  { value: "tamil", label: "Tamil" }, { value: "english", label: "English" },
+  { value: "hindi", label: "Hindi" }, { value: "telugu", label: "Telugu" },
+  { value: "kannada", label: "Kannada" }, { value: "malayalam", label: "Malayalam" },
+];
 
 const NOT_AVAILABLE = "N/A";
 
@@ -179,6 +187,8 @@ export const PersonalDetails = ({
   };
   const save = async (event) => {
     event.preventDefault();
+    if (!/^\d{10}$/.test(String(form.phone || "")))
+      return toast.error("Contact must be exactly 10 digits");
     if (!employee?.id && !employee?._id)
       return toast.error(`${entityLabel} ID is missing`);
     setSaving(true);
@@ -318,7 +328,7 @@ export const PersonalDetails = ({
         fileName: document.file.name,
         fileUrl: document.file.url,
         publicId: document.file.publicId,
-        mimeType: document.file.mimeType,
+        mimeType: document.file.mimeType || document.file.type,
         keepOriginal: Boolean(document.keepOriginal),
       }));
       await addUserDocuments(employeeId(), newDocuments);
@@ -793,8 +803,12 @@ export const PersonalDetails = ({
                 <label>Contact</label>
                 <input
                   name="phone"
+                  inputMode="numeric"
+                  maxLength={10}
+                  pattern="[0-9]{10}"
                   value={form.phone || ""}
-                  onChange={change}
+                  onChange={(event) => setForm((current) => ({ ...current, phone: event.target.value.replace(/\D/g, "").slice(0, 10) }))}
+                  required
                 />
               </Field>
               <Field>
@@ -822,11 +836,10 @@ export const PersonalDetails = ({
               </Field>
               <Field>
                 <label>Mother Tongue</label>
-                <input
-                  name="motherTongue"
-                  value={form.motherTongue || ""}
-                  onChange={change}
-                />
+                <Select options={languageOptions} styles={customSelectStyles}
+                  value={languageOptions.find((option) => option.value === String(form.motherTongue || "").toLowerCase()) || null}
+                  onChange={(option) => setForm((current) => ({ ...current, motherTongue: option?.value || "" }))}
+                  placeholder="Select mother tongue" />
               </Field>
               <Field>
                 <label>Identification Mark</label>
