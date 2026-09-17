@@ -136,28 +136,7 @@ const Employees = () => {
     activeTab, currentPage, pageSize, sortBy,
     employeeSearch, employeeDept, employeeShift,
     staffSearch, staffRole, staffShift,
-    selectedDepartment, selectedRange,
   ]);
-
-  const applyQuickFilters = (query) => {
-    if (selectedDepartment !== "All") {
-      query.set("status", selectedDepartment);
-    }
-
-    const rangeDays = {
-      "Last 7 days": 7,
-      "Last 30 days": 30,
-      "Last 90 days": 90,
-    }[selectedRange];
-
-    if (rangeDays) {
-      const joinedTo = new Date();
-      const joinedFrom = new Date(joinedTo);
-      joinedFrom.setDate(joinedFrom.getDate() - rangeDays);
-      query.set("joinedFrom", joinedFrom.toISOString().slice(0, 10));
-      query.set("joinedTo", joinedTo.toISOString().slice(0, 10));
-    }
-  };
 
   // Fetch departments and shifts for filter dropdowns
   const fetchDepartmentsAndShifts = async () => {
@@ -222,8 +201,6 @@ const Employees = () => {
       if (employeeSearch.trim()) query.set("search", employeeSearch.trim());
       if (employeeDept !== "All Department") query.set("departmentId", employeeDept);
       if (employeeShift !== "All Shifts") query.set("shiftId", employeeShift);
-      applyQuickFilters(query);
-
       const response = await getUsers(Object.fromEntries(query));
       console.log("Employee API Response:", response);
       transformAndSetData(response, setEmployees, setTotalResults, setTotalPages);
@@ -249,8 +226,6 @@ const Employees = () => {
       if (staffSearch.trim()) query.set("search", staffSearch.trim());
       if (staffRole !== "All Roles") query.set("designation", staffRole);
       if (staffShift !== "All Shifts") query.set("shiftId", staffShift);
-      applyQuickFilters(query);
-
       const response = await getUsers(Object.fromEntries(query));
       console.log("Staff API Response:", response);
       transformAndSetData(response, setStaff, setTotalResults, setTotalPages);
@@ -512,7 +487,6 @@ const Employees = () => {
               value={selectedDepartment}
               onChange={(e) => {
                 setSelectedDepartment(e.target.value);
-                setCurrentPage(1);
               }}
             >
               <option>All</option>
@@ -526,7 +500,6 @@ const Employees = () => {
               value={selectedRange}
               onChange={(e) => {
                 setSelectedRange(e.target.value);
-                setCurrentPage(1);
               }}
             >
               <option>Last 7 days</option>

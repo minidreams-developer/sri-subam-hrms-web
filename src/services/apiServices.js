@@ -25,6 +25,8 @@ export const deleteRole = (id) => data(api.delete(`/v1/roles/${id}`));
 
 // Users, employees, staff, and agents
 export const getUsers = (params, config) => list("/v1/users", params, config);
+export const getUserDropdown = (params, config) =>
+  list("/v1/users/dropdown", params, config);
 
 export const getUser = (id, config) => data(api.get(`/v1/users/${id}`, config));
 

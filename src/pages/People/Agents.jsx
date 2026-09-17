@@ -63,7 +63,7 @@ const Agents = () => {
       fetchAgents(currentPage, pageSize, sortBy);
     }, agentSearch.trim() ? 350 : 0);
     return () => window.clearTimeout(timeoutId);
-  }, [currentPage, pageSize, sortBy, agentSearch, selectedFilter, selectedRange]);
+  }, [currentPage, pageSize, sortBy, agentSearch]);
 
   useEffect(() => {
     fetchAgentStats();
@@ -121,18 +121,6 @@ const Agents = () => {
         sortBy: sort,
       });
       if (agentSearch.trim()) query.set("search", agentSearch.trim());
-      if (selectedFilter !== "All") {
-        query.set("status", selectedFilter.toLowerCase().replace("-", ""));
-      }
-      const rangeDays = { "Last 7 days": 7, "Last 30 days": 30, "Last 90 days": 90 }[selectedRange];
-      if (rangeDays) {
-        const joinedTo = new Date();
-        const joinedFrom = new Date(joinedTo);
-        joinedFrom.setDate(joinedFrom.getDate() - rangeDays);
-        query.set("joinedFrom", joinedFrom.toISOString().slice(0, 10));
-        query.set("joinedTo", joinedTo.toISOString().slice(0, 10));
-      }
-
       const response = await getUsers(Object.fromEntries(query));
       console.log("=== Full Response ===", response);
       console.log("Response type:", typeof response);
@@ -284,7 +272,6 @@ const Agents = () => {
               value={selectedFilter}
               onChange={(e) => {
                 setSelectedFilter(e.target.value);
-                setCurrentPage(1);
               }}
             >
               <option>All</option>
@@ -299,7 +286,6 @@ const Agents = () => {
               value={selectedRange}
               onChange={(e) => {
                 setSelectedRange(e.target.value);
-                setCurrentPage(1);
               }}
             >
               <option>Last 7 days</option>

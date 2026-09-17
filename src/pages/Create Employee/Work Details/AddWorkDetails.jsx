@@ -5,7 +5,7 @@ import CalenderInput from "../../../components/CalenderInput";
 import InputComponent from "../../../components/InputComponent";
 import Select from "react-select";
 import { customSelectStyles } from "../../../theme/reactSelectStyles";
-import { getBranches, getDepartments, getShifts, getTeams, getUsers } from "../../../services/apiServices";
+import { getBranches, getDepartments, getShifts, getTeams, getUserDropdown, getUsers } from "../../../services/apiServices";
 import { toast } from "react-toastify";
 
 const AddWorkDetails = forwardRef(({ onNext, onBack, showContractAgent = false }, ref) => {
@@ -73,7 +73,7 @@ const AddWorkDetails = forwardRef(({ onNext, onBack, showContractAgent = false }
   const fetchContractAgents = async () => {
     setContractAgentsLoading(true);
     try {
-      const response = await getUsers({ role: "agent", page: 1, limit: 10, sortBy: "createdAt:desc" }, { skipGlobalLoading: true });
+      const response = await getUserDropdown({ role: "agent" }, { skipGlobalLoading: true });
       const agentData = Array.isArray(response)
         ? response
         : response?.results || response?.data?.results || response?.data || response?.users || [];
