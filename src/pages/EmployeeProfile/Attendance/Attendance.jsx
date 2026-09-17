@@ -17,6 +17,14 @@ export const Attendance = ({ employee }) => {
   const leaveDateText = Array.isArray(leaveDates)
     ? leaveDates.join(", ") || "N/A"
     : leaveDates || "N/A";
+  const shift = employee?.workInformation?.shiftId || employee?.workInformation?.shift || employee?.shift;
+  const formatTime = (value) => {
+    if (!value) return "N/A";
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? value : date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  };
+  const firstTiming = shift?.timings?.find((timing) => !timing.off) || shift?.timings?.[0];
+  const weekOff = Array.isArray(shift?.weekOff) ? shift.weekOff.join(", ") : "N/A";
 
   const handleTabChange = (val) => {
     setActiveTab(val);
@@ -60,21 +68,32 @@ export const Attendance = ({ employee }) => {
         items={[
           {
             label: "Shift",
-            value: "General",
+            value: shift?.shiftName || shift?.name || "N/A",
           },
-          { label: "Week Off", value: "Thursday" },
+          { label: "Shift Code", value: shift?.shiftCode || "N/A" },
+          { label: "Start Time", value: formatTime(firstTiming?.startTime) },
+          { label: "End Time", value: formatTime(firstTiming?.endTime) },
+          { label: "Total Shift Duration", value: shift?.totalShiftDuration || "N/A" },
+          { label: "Minimum Working Hours", value: shift?.minWorkingHours || "N/A" },
+          { label: "Week Off", value: weekOff },
           {
             label: "Fixed days",
-            value: "Mon, Tue, Wed, Fri, Sat, Sun",
+            value: shift?.sameTimingForAllDays ? "All working days" : "Different timing per day",
           },
           {
             label: "Working on holiday",
-            value: "Yes",
+            value: shift?.isShiftActive ? "Yes" : "No",
           },
           {
             label: "Comp-off",
-            value: "No",
+            value: shift?.compOff?.join(", ") || "N/A",
           },
+          { label: "Early Check-in Grace", value: shift?.gracePeriod?.earlyCheckIn != null ? `${shift.gracePeriod.earlyCheckIn} min` : "N/A" },
+          { label: "Late Check-in Grace", value: shift?.gracePeriod?.lateCheckIn != null ? `${shift.gracePeriod.lateCheckIn} min` : "N/A" },
+          { label: "Early Check-out Grace", value: shift?.gracePeriod?.earlyCheckOut != null ? `${shift.gracePeriod.earlyCheckOut} min` : "N/A" },
+          { label: "Late Check-out Grace", value: shift?.gracePeriod?.lateCheckOut != null ? `${shift.gracePeriod.lateCheckOut} min` : "N/A" },
+          { label: "Late Mark After", value: shift?.attendanceRules?.lateMarkAfter != null ? `${shift.attendanceRules.lateMarkAfter} min` : "N/A" },
+          { label: "Auto Half-day After Late", value: shift?.attendanceRules?.autoHalfDayAfterLate != null ? `${shift.attendanceRules.autoHalfDayAfterLate} min` : "N/A" },
         ]}
       />
       <CardDetails

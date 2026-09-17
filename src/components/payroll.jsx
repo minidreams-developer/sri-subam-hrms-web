@@ -20,6 +20,7 @@ const PayrollComponent = ({ employee, onEmployeeUpdated }) => {
   const currentSalary = employee?.currentMonthSalary || employee?.payrollDetails || {};
   const commission = employee?.commission || employee?.commissionDetails || workInformation.commission || {};
   const salaryHistory = employee?.salaryHistory || employee?.payrollHistory || {};
+  const isAgent = String(employee?.role || employee?.employeeType || employee?.type || "").toLowerCase() === "agent";
 
   const openBasicEditor = () => {
     setForm({
@@ -41,6 +42,19 @@ const PayrollComponent = ({ employee, onEmployeeUpdated }) => {
     setEditor("current");
   };
 
+  const openBasicSalaryEditor = () => {
+    setForm({
+      basicSalary: salaryDetails.basicSalary ?? "",
+      monthlyCTC: salaryDetails.monthlyCTC ?? "",
+      annualCTC: salaryDetails.annualCTC ?? "",
+      houseRentAllowance: salaryDetails.houseRentAllowance ?? "",
+      conveyanceAllowance: salaryDetails.conveyanceAllowance ?? "",
+      specialAllowance: salaryDetails.specialAllowance ?? "",
+      otherFixedAllowance: salaryDetails.otherFixedAllowance ?? "",
+    });
+    setEditor("salaryBasic");
+  };
+
   const change = (event) => setForm((values) => ({ ...values, [event.target.name]: event.target.value }));
   const save = async (event) => {
     event.preventDefault();
@@ -49,14 +63,16 @@ const PayrollComponent = ({ employee, onEmployeeUpdated }) => {
     const numericForm = Object.fromEntries(Object.entries(form).map(([key, value]) => [key, key === "effectiveFrom" ? value : (value === "" ? "" : Number(value))]));
     const payload = editor === "basic"
       ? { commission: { ...commission, ...numericForm } }
-      : { currentMonthSalary: { ...currentSalary, ...numericForm } };
+      : editor === "salaryBasic"
+        ? { salaryDetails: { ...salaryDetails, ...numericForm } }
+        : { currentMonthSalary: { ...currentSalary, ...numericForm } };
     setSaving(true);
     try {
       const response = await updateUser(employeeId, payload);
       const updated = response?.data || response?.user || response;
       onEmployeeUpdated?.({ ...employee, ...payload, ...(updated || {}) });
       setEditor(null);
-      toast.success(editor === "basic" ? "Commission details updated successfully" : "Salary updated successfully");
+      toast.success(editor === "basic" ? "Commission details updated successfully" : "Salary details updated successfully");
     } catch (error) {
       toast.error(error.response?.data?.message || "Failed to update payroll details");
     } finally {
@@ -77,30 +93,41 @@ const PayrollComponent = ({ employee, onEmployeeUpdated }) => {
       
       <PayrollDetailsHeader>
         <PayrollHeaderIcon src={PayrollIcon} alt="payroll" />
-        <PayrollDetailsTitle>Commission Details</PayrollDetailsTitle>
+        <PayrollDetailsTitle>{isAgent ? "Commission Details" : "Salary Details"}</PayrollDetailsTitle>
       </PayrollDetailsHeader>
-      <CardDetails
-        title="Basic Details"
-        columns={3}
-        showEdit={true}
-        editIcon={EditIcon}
-        editText="Edit details"
-        onEdit={openBasicEditor}
-        items={[
-          {
-            label: "Commission Per Person",
-            value: money(commission.commissionPerPerson ?? commission.commission),
-          },
-          {
-            label: "Allowance (Gas)",
-            value: money(commission.gasAllowance ?? commission.allowance),
-          },
-          {
-            label: "Salary Disbursement Type",
-            value: commission.salaryDisbursementType?.label || commission.salaryDisbursementType || "N/A",
-          },
-        ]}
-      />
+      {isAgent ? (
+        <CardDetails
+          title="Basic Details"
+          columns={3}
+          showEdit={true}
+          editIcon={EditIcon}
+          editText="Edit details"
+          onEdit={openBasicEditor}
+          items={[
+            { label: "Commission Per Person", value: money(commission.commissionPerPerson ?? commission.commission) },
+            { label: "Allowance (Gas)", value: money(commission.gasAllowance ?? commission.allowance) },
+            { label: "Salary Disbursement Type", value: commission.salaryDisbursementType?.label || commission.salaryDisbursementType || "N/A" },
+          ]}
+        />
+      ) : (
+        <CardDetails
+          title="Basic Details"
+          columns={3}
+          showEdit={true}
+          editIcon={EditIcon}
+          editText="Edit salary details"
+          onEdit={openBasicSalaryEditor}
+          items={[
+            { label: "Basic Salary", value: money(salaryDetails.basicSalary) },
+            { label: "Monthly CTC", value: money(salaryDetails.monthlyCTC) },
+            { label: "Annual CTC", value: money(salaryDetails.annualCTC) },
+            { label: "House Rent Allowance", value: money(salaryDetails.houseRentAllowance) },
+            { label: "Conveyance Allowance", value: money(salaryDetails.conveyanceAllowance) },
+            { label: "Special Allowance", value: money(salaryDetails.specialAllowance) },
+            { label: "Other Fixed Allowance", value: money(salaryDetails.otherFixedAllowance) },
+          ]}
+        />
+      )}
 
       <CardDetails
         title="Current Month"
@@ -111,12 +138,12 @@ const PayrollComponent = ({ employee, onEmployeeUpdated }) => {
         onEdit={openSalaryEditor}
         items={[
           {
-            label: "Total Commission",
-            value: money(currentSalary.totalCommission ?? currentSalary.totalSalary ?? commission.commission),
+            label: isAgent ? "Total Commission" : "Total Salary",
+            value: money(isAgent ? (currentSalary.totalCommission ?? currentSalary.totalSalary ?? commission.commission) : (currentSalary.totalSalary ?? salaryDetails.monthlyCTC)),
           },
           {
-            label: "Total Allowance (Gas)",
-            value: money(currentSalary.totalAllowanceGas ?? currentSalary.allowance ?? commission.gasAllowance ?? commission.allowance),
+            label: isAgent ? "Total Allowance (Gas)" : "Basic Salary",
+            value: money(isAgent ? (currentSalary.totalAllowanceGas ?? currentSalary.allowance ?? commission.gasAllowance ?? commission.allowance) : salaryDetails.basicSalary),
           },
           {
             label: "Addition Payment",
@@ -224,11 +251,18 @@ const PayrollComponent = ({ employee, onEmployeeUpdated }) => {
       {editor && (
         <ModalBackdrop onMouseDown={(event) => event.target === event.currentTarget && setEditor(null)}>
           <Modal role="dialog" aria-modal="true" aria-labelledby="payroll-editor-title">
-            <ModalTitle id="payroll-editor-title">{editor === "basic" ? "Edit Payroll Details" : "Edit Salary"}</ModalTitle>
+            <ModalTitle id="payroll-editor-title">{editor === "basic" ? "Edit Payroll Details" : editor === "salaryBasic" ? "Edit Salary Details" : "Edit Salary"}</ModalTitle>
             <EditForm onSubmit={save}>
               {(editor === "basic" ? [
                 ["commissionPerPerson", "Commission Per Person", "number"], ["gasAllowance", "Allowance (Gas)", "number"],
                 ["salaryDisbursementType", "Salary Disbursement Type", "text"],
+              ] : editor === "salaryBasic" ? [
+                ["basicSalary", "Basic Salary", "number"], ["monthlyCTC", "Monthly CTC", "number"],
+                ["annualCTC", "Annual CTC", "number"],
+                ["houseRentAllowance", "House Rent Allowance", "number"],
+                ["conveyanceAllowance", "Conveyance Allowance", "number"],
+                ["specialAllowance", "Special Allowance", "number"],
+                ["otherFixedAllowance", "Other Fixed Allowance", "number"],
               ] : [
                 ["totalSalary", "Total Salary", "number"], ["overtimePayment", "Overtime Payment", "number"],
                 ["additionPayment", "Addition Payment", "number"], ["deductions", "Deductions", "number"],

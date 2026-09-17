@@ -763,8 +763,9 @@ const Container = styled.div`
   display: flex;
   flex-direction: column;
   gap: 0;
-  max-width: 1140px;
-  margin: 0 auto;
+  width: 100%;
+  max-width: none;
+  margin: 0;
 `;
 
 const QuickStatsSection = styled.div`

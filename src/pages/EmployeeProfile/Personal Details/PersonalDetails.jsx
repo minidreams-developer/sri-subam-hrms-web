@@ -258,11 +258,11 @@ export const PersonalDetails = ({
     setEmployeeStatus(nextStatus);
     setStatusSaving(true);
     try {
-      const response = await updateUser(employeeId(), { isActive: nextStatus });
+      const response = await updateUser(employeeId(), { status: nextStatus });
       const updated = response?.data || response?.user || response;
       onEmployeeUpdated?.({
         ...employee,
-        isActive: nextStatus,
+        status: nextStatus,
         ...(updated || {}),
       });
       toast.success(`Employee status changed to ${nextStatus}`);
@@ -276,7 +276,7 @@ export const PersonalDetails = ({
   const info = [
     ["Full Name", details.fullName],
     [`${entityLabel} ID`, details.employeeId],
-    [isAgent ? "Employment Type" : "Employee Type", details.employeeType],
+    // [isAgent ? "Employment Type" : "Employee Type", details.employeeType],
     ["Gender", details.gender],
     ["DOB", details.dob],
     ["Age", details.age],
@@ -753,7 +753,7 @@ export const PersonalDetails = ({
                   onChange={change}
                 />
               </Field>
-              <Field>
+              {/* <Field>
                 <label>{isAgent ? "Employment Type" : "Employee Type"}</label>
                 <select
                   name="employeeType"
@@ -766,7 +766,7 @@ export const PersonalDetails = ({
                   <option value="part_time">Part Time</option>
                   <option value="contract">Contract</option>
                 </select>
-              </Field>
+              </Field> */}
               <Field>
                 <label>Gender</label>
                 <select
