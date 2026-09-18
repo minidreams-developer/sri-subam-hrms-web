@@ -5,7 +5,7 @@ import UploadIcon from "../assets/images/employee/upload-filled.svg";
 import { toast } from "react-toastify";
 import { uploadMedia } from "../helpers/uploadMedia";
 
-const UploadComponent = ({ label, onFileSelect, showKeepOriginal = true, isEditable = false, onLabelChange }) => {
+const UploadComponent = ({ label, onFileSelect, showKeepOriginal = true, isEditable = false, onLabelChange, inputId }) => {
   const [selectedFile, setSelectedFile] = useState(null);
   const [keepOriginal, setKeepOriginal] = useState(false);
   const [isEditingLabel, setIsEditingLabel] = useState(false);
@@ -86,13 +86,13 @@ const UploadComponent = ({ label, onFileSelect, showKeepOriginal = true, isEdita
       <UploadArea>
         <input
           type="file"
-          id={`upload-${label}`}
+          id={inputId || `upload-${label}`}
           onChange={handleFileChange}
           accept=".jpg,.jpeg,.png,.webp,.gif,.pdf,.doc,.docx"
           disabled={uploading}
           style={{ display: "none" }}
         />
-        <label htmlFor={`upload-${label}`} style={{ cursor: "pointer", width: "100%", height: "100%" }}>
+        <label htmlFor={inputId || `upload-${label}`} style={{ cursor: "pointer", width: "100%", height: "100%" }}>
           <UploadContent>
             <IconWrapper>
               <img src={UploadIcon} alt="upload" />
@@ -105,11 +105,11 @@ const UploadComponent = ({ label, onFileSelect, showKeepOriginal = true, isEdita
         <CheckboxWrapper>
           <Checkbox
             type="checkbox"
-            id={`keep-original-${label}`}
+            id={`keep-original-${inputId || label}`}
             checked={keepOriginal}
             onChange={handleCheckboxChange}
           />
-          <CheckboxLabel htmlFor={`keep-original-${label}`}>
+          <CheckboxLabel htmlFor={`keep-original-${inputId || label}`}>
             Keep Original
           </CheckboxLabel>
         </CheckboxWrapper>

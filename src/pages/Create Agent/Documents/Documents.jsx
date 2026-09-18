@@ -134,6 +134,7 @@ const Documents = forwardRef((_, ref) => {
                 )}
                 {doc.file ? (
                   <FileUploadComponent
+                    inputId={`government-${doc.id}`}
                     label={doc.label}
                     fileName={doc.file.name}
                     showEye={false}
@@ -151,6 +152,7 @@ const Documents = forwardRef((_, ref) => {
                   />
                 ) : (
                   <UploadComponent
+                    inputId={`government-${doc.id}`}
                     label={doc.label}
                     isEditable={index >= 2}
                     onLabelChange={(newLabel) => handleLabelChange(doc.id, newLabel)}
@@ -186,6 +188,7 @@ const Documents = forwardRef((_, ref) => {
                 )}
                 {doc.file ? (
                   <FileUploadComponent
+                    inputId={`personal-${doc.id}`}
                     label={doc.label}
                     fileName={doc.file.name}
                     showEye={false}
@@ -203,6 +206,7 @@ const Documents = forwardRef((_, ref) => {
                   />
                 ) : (
                   <UploadComponent
+                    inputId={`personal-${doc.id}`}
                     label={doc.label}
                     isEditable={index >= 2}
                     onLabelChange={(newLabel) => handlePersonalLabelChange(doc.id, newLabel)}

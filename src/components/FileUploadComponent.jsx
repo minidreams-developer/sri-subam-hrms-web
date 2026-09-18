@@ -16,32 +16,16 @@ const FileUploadComponent = ({
   showKeepOriginal = false,
   keepOriginal = false,
   onKeepOriginalChange,
+  inputId,
 }) => {
   const [localName, setLocalName] = useState(fileName);
   const [labelText, setLabelText] = useState(label);
 
   useEffect(() => {
     setLocalName(fileName);
-    const ext = String(fileName || "")
-      .split(".")
-      .pop()
-      .toLowerCase();
-    let type =
-      fileType ||
-      (ext
-        ? ext === "pdf"
-          ? "PDF"
-          : ["jpg", "jpeg", "png", "gif", "bmp", "webp"].includes(ext)
-            ? "Image"
-            : ["doc", "docx"].includes(ext)
-              ? "Word"
-              : ["xls", "xlsx"].includes(ext)
-                ? "Excel"
-                : ["txt"].includes(ext)
-                  ? "Text"
-                  : ext.toUpperCase()
-        : label);
-    setLabelText(type);
+    // Keep the document label selected by the user. The file extension should
+    // not replace labels such as "Aadhaar", "Passport", or "Image".
+    setLabelText(label);
   }, [fileName]);
 
   const handleView = () => {
@@ -101,11 +85,11 @@ const FileUploadComponent = ({
         <CheckboxWrapper>
           <Checkbox
             type="checkbox"
-            id={`keep-original-${fileName}`}
+            id={`keep-original-${inputId || fileName}`}
             checked={keepOriginal}
             onChange={handleCheckboxChange}
           />
-          <CheckboxLabel htmlFor={`keep-original-${fileName}`}>
+          <CheckboxLabel htmlFor={`keep-original-${inputId || fileName}`}>
             Keep Original
           </CheckboxLabel>
         </CheckboxWrapper>
