@@ -323,7 +323,10 @@ export const PersonalDetails = ({
     setUploading(true);
     try {
       const newDocuments = selectedDocuments.map((document) => ({
-        documentName: document.label || document.file.name,
+        documentName:
+          document.label && document.label !== "Select Document"
+            ? document.label
+            : document.file.name,
         documentType: document.documentType,
         fileName: document.file.name,
         fileUrl: document.file.url,
@@ -594,9 +597,9 @@ export const PersonalDetails = ({
             const name =
               typeof document === "string"
                 ? document.split("/").pop()
-                : document.fileName ||
+                : document.documentName ||
+                  document.fileName ||
                   document.name ||
-                  document.documentName ||
                   NOT_AVAILABLE;
             return (
               <Document key={documentKey(document, index)}>

@@ -59,7 +59,7 @@ const Dashboard = () => {
 
   const fetchEmployeesAndStaff = async () => {
     try {
-      // Fetch employees
+    
       const empResponse = await getUsers({ role: "employee", limit: 10 });
       let empList = [];
       if (empResponse && Array.isArray(empResponse)) {
@@ -70,7 +70,7 @@ const Dashboard = () => {
         empList = empResponse.data;
       }
 
-      // Transform employees
+     
       const transformedEmployees = empList.map((emp) => ({
         id: emp.id || emp._id,
         employeeId: emp.employeeId || "N/A",
@@ -86,7 +86,6 @@ const Dashboard = () => {
       }));
       setEmployeesData(transformedEmployees);
 
-      // Fetch staff
       const staffResponse = await getUsers({ role: "staff", page: 1, limit: 10, sortBy: "createdAt:desc" });
       let staffList = [];
       if (staffResponse && Array.isArray(staffResponse)) {
@@ -100,7 +99,7 @@ const Dashboard = () => {
         staffList = staffResponse.data;
       }
 
-      // Transform staff
+
       const transformedStaff = staffList.map((staff) => ({
         id: staff.id || staff._id,
         employeeId: staff.employeeId || "N/A",
@@ -123,7 +122,7 @@ const Dashboard = () => {
     }
   };
 
-  // Fetch departments and shifts for filter dropdowns
+
   const fetchDepartmentsAndShifts = async () => {
     // Fetch departments
     setLoadingDepts(true);
@@ -131,11 +130,11 @@ const Dashboard = () => {
       const deptResponse = await getDepartments();
       console.log("Departments response:", deptResponse);
 
-      // Handle different response structures
+
       const deptList =
         deptResponse?.results || deptResponse?.data || deptResponse || [];
 
-      // Transform to dropdown options
+   
       const deptOptions = deptList.map((dept) => ({
         value: dept.departmentName || dept.name || "N/A",
         label: dept.departmentName || dept.name || "N/A",
@@ -150,17 +149,16 @@ const Dashboard = () => {
       setLoadingDepts(false);
     }
 
-    // Fetch shifts
+
     setLoadingShifts(true);
     try {
       const shiftResponse = await getShifts();
       console.log("Shifts response:", shiftResponse);
 
-      // Handle different response structures
       const shiftList =
         shiftResponse?.results || shiftResponse?.data || shiftResponse || [];
 
-      // Transform to dropdown options
+ 
       const shiftOpts = shiftList.map((shift) => ({
         value: shift.shiftName || shift.name || "N/A",
         label: shift.shiftName || shift.name || "N/A",
@@ -176,18 +174,12 @@ const Dashboard = () => {
     }
   };
 
-  // Handle search with state reset
   const handleSearch = (value) => {
     setSearchValue(value);
   };
 
-  // Handle applying filters - only update display when Apply button is clicked
-  const handleApplyFiltersToDisplay = (dept, shift) => {
-    setDepartmentFilter(dept);
-    setShiftFilter(shift);
-  };
 
-  // Build quick stats from API data
+  
   const quickStats = dashboardData?.quickStats
     ? [
         {
@@ -195,32 +187,32 @@ const Dashboard = () => {
           value:
             dashboardData.quickStats.totalEmployees?.count?.toString() || "0",
           change: `${dashboardData.quickStats.totalEmployees?.percentageChange || 0}%`,
-          positive: dashboardData.quickStats.totalEmployees?.trend === "up",
+          // positive: dashboardData.quickStats.totalEmployees?.trend === "up",
         },
         {
           label: "Present Today",
           value:
             dashboardData.quickStats.presentToday?.count?.toString() || "0",
           change: `${dashboardData.quickStats.presentToday?.percentageChange || 0}%`,
-          positive: dashboardData.quickStats.presentToday?.trend === "up",
+          // positive: dashboardData.quickStats.presentToday?.trend === "up",
         },
         {
           label: "On Leave",
           value: dashboardData.quickStats.onLeave?.count?.toString() || "0",
           change: `${dashboardData.quickStats.onLeave?.percentageChange || 0}%`,
-          positive: dashboardData.quickStats.onLeave?.trend === "up",
+          // positive: dashboardData.quickStats.onLeave?.trend === "up",
         },
         {
           label: "OT Employees",
           value: dashboardData.quickStats.otEmployees?.count?.toString() || "0",
           change: `${dashboardData.quickStats.otEmployees?.percentageChange || 0}%`,
-          positive: dashboardData.quickStats.otEmployees?.trend === "up",
+          // positive: dashboardData.quickStats.otEmployees?.trend === "up",
         },
         {
           label: "Payroll",
           value: `₹${(dashboardData.quickStats.payroll?.amount || 0).toLocaleString("en-IN")}`,
           change: `${dashboardData.quickStats.payroll?.percentageChange || 0}%`,
-          positive: dashboardData.quickStats.payroll?.trend === "up",
+          // positive: dashboardData.quickStats.payroll?.trend === "up",
         },
       ]
     : [
