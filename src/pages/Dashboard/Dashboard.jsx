@@ -11,7 +11,6 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { FiTrendingUp, FiTrendingDown } from "react-icons/fi";
 import SearchInputComponent from "../../components/SearchInputComponent";
 import FilterIcon from "../../assets/images/DashboardImages/filtericon.svg";
 import Filter from "../../components/filter";
@@ -509,12 +508,6 @@ const Dashboard = () => {
             <StatCard key={idx}>
               <StatHeader>
                 <StatLabel>{stat.label}</StatLabel>
-                <StatChangeIndicator $positive={stat.positive}>
-                  <ChangeIcon $positive={stat.positive}>
-                    {stat.positive ? <FiTrendingUp /> : <FiTrendingDown />}
-                  </ChangeIcon>
-                  {stat.change}
-                </StatChangeIndicator>
               </StatHeader>
               <StatValue>{stat.value}</StatValue>
             </StatCard>
@@ -862,26 +855,6 @@ const StatValue = styled.h3`
   margin: 0;
   word-break: break-word;
   overflow-wrap: break-word;
-`;
-
-const StatChangeIndicator = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 3px 8px;
-  background: ${(props) => (props.$positive ? "#d1fae5" : "#fee2e2")};
-  color: ${(props) => (props.$positive ? "#10B981" : "#dc2626")};
-  border-radius: 20px;
-  font-size: 0.75rem;
-  font-weight: 500;
-  font-family: "Inter", sans-serif;
-  border: 1px solid ${(props) => (props.$positive ? "#10B981" : "#dc2626")};
-  flex-shrink: 0;
-  white-space: nowrap;
-`;
-
-const ChangeIcon = styled.span`
-  font-size: 0.8rem;
 `;
 
 const ChartsSection = styled.div`
