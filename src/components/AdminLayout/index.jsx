@@ -12,7 +12,7 @@ import sampleProfile from "../../assets/images/employee/sampleProfile.jpg";
 
 // Helper function to check if user has permission for a module
 const hasModulePermission = (permissions, moduleKey) => {
-  if (!permissions || permissions.length === 0) return true;
+  if (!Array.isArray(permissions)) return false;
 
   for (const group of permissions) {
     const module = group.modules?.find((m) => m.module === moduleKey);
@@ -210,7 +210,7 @@ const AdminLayout = () => {
       setUser(authUser.user);
 
       // Admin users see all sidebar items without filtering
-      if (authUser.user.role === 'admin') {
+      if (String(authUser.user.role || '').toLowerCase() === 'admin') {
         console.log('✅ Admin user detected - showing all sidebar items');
         setVisibleSidebarItems(SidebarItems);
         return;
@@ -227,9 +227,11 @@ const AdminLayout = () => {
           setVisibleSidebarItems(filteredItems);
           console.log('Sidebar filtered with user permissions');
         } else {
-          console.log('No permissions in localStorage, showing all sidebar items');
+          setVisibleSidebarItems([]);
+          console.warn('No permissions in localStorage; protected navigation is hidden');
         }
       } catch (error) {
+        setVisibleSidebarItems([]);
         console.error('Error parsing permissions from localStorage:', error);
       }
     }
