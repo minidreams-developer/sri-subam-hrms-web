@@ -2,8 +2,6 @@ import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import ReusableTable from "../../components/ReusableTable";
-import GreenArrow from "../../assets/images/dashboardImages/green.svg";
-import RedArrow from "../../assets/images/dashboardImages/red.svg";
 import theme from "../../theme/theme";
 import Button from "../../components/Button";
 import TableToolbar from "../../components/TableToolbar";
@@ -21,16 +19,14 @@ import {
 } from "../../utils/data";
 
 const offboardingStats = [
-  { title: "In Progress", value: "24", percent: "20.5 %", type: "up" },
-  { title: "Pending Clearance", value: "8", percent: "12 %", type: "down" },
-  { title: "FnF Pending", value: "5", percent: "20.5 %", type: "up" },
-  { title: "Completed", value: "40", percent: "20.5 %", type: "up" },
+  { title: "In Progress", value: "24" },
+  { title: "Pending Clearance", value: "8" },
+  { title: "FnF Pending", value: "5" },
+  { title: "Completed", value: "40" },
   {
     title: "Avg Exit Time",
     value: "18",
     suffix: "Days",
-    percent: "20.5 %",
-    type: "up",
   },
 ];
 
@@ -370,13 +366,6 @@ const OffBoarding = () => {
                 {item.suffix && <CardSuffix>{item.suffix}</CardSuffix>}
               </CardValue>
 
-              <Badge type={item.type}>
-                {item.percent}
-                <img
-                  src={item.type === "up" ? GreenArrow : RedArrow}
-                  alt="trend"
-                />
-              </Badge>
             </CardFooter>
           </StatCard>
         ))}
@@ -522,24 +511,6 @@ const CardSuffix = styled.span`
   margin-left: 0.4rem;
   font-size: 0.75rem;
   font-weight: 500;
-`;
-
-const Badge = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-  font-size: 0.75rem;
-  font-weight: 500;
-  padding: 0.2rem 0.45rem;
-  border-radius: 999px;
-
-  color: ${({ type }) => (type === "up" ? "#16a34a" : "#dc2626")};
-  background: ${({ type }) => (type === "up" ? "#dcfce7" : "#fee2e2")};
-
-  img {
-    width: 12px;
-    height: 12px;
-  }
 `;
 
 const Top = styled.div`
