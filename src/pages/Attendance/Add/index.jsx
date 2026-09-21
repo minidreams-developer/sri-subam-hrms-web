@@ -41,6 +41,7 @@ const AddAttendance = () => {
   const [loading, setLoading] = useState(false);
   const [fetchingEmployees, setFetchingEmployees] = useState(true);
   const [fetchingDepartments, setFetchingDepartments] = useState(true);
+  
   const [fetchingShifts, setFetchingShifts] = useState(true);
 
   // Fetch employees on component mount
@@ -213,6 +214,7 @@ const AddAttendance = () => {
   };
 
   return (
+    <>
     <Container>
       <Title>Employee Details</Title>
       <Row>
@@ -386,7 +388,10 @@ const AddAttendance = () => {
           />
         </Col>
       </Row>
-      <ButtonRow>
+    </Container>
+
+
+     <ButtonRow>
         <Button
           text="Submit"
           bg={theme.colors.primary}
@@ -407,7 +412,7 @@ const AddAttendance = () => {
           disabled={loading}
         />
       </ButtonRow>
-    </Container>
+    </>
   );
 };
 
@@ -459,6 +464,26 @@ const RemarksLabel = styled.p`
   margin: 1rem 0 0.625rem 0;
 `;
 
+
+
+const ButtonRow = styled.div`
+  display: flex;
+  gap: 1rem;
+  margin-top: 2rem;
+  width: 100%;
+
+  @media (max-width: 768px) {
+    width: 100%;
+    max-width: 100%;
+    flex-direction: row;
+    
+    button {
+      width: 100% !important;
+    }
+  }
+`;
+
+
 const TextArea = styled.textarea`
   width: 100%;
   height: 150px;
@@ -467,36 +492,17 @@ const TextArea = styled.textarea`
   border: 1px solid ${theme.colors.border};
   background-color: ${theme.colors.searchBackground};
   font-size: 0.875rem;
-  font-family: "Inter", sans-serif";
+  font-family: "Inter", sans-serif;
   color: ${theme.colors.textColor};
   outline: none;
   resize: none;
 
   &:focus {
-    border: 1px solid ${theme.colors.primary};
+    border-color: ${theme.colors.primary};
   }
-  ::placeholder {
+
+  &::placeholder {
     color: ${theme.colors.textGray || "#9ca3af"};
-    font-family: "Inter", sans-serif";
-  }
-`;
-
-const ButtonRow = styled.div`
-  display: flex;
-  gap: 1rem;
-  margin-top: 2rem;
-  width: 100%;
-  max-width: 80%;
-  flex-wrap: wrap;
-  align-items: center;
-
-  @media (max-width: 768px) {
-    width: 100%;
-    max-width: 100%;
-    flex-direction: column;
-    
-    button {
-      width: 100% !important;
-    }
+    font-family: "Inter", sans-serif;
   }
 `;
