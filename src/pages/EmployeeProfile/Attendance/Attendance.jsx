@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import theme from "../../../theme/theme";
@@ -9,10 +9,44 @@ import PlusIcon from "../../../assets/images/DashboardImages/plus-large_svgrepo.
 import TabSwitcher from "../../../components/TabSwitcher";
 import ListView from "../../../components/ListView";
 import CalendarView from "../../../components/CalendarView";
+import { getEmployeeAttendanceCalendar, getEmployeeAttendanceSummary } from "../../../services/apiServices";
+import { toast } from "react-toastify";
 
 export const Attendance = ({ employee }) => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("List View");
+  const [summary, setSummary] = useState(null);
+  const [calendar, setCalendar] = useState([]);
+  const [attendanceLoading, setAttendanceLoading] = useState(false);
+  const monthRange = useMemo(() => {
+    const now = new Date();
+    const pad = (value) => String(value).padStart(2, "0");
+    return {
+      fromDate: `${now.getFullYear()}-${pad(now.getMonth() + 1)}-01`,
+      toDate: `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate())}`,
+    };
+  }, []);
+
+  useEffect(() => {
+    const employeeId = employee?._id || employee?.id || employee?.userId;
+    if (!employeeId) return;
+    let cancelled = false;
+    setAttendanceLoading(true);
+    Promise.all([
+      getEmployeeAttendanceSummary(employeeId, monthRange),
+      getEmployeeAttendanceCalendar(employeeId, monthRange),
+    ])
+      .then(([summaryResponse, calendarResponse]) => {
+        if (cancelled) return;
+        setSummary(summaryResponse?.data || summaryResponse?.summary || summaryResponse);
+        setCalendar(calendarResponse?.data || calendarResponse?.calendar || calendarResponse || []);
+      })
+      .catch((error) => {
+        if (!cancelled) toast.error(error.response?.data?.message || "Failed to load attendance");
+      })
+      .finally(() => !cancelled && setAttendanceLoading(false));
+    return () => { cancelled = true; };
+  }, [employee, monthRange]);
   const leaveDates = employee?.leaveDates || employee?.leaves?.map((leave) => leave.date || leave.leaveDate).filter(Boolean) || [];
   const leaveDateText = Array.isArray(leaveDates)
     ? leaveDates.join(", ") || "N/A"
@@ -110,35 +144,35 @@ export const Attendance = ({ employee }) => {
         items={[
           {
             label: "Total Working Day",
-            value: "31",
+            value: attendanceLoading ? "..." : summary?.totalWorkingDays ?? "N/A",
           },
           {
             label: "Full Days",
-            value: "31",
+            value: attendanceLoading ? "..." : summary?.fullDays ?? "N/A",
           },
           {
             label: "Half Days",
-            value: "2",
+            value: attendanceLoading ? "..." : summary?.halfDays ?? "N/A",
           },
           {
             label: "Absent",
-            value: "1",
+            value: attendanceLoading ? "..." : summary?.absent ?? "N/A",
           },
           {
             label: "Over Time",
-            value: "4",
+            value: attendanceLoading ? "..." : summary?.overtimeHours ?? summary?.overtime ?? "N/A",
           },
           {
             label: "Day Off",
-            value: "2",
+            value: attendanceLoading ? "..." : summary?.dayOff ?? "N/A",
           },
           {
             label: "Holidays",
-            value: "0",
+            value: attendanceLoading ? "..." : summary?.holidays ?? "N/A",
           },
           {
             label: "Leave Dates",
-            value: leaveDateText,
+            value: summary?.leaves ?? leaveDateText,
           },
         ]}
       />
@@ -153,7 +187,7 @@ export const Attendance = ({ employee }) => {
       {activeTab === "List View" ? (
         <ListView />
       ) : (
-        <CalendarView />
+        <CalendarView calendarData={calendar} />
       )}
     </Wrapper>
   );

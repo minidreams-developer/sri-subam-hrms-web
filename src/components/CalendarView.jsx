@@ -7,13 +7,52 @@ import RedTik from "../assets/images/Team/redTik.svg";
 import InfoTik from "../assets/images/Team/infoTik.svg";
 import CalendarIcon from "../assets/images/Leavemanage/calendar.svg";
 
-const CalendarView = ({ currentYear = new Date().getFullYear(), showAttendance = true, holidays = [] }) => {
+const CalendarView = ({ currentYear = new Date().getFullYear(), showAttendance = true, holidays = [], calendarData: apiCalendarData = [] }) => {
   const [calendarData, setCalendarData] = useState({});
 
   // Build calendar data with holidays
   useEffect(() => {
-    // Sample attendance data (only used if showAttendance is true)
-    const baseData = showAttendance ? {
+    const baseData = {};
+    const records = Array.isArray(apiCalendarData)
+      ? apiCalendarData
+      : apiCalendarData?.records || apiCalendarData?.data || [];
+
+    const typeMap = {
+      fullDay: "present",
+      halfDay: "half-day",
+      absent: "absent",
+      leave: "leave",
+      holiday: "holiday",
+      dayOff: "day-off",
+      duplicate: "duplicate",
+    };
+
+    if (showAttendance) records.forEach((record) => {
+      const rawDate = record.date || record.attendanceDay;
+      if (!rawDate) return;
+      const date = new Date(rawDate);
+      if (Number.isNaN(date.getTime())) return;
+      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+      if (!baseData[monthKey]) baseData[monthKey] = {};
+      const category = record.category || record.attendanceCategory || "fullDay";
+      const type = typeMap[category] || category;
+      const hours = record.totalWorkedHours ?? record.hours;
+      baseData[monthKey][date.getDate()] = {
+        type,
+        label: category === "duplicate"
+          ? `Duplicate (${record.duplicateAttendanceCount || 2})`
+          : category === "leave" ? "Leave"
+            : category === "holiday" ? (record.label || record.name || "Holiday")
+              : category === "dayOff" ? "Day Off"
+                : hours != null ? `${hours} Hrs` : category,
+        hours,
+        description: record.description || record.remarks,
+        timingStatus: record.timingStatus,
+      };
+    });
+
+    // Add holidays supplied by other existing screens.
+    /* const baseData = showAttendance ? {
       "2026-01": {
         1: { type: "holiday", label: "New Year", hours: null, description: "New Year Holiday for staffs Only" },
         2: { type: "present", label: "8.23 Hrs", hours: "8.23" },
@@ -35,7 +74,7 @@ const CalendarView = ({ currentYear = new Date().getFullYear(), showAttendance =
         4: { type: "half-day", label: "4.28 Hrs", hours: "4.28" },
         5: { type: "present", label: "8.23 Hrs", hours: "8.23" },
       },
-    } : {};
+    } : {}; */
 
     // Merge passed holidays with base data
     const mergedData = { ...baseData };
@@ -315,6 +354,12 @@ const StatusBadge = styled.div`
           color: #3730a3;
           border: 1px solid #6366f1;
         `;
+      case "leave":
+        return `background: #fce7f3; color: #9d174d; border: 1px solid #ec4899;`;
+      case "day-off":
+        return `background: #f3f4f6; color: #4b5563; border: 1px solid #9ca3af;`;
+      case "duplicate":
+        return `background: #fef3c7; color: #92400e; border: 1px solid #f59e0b;`;
       default:
         return `
           background: #f3f4f6;

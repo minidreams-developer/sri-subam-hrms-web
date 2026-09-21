@@ -136,6 +136,18 @@ export const deleteShift = (id) => data(api.delete(`/v1/shifts/${id}`));
 // Attendance, leave, overtime, holidays, and rosters
 export const getAttendance = (params) => list("/v1/attendance", params);
 
+export const getEmployeeAttendanceSummary = (employeeId, params, config) =>
+  list(`/v1/attendance/employee/${encodeURIComponent(employeeId)}/summary`, params, config);
+
+export const getEmployeeAttendance = (employeeId, params, config) =>
+  list(`/v1/attendance/employee/${encodeURIComponent(employeeId)}`, params, config);
+
+export const getEmployeeAttendanceCalendar = (employeeId, params, config) =>
+  list(`/v1/attendance/employee/${encodeURIComponent(employeeId)}/calendar`, params, config);
+
+export const updateAttendance = (attendanceId, payload, config) =>
+  data(api.patch(`/v1/attendance/${encodeURIComponent(attendanceId)}`, payload, config));
+
 export const createAttendance = (payload) =>
   data(api.post("/v1/attendance", payload));
 
