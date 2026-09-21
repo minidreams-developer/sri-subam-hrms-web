@@ -3,8 +3,6 @@ import { useLocation, useOutletContext } from "react-router-dom";
 import styled from "styled-components";
 import theme from "../../theme/theme";
 import Button from "../../components/Button";
-import GreenArrow from "../../assets/images/DashboardImages/green.svg";
-import RedArrow from "../../assets/images/DashboardImages/red.svg";
 import TabSwitcher from "../../components/TabSwitcher";
 import EmployeeLeaves from "./Employee Leaves/EmployeeLeaves";
 import StaffLeaves from "./Staff Leaves/StaffLeaves";
@@ -16,10 +14,10 @@ const LeaveAttendance = () => {
   const [activeTab, setActiveTab] = React.useState(location.state?.activeTab || "Staffs Leaves");
 
   const stats = [
-    { title: "Leaves Today", value: "286", percent: "20.5 %", type: "up" },
-    { title: "Pending Request", value: "286", percent: "20.5 %", type: "up" },
-    { title: "Approved Request", value: "36", percent: "12 %", type: "down" },
-    { title: "Rejected Request", value: "200", percent: "20.5 %", type: "up" },
+    { title: "Leaves Today", value: "286" },
+    { title: "Pending Request", value: "286" },
+    { title: "Approved Request", value: "36" },
+    { title: "Rejected Request", value: "200" },
   ];
 
   React.useEffect(() => {
@@ -57,13 +55,6 @@ const LeaveAttendance = () => {
             <CardTitle>{item.title}</CardTitle>
             <CardFooter>
               <CardValue>{item.value}</CardValue>
-              <Badge type={item.type}>
-                {item.percent}
-                <img
-                  src={item.type === "up" ? GreenArrow : RedArrow}
-                  alt="trend"
-                />
-              </Badge>
             </CardFooter>
           </StatCard>
         ))}
@@ -188,19 +179,3 @@ const CardValue = styled.h2`
   margin: 0;
 `;
 
-const Badge = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-  font-size: 0.75rem;
-  font-weight: 500;
-  padding: 0.125rem 0.375rem;
-  border-radius: 999px;
-  color: ${({ type }) => (type === "up" ? "#16a34a" : "#dc2626")};
-  background: ${({ type }) => (type === "up" ? "#dcfce7" : "#fee2e2")};
-
-  img {
-    width: 12px;
-    height: 12px;
-  }
-`;
