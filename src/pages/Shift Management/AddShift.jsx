@@ -110,6 +110,7 @@ const AddShift = () => {
 
         setTotalShiftDuration(response.totalShiftDuration || "");
         setMinimumWorkingHours(response.minWorkingHours || "");
+        setHalfDayWorkingHours(response.halfDayWorkingHours || "");
 
         // Grace Periods
         if (response.gracePeriod) {
@@ -204,6 +205,7 @@ const AddShift = () => {
   const [endTime, setEndTime] = useState("");
   const [totalShiftDuration, setTotalShiftDuration] = useState("");
   const [minimumWorkingHours, setMinimumWorkingHours] = useState("");
+  const [halfDayWorkingHours, setHalfDayWorkingHours] = useState("");
 
   // Grace Periods
   const [gracePeriodEarlyCheckin, setGracePeriodEarlyCheckin] = useState("");
@@ -224,6 +226,22 @@ const AddShift = () => {
   const [fixedDays, setFixedDays] = useState(null);
   const [workingOnHoliday, setWorkingOnHoliday] = useState(null);
   const [compOff, setCompOff] = useState(null);
+
+  const normalizeWorkingHours = (value) => {
+    const input = String(value ?? "").trim().toLowerCase();
+    if (!input) return "";
+    const clockMatch = input.match(/^(\d{1,2})(?::(\d{1,2}))?$/);
+    if (clockMatch) {
+      const hours = Number(clockMatch[1]);
+      const minutes = Number(clockMatch[2] || 0);
+      if (minutes <= 59 && hours <= 24 && (hours < 24 || minutes === 0)) {
+        return `${Number((hours + minutes / 60).toFixed(2))}h`;
+      }
+    }
+    const hoursMatch = input.match(/^(\d+(?:\.\d+)?)\s*h?$/);
+    if (hoursMatch && Number(hoursMatch[1]) <= 24) return `${Number(hoursMatch[1])}h`;
+    return null;
+  };
 
   // Keep the duration in sync with the selected shift times. Only the time
   // portion is used because the time picker assigns today's date to both values.
@@ -310,13 +328,22 @@ const AddShift = () => {
       }
 
       // Build the payload matching API structure
+      const normalizedMinimumWorkingHours = normalizeWorkingHours(minimumWorkingHours);
+      const normalizedHalfDayWorkingHours = normalizeWorkingHours(halfDayWorkingHours || "0");
+      if (!normalizedMinimumWorkingHours || !normalizedHalfDayWorkingHours) {
+        toast.error("Working hours must be between 0 and 24 hours (for example, 7.5h or 3:30)");
+        setIsLoading(false);
+        return;
+      }
+
       const payload = {
         shiftCode,
         shiftName,
         shiftType: shiftType?.value || "fixed",
         sameTimingForAllDays: sameTiming?.value === "yes",
         totalShiftDuration: totalShiftDuration || "0",
-        minWorkingHours: minimumWorkingHours || "0",
+        minWorkingHours: normalizedMinimumWorkingHours,
+        halfDayWorkingHours: normalizedHalfDayWorkingHours,
         timings: timingsArray,
         breakManagement: {
           enabled: breakManagementEnabled,
@@ -730,6 +757,16 @@ const AddShift = () => {
                   height="45px"
                   value={minimumWorkingHours}
                   onChange={(e) => setMinimumWorkingHours(e.target.value)}
+                />
+              </Col>
+              <Col>
+                <InputComponent
+                  label="Half-day working hours"
+                  placeholder="e.g. 3.5h or 3:30 (max 24h)"
+                  labelMargin="0 0 0.625rem 0"
+                  height="45px"
+                  value={halfDayWorkingHours}
+                  onChange={(e) => setHalfDayWorkingHours(e.target.value)}
                 />
               </Col>
             </Row>
