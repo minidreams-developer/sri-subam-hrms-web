@@ -9,7 +9,7 @@ import PlusIcon from "../../../assets/images/DashboardImages/plus-large_svgrepo.
 import TabSwitcher from "../../../components/TabSwitcher";
 import ListView from "../../../components/ListView";
 import CalendarView from "../../../components/CalendarView";
-import { getEmployeeAttendanceCalendar, getEmployeeAttendanceSummary } from "../../../services/apiServices";
+import { getEmployeeAttendance, getEmployeeAttendanceCalendar, getEmployeeAttendanceSummary } from "../../../services/apiServices";
 import { toast } from "react-toastify";
 
 export const Attendance = ({ employee }) => {
@@ -17,6 +17,7 @@ export const Attendance = ({ employee }) => {
   const [activeTab, setActiveTab] = useState("List View");
   const [summary, setSummary] = useState(null);
   const [calendar, setCalendar] = useState([]);
+  const [attendanceRecords, setAttendanceRecords] = useState([]);
   const [attendanceLoading, setAttendanceLoading] = useState(false);
   const monthRange = useMemo(() => {
     const now = new Date();
@@ -34,11 +35,13 @@ export const Attendance = ({ employee }) => {
     setAttendanceLoading(true);
     Promise.all([
       getEmployeeAttendanceSummary(employeeId, monthRange),
+      getEmployeeAttendance(employeeId, { fromDate: `${new Date().getFullYear()}-01-01`, toDate: `${new Date().getFullYear()}-12-31`, sortBy: "date:desc" }),
       getEmployeeAttendanceCalendar(employeeId, monthRange),
     ])
-      .then(([summaryResponse, calendarResponse]) => {
+      .then(([summaryResponse, recordsResponse, calendarResponse]) => {
         if (cancelled) return;
         setSummary(summaryResponse?.data || summaryResponse?.summary || summaryResponse);
+        setAttendanceRecords(recordsResponse?.data || recordsResponse?.records || recordsResponse || []);
         setCalendar(calendarResponse?.data || calendarResponse?.calendar || calendarResponse || []);
       })
       .catch((error) => {
@@ -185,7 +188,7 @@ export const Attendance = ({ employee }) => {
         onChange={handleTabChange}
       />
       {activeTab === "List View" ? (
-        <ListView />
+        <ListView attendanceRecords={attendanceRecords} />
       ) : (
         <CalendarView calendarData={calendar} />
       )}

@@ -4,11 +4,22 @@ import theme from "../theme/theme";
 import { IoChevronDown, IoChevronUp } from "react-icons/io5";
 import { MdEdit } from "react-icons/md";
 
-const ListView = () => {
-  const [expandedYears, setExpandedYears] = useState(["2025"]);
+const ListView = ({ attendanceRecords = [] }) => {
+  const currentYear = String(new Date().getFullYear());
+  const records = Array.isArray(attendanceRecords)
+    ? attendanceRecords
+    : attendanceRecords?.records || attendanceRecords?.attendance || attendanceRecords?.data || [];
+  const monthNames = Array.from({ length: 12 }, (_, index) =>
+    new Date(Number(currentYear), index, 1).toLocaleString("en-US", { month: "long", year: "numeric" }),
+  );
+  const emptyYear = Object.fromEntries(monthNames.map((month) => [month, {
+    totalWorkingDay: 0, fullDays: 0, halfDays: 0, absent: 0,
+    overTime: 0, dayOff: 0, holidays: 0,
+  }]));
+  const [expandedYears, setExpandedYears] = useState([currentYear]);
   const [expandedMonths, setExpandedMonths] = useState(["April 2025"]);
 
-  const attendanceData = {
+  const sampleAttendanceData = {
     2025: {
       "April 2025": {
         totalWorkingDay: 31,
@@ -51,6 +62,29 @@ const ListView = () => {
     },
   };
 
+  const attendanceData = records.length
+    ? records.reduce((years, record) => {
+        const value = record.date || record.attendanceDay;
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return years;
+        const year = String(date.getFullYear());
+        const month = date.toLocaleString("en-US", { month: "long", year: "numeric" });
+        const category = record.attendanceCategory;
+        const monthData = years[year]?.[month] || {
+          totalWorkingDay: 0, fullDays: 0, halfDays: 0, absent: 0,
+          overTime: 0, dayOff: 0, holidays: 0,
+        };
+        monthData.totalWorkingDay += category !== "dayOff" && category !== "holiday" ? 1 : 0;
+        if (category === "fullDay") monthData.fullDays += 1;
+        if (category === "halfDay") monthData.halfDays += 1;
+        if (category === "absent") monthData.absent += 1;
+        monthData.overTime += Number(record.overtimeHours || record.overtime || 0);
+        if (category === "dayOff") monthData.dayOff += 1;
+        if (category === "holiday") monthData.holidays += 1;
+        return { ...years, [year]: { ...(years[year] || {}), [month]: monthData } };
+      }, { [currentYear]: emptyYear })
+    : { [currentYear]: emptyYear };
+
   const toggleYear = (year) => {
     setExpandedYears((prev) =>
       prev.includes(year) ? prev.filter((y) => y !== year) : [...prev, year]
@@ -78,7 +112,9 @@ const ListView = () => {
 
           {expandedYears.includes(year) && (
             <MonthsContainer>
-              {Object.keys(attendanceData[year]).map((month) => (
+              {Object.keys(attendanceData[year]).length === 0 ? (
+                <EmptyState>No attendance records for {year}</EmptyState>
+              ) : Object.keys(attendanceData[year]).map((month) => (
                 <MonthSection key={month}>
                   <MonthHeader onClick={() => toggleMonth(month)}>
                     <MonthTitle>{month}</MonthTitle>
@@ -285,6 +321,12 @@ const StatValue = styled.span`
   font-family: "Inter-SemiBold", sans-serif;
   color: ${theme.colors.textColor};
   line-height: 160%;
+`;
+
+const EmptyState = styled.div`
+  padding: 1rem 0;
+  color: ${theme.colors.secondaryTextColor || "#6b7280"};
+  font-size: 0.875rem;
 `;
 
 export default ListView;
