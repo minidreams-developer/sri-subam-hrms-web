@@ -4,6 +4,20 @@ import * as faceapi from "@vladmandic/face-api";
 import DetailsSidebar from "./DetailsSidebar";
 
 const MODEL_URL = "https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model";
+const EMBEDDING_SAMPLE_COUNT = 5;
+const EMBEDDING_SAMPLE_DELAY_MS = 250;
+const CAMERA_STABILIZATION_MS = 1000;
+
+const wait = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
+
+const averageAndNormalizeDescriptors = (descriptors) => {
+  const length = descriptors[0].length;
+  const averaged = Array.from({ length }, (_, index) => (
+    descriptors.reduce((sum, descriptor) => sum + descriptor[index], 0) / descriptors.length
+  ));
+  const magnitude = Math.sqrt(averaged.reduce((sum, value) => sum + value * value, 0));
+  return averaged.map((value) => value / (magnitude || 1));
+};
 
 const FaceCaptureSidebar = ({ open, onClose }) => {
   const webcamRef = useRef(null);
@@ -34,12 +48,32 @@ const FaceCaptureSidebar = ({ open, onClose }) => {
         ]);
         modelsLoadedRef.current = true;
       }
-      const result = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptor();
-      if (!result) {
-        setStatus("Looking for face...");
-        return;
+      setStatus("Hold still - focusing on your face...");
+      await wait(CAMERA_STABILIZATION_MS);
+
+      const detectorOptions = new faceapi.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: 0.6 });
+      const descriptors = [];
+      for (let sample = 0; sample < EMBEDDING_SAMPLE_COUNT; sample += 1) {
+        const faces = await faceapi
+          .detectAllFaces(video, detectorOptions)
+          .withFaceLandmarks()
+          .withFaceDescriptors();
+
+        if (faces.length === 0) {
+          setStatus("Face lost - keep exactly one face in view");
+          return;
+        }
+        if (faces.length > 1) {
+          setEmbeddingSent(false);
+          setMatchedPerson(null);
+          setStatus("Only one person should be in the camera");
+          return;
+        }
+        descriptors.push(faces[0].descriptor);
+        if (sample < EMBEDDING_SAMPLE_COUNT - 1) await wait(EMBEDDING_SAMPLE_DELAY_MS);
       }
-      const embedding = Array.from(result.descriptor);
+
+      const embedding = averageAndNormalizeDescriptors(descriptors);
       setStatus("Face detected - sending embedding...");
       const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
       const response = await fetch(`${apiBaseUrl}/v1/face/embedding`, {
