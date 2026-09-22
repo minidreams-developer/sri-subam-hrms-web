@@ -73,11 +73,11 @@ const Timesheet = () => {
     const partial = workingEntries.filter((entry) => entry.startsWith("4.")).length;
     const present = workingEntries.length - absent - leave;
     return [
-      ["Present This Week", present, "+4.2 %", "up"],
-      ["Absent", absent, "-1.1 %", "down"],
-      ["On Time", present - partial, "+3.5 %", "up"],
-      ["Late entry", partial, "+0.8 %", "up"],
-      ["On Leave", leave, "-0.5 %", "down"],
+      ["Present This Week", present],
+      ["Absent", absent],
+      ["On Time", present - partial],
+      ["Late entry", partial],
+      ["On Leave", leave],
     ];
   }, [week]);
   const visibleEmployees = useMemo(
@@ -96,8 +96,8 @@ const Timesheet = () => {
       </SectionHead>
 
       <Stats>
-        {stats.map(([label, value, change, direction]) => (
-          <StatCard key={label}><StatLabel>{label}</StatLabel><StatRow><StatValue>{value}</StatValue><Trend $down={direction === 'down'}>{change} {direction === 'down' ? '↓' : '↑'}</Trend></StatRow></StatCard>
+        {stats.map(([label, value]) => (
+          <StatCard key={label}><StatLabel>{label}</StatLabel><StatRow><StatValue>{value}</StatValue></StatRow></StatCard>
         ))}
       </Stats>
 
@@ -208,7 +208,6 @@ const StatCard = styled.div`height:130px;background:#fff;border-radius:10px;padd
 const StatLabel = styled.span`font-size:13px;font-weight:600;`;
 const StatRow = styled.div`display:flex;align-items:flex-end;justify-content:space-between;gap:8px;`;
 const StatValue = styled.strong`font-size:40px;line-height:1;font-family:"Inter-Bold",sans-serif;`;
-const Trend = styled.span`padding:5px 9px;border-radius:20px;font-size:12px;color:${({$down})=>$down?'#f04444':'#15ad55'};background:${({$down})=>$down?'#ffe1e1':'#e1f9e9'};white-space:nowrap;`;
 const Tabs = styled.div`display:flex;gap:28px;border-bottom:1px solid #d9dde1;margin-bottom:24px;`;
 const Tab = styled.button`padding:12px 0;border:0;border-bottom:4px solid ${({$active})=>$active?theme.colors.primary:'transparent'};background:transparent;color:${({$active})=>$active?theme.colors.primary:'#17282d'};font-size:16px;font-weight:600;cursor:pointer;`;
 const WeekRow = styled.div`display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;`;

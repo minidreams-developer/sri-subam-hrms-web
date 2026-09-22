@@ -66,6 +66,7 @@ import AgentProfile from "../pages/AgentProfile/AgentProfile";
 import LogWorkEntry from "../pages/Contractors/LogWorkEntry";
 import Help from "../pages/Help/Help";
 import RosterSchedule from "../pages/RosterSchedule/RosterSchedule";
+import FaceCaptureTest from "../pages/FaceCaptureTest/FaceCaptureTest";
 
 
 const publicRoutes = [
@@ -82,6 +83,10 @@ const privateRoutes = [
       {
         path: "help",
         element: <Help />,
+      },
+      {
+        path: "face-capture-test",
+        element: <FaceCaptureTest />,
       },
       {
         path: "dashboard",

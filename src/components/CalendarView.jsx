@@ -101,7 +101,7 @@ const CalendarView = ({ currentYear = new Date().getFullYear(), showAttendance =
     });
 
     setCalendarData(mergedData);
-  }, [holidays, showAttendance]);
+  }, [apiCalendarData, holidays, showAttendance]);
 
   const getDaysInMonth = (year, month) => {
     return new Date(year, month + 1, 0).getDate();

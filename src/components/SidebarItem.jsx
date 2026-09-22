@@ -10,6 +10,12 @@ import SettingsIcon from "../assets/images/DashboardImages/settings_svgrepo.com.
 
 const SidebarItems = [
   {
+
+    name:"Face Camera",
+    path:"/admin/face-capture-test",
+  },
+
+  {
     name: "Dashboard",
     path: "/admin/dashboard",
     icon: DashboardIcon,

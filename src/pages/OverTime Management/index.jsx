@@ -2,8 +2,6 @@ import React from "react";
 import styled from "styled-components";
 import theme from "../../theme/theme";
 import Button from "../../components/Button";
-import GreenArrow from "../../assets/images/DashboardImages/green.svg";
-import RedArrow from "../../assets/images/DashboardImages/red.svg";
 import { overTimeStats } from "../../utils/data";
 import TabSwitcher from "../../components/TabSwitcher";
 import PlusIcon from "../../assets/images/DashboardImages/plus-large_svgrepo.com.svg";
@@ -74,13 +72,6 @@ const OverTimeManage = () => {
             <CardTitle>{item.title}</CardTitle>
             <CardFooter>
               <CardValue>{item.value}</CardValue>
-              <Badge type={item.type}>
-                {item.percent}
-                <img
-                  src={item.type === "up" ? GreenArrow : RedArrow}
-                  alt="trend"
-                />
-              </Badge>
             </CardFooter>
           </StatCard>
         ))}
@@ -192,23 +183,6 @@ const CardValue = styled.h2`
   font-family: "Inter-Bold", sans-serif;
   color: ${theme.colors.textColor};
   margin: 0;
-`;
-
-const Badge = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-  font-size: 0.75rem;
-  font-weight: 500;
-  padding: 0.2rem 0.45rem;
-  border-radius: 999px;
-  color: ${({ type }) => (type === "up" ? "#16a34a" : "#dc2626")};
-  background: ${({ type }) => (type === "up" ? "#dcfce7" : "#fee2e2")};
-
-  img {
-    width: 12px;
-    height: 12px;
-  }
 `;
 
 const DotIcon = styled.img`

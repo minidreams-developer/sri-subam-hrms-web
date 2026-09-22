@@ -3,8 +3,6 @@ import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import theme from "../theme/theme";
 import Button from "./Button";
-import GreenArrow from "../assets/images/DashboardImages/green.svg";
-import RedArrow from "../assets/images/DashboardImages/red.svg";
 import ReusableTable from "./ReusableTable";
 import SearchInputComponent from "./SearchInputComponent";
 import FilterIcon from "../assets/images/DashboardImages/filtericon.svg";
@@ -243,40 +241,24 @@ const Attendance = () => {
           <CardTitle>Total Records</CardTitle>
           <CardFooter>
             <CardValue>{totalResults}</CardValue>
-            <Badge type="up">
-              {totalPages} pages
-              <img src={GreenArrow} alt="trend" />
-            </Badge>
           </CardFooter>
         </StatCard>
         <StatCard>
           <CardTitle>On Time</CardTitle>
           <CardFooter>
             <CardValue>-</CardValue>
-            <Badge type="up">
-              Loading
-              <img src={GreenArrow} alt="trend" />
-            </Badge>
           </CardFooter>
         </StatCard>
         <StatCard>
           <CardTitle>Early Out</CardTitle>
           <CardFooter>
             <CardValue>-</CardValue>
-            <Badge type="down">
-              Loading
-              <img src={RedArrow} alt="trend" />
-            </Badge>
           </CardFooter>
         </StatCard>
         <StatCard>
           <CardTitle>Arrived Late</CardTitle>
           <CardFooter>
             <CardValue>-</CardValue>
-            <Badge type="down">
-              Loading
-              <img src={RedArrow} alt="trend" />
-            </Badge>
           </CardFooter>
         </StatCard>
       </StatsGrid>
@@ -479,23 +461,6 @@ const CardValue = styled.h2`
   font-family: "Inter-Bold", sans-serif;
   color: ${theme.colors.textColor};
   margin: 0;
-`;
-
-const Badge = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-  font-size: 0.75rem;
-  font-weight: 500;
-  padding: 0.2rem 0.45rem;
-  border-radius: 999px;
-  color: ${({ type }) => (type === "up" ? "#16a34a" : "#dc2626")};
-  background: ${({ type }) => (type === "up" ? "#dcfce7" : "#fee2e2")};
-
-  img {
-    width: 12px;
-    height: 12px;
-  }
 `;
 
 const TabsSection = styled.div`

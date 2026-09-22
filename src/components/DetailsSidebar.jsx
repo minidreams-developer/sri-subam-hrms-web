@@ -5,10 +5,11 @@ import theme from "../theme/theme";
 
 const DetailsSidebar = ({ open, onClose, data, title = "Details", children, variant }) => {
   const compact = variant === "stop-payroll";
+  const fullScreen = variant === "full-screen";
   return (
     <>
       <Overlay $open={open} $compact={compact} onClick={onClose} />
-      <Container $open={open}>
+      <Container $open={open} $fullScreen={fullScreen}>
         <Header $compact={compact}>
           <Title>{title}</Title>
           <CloseBtn onClick={onClose}>
@@ -16,7 +17,7 @@ const DetailsSidebar = ({ open, onClose, data, title = "Details", children, vari
           </CloseBtn>
         </Header>
 
-        <ScrollContent $compact={compact}>
+        <ScrollContent $compact={compact} $fullScreen={fullScreen}>
           {children}
         </ScrollContent>
       </Container>
@@ -41,7 +42,7 @@ const Container = styled.div`
   position: fixed;
   top: 0;
   right: 0;
-  width: 584px;
+  width: ${({ $fullScreen }) => ($fullScreen ? "100vw" : "584px")};
   height: 100vh;
   background: ${theme.colors.white};
   z-index: 999;
@@ -89,6 +90,7 @@ const ScrollContent = styled.div`
   overflow-x: hidden;
   padding: ${({ $compact }) => $compact ? "16px 20px 20px" : "1.5rem"};
   padding-bottom: ${({ $compact }) => $compact ? "20px" : "2rem"};
+  align-items: ${({ $fullScreen }) => ($fullScreen ? "center" : "stretch")};
   display: flex;
   flex-direction: column;
   gap: ${({ $compact }) => $compact ? "16px" : "1.5rem"};

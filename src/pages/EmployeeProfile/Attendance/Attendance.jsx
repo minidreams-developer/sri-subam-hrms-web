@@ -9,7 +9,7 @@ import PlusIcon from "../../../assets/images/DashboardImages/plus-large_svgrepo.
 import TabSwitcher from "../../../components/TabSwitcher";
 import ListView from "../../../components/ListView";
 import CalendarView from "../../../components/CalendarView";
-import { getEmployeeAttendance, getEmployeeAttendanceCalendar, getEmployeeAttendanceSummary } from "../../../services/apiServices";
+import { getEmployeeAttendance, getEmployeeAttendanceCalendar, getEmployeeAttendanceSummary, getHolidays } from "../../../services/apiServices";
 import { toast } from "react-toastify";
 
 export const Attendance = ({ employee }) => {
@@ -17,6 +17,7 @@ export const Attendance = ({ employee }) => {
   const [activeTab, setActiveTab] = useState("List View");
   const [summary, setSummary] = useState(null);
   const [calendar, setCalendar] = useState([]);
+  const [holidays, setHolidays] = useState([]);
   const [attendanceRecords, setAttendanceRecords] = useState([]);
   const [attendanceLoading, setAttendanceLoading] = useState(false);
   const monthRange = useMemo(() => {
@@ -37,12 +38,18 @@ export const Attendance = ({ employee }) => {
       getEmployeeAttendanceSummary(employeeId, monthRange),
       getEmployeeAttendance(employeeId, { fromDate: `${new Date().getFullYear()}-01-01`, toDate: `${new Date().getFullYear()}-12-31`, sortBy: "date:desc" }),
       getEmployeeAttendanceCalendar(employeeId, monthRange),
+      getHolidays({ page: 1, limit: 100 }),
     ])
-      .then(([summaryResponse, recordsResponse, calendarResponse]) => {
+      .then(([summaryResponse, recordsResponse, calendarResponse, holidaysResponse]) => {
         if (cancelled) return;
         setSummary(summaryResponse?.data || summaryResponse?.summary || summaryResponse);
         setAttendanceRecords(recordsResponse?.data || recordsResponse?.records || recordsResponse || []);
         setCalendar(calendarResponse?.data || calendarResponse?.calendar || calendarResponse || []);
+        const holidayRecords = holidaysResponse?.results
+          || holidaysResponse?.data?.results
+          || holidaysResponse?.data
+          || (Array.isArray(holidaysResponse) ? holidaysResponse : []);
+        setHolidays(holidayRecords);
       })
       .catch((error) => {
         if (!cancelled) toast.error(error.response?.data?.message || "Failed to load attendance");
@@ -190,7 +197,7 @@ export const Attendance = ({ employee }) => {
       {activeTab === "List View" ? (
         <ListView attendanceRecords={attendanceRecords} />
       ) : (
-        <CalendarView calendarData={calendar} />
+        <CalendarView calendarData={calendar} holidays={holidays} />
       )}
     </Wrapper>
   );
