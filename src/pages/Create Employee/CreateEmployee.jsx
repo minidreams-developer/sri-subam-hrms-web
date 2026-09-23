@@ -160,6 +160,9 @@ const CreateEmployee = () => {
         },
 
         salaryDetails: {
+          ...(selectedType !== "agent"
+            ? { salaryType: workData.salaryType?.value || "monthly" }
+            : {}),
           basicSalary: Number(workData.basicSalary),
           annualCTC: Number(workData.ctcAnnual),
           monthlyCTC: Number(workData.monthlyCTC),

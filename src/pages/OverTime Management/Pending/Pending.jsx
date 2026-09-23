@@ -144,7 +144,7 @@ const Pending = ({ onStatusChange, onApproveAll, refreshKey = 0 }) => {
     { header: "Employee", accessor: "name" },
     { header: "Duration", accessor: "duration" },
     { header: "Over Time", accessor: "overtime", noWrap: true },
-    { header: "Action", accessor: "action" },
+    { header: "Action", key: "actions", accessor: "action", align: "left" },
   ];
 
   return (

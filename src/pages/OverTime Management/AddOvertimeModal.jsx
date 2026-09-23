@@ -23,7 +23,7 @@ const asList = (response) =>
 
 const AddOvertimeModal = ({ isOpen, onClose, onAdded }) => {
   const [form, setForm] = useState(emptyForm);
-  const [departments, setDepartments] = useState([]);
+  // const [departments, setDepartments] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -35,7 +35,7 @@ const AddOvertimeModal = ({ isOpen, onClose, onAdded }) => {
           getDepartments(),
           getUsers({ page: 1, limit: 100 }),
         ]);
-        setDepartments(asList(departmentResponse));
+        // setDepartments(asList(departmentResponse));
         setEmployees(asList(employeeResponse));
       } catch (error) {
         console.error("Failed to load overtime form options", error);
@@ -65,7 +65,7 @@ const AddOvertimeModal = ({ isOpen, onClose, onAdded }) => {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    if (!form.department || !form.employee || !form.overtimeDate || !form.startTime || !form.endTime) {
+    if (!form.employee || !form.overtimeDate || !form.startTime || !form.endTime) {
       toast.error("Please complete all required fields");
       return;
     }
@@ -79,14 +79,16 @@ const AddOvertimeModal = ({ isOpen, onClose, onAdded }) => {
       const startTime = new Date(`${form.overtimeDate}T${form.startTime}:00`);
       const endTime = new Date(`${form.overtimeDate}T${form.endTime}:00`);
       await createOvertime({
-        department: form.department,
-        employee: form.employee,
-        OvertimeDate: new Date(`${form.overtimeDate}T00:00:00`).toISOString(),
+        // department: form.department,
+        employeeId: form.employee,
+        // This is a date-only value. Keep the selected calendar date instead
+        // of converting local midnight to UTC, which shifts it to the prior day.
+        OvertimeDate: form.overtimeDate,
         startTime: startTime.toISOString(),
         endTime: endTime.toISOString(),
         totalDuration: Number(((endTime - startTime) / 3600000).toFixed(2)),
         reason: form.reason.trim() || undefined,
-        status: "pending",
+        // status: "pending",
       });
       toast.success("Overtime added successfully");
       onAdded?.();
@@ -110,7 +112,7 @@ const AddOvertimeModal = ({ isOpen, onClose, onAdded }) => {
             <CloseButton type="button" aria-label="Close" onClick={close}>×</CloseButton>
           </Header>
           <Body>
-            <Field>
+            {/* <Field>
               <label htmlFor="ot-department">Select Department</label>
               <select id="ot-department" value={form.department} onChange={update("department")}>
                 <option value="">Select Department</option>
@@ -120,7 +122,7 @@ const AddOvertimeModal = ({ isOpen, onClose, onAdded }) => {
                   </option>
                 ))}
               </select>
-            </Field>
+            </Field> */}
             <Field>
               <label htmlFor="ot-employee">Select Employee</label>
               <select id="ot-employee" value={form.employee} onChange={update("employee")}>

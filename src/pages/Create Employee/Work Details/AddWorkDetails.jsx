@@ -27,6 +27,7 @@ const AddWorkDetails = forwardRef(({ onNext, onBack, showContractAgent = false }
     attendancePermission: { value: "auto", label: "Auto" },
     esiNumber: "310012345600",
     pfNumber: "TNMAS1234567000001",
+    salaryType: { value: "monthly", label: "Monthly" },
     ctcAnnual: "720000",
     monthlyCTC: "60000",
     basicSalary: "35000",
@@ -258,6 +259,11 @@ const AddWorkDetails = forwardRef(({ onNext, onBack, showContractAgent = false }
   const attendancePermissionOptions = [
     { value: "auto", label: "Auto" },
     { value: "manual", label: "Manual" },
+  ];
+
+  const salaryTypeOptions = [
+    { value: "daily", label: "Daily" },
+    { value: "monthly", label: "Monthly" },
   ];
 
   const salaryDisbursementOptions = [
@@ -518,6 +524,22 @@ const AddWorkDetails = forwardRef(({ onNext, onBack, showContractAgent = false }
 
       <Section>
         <SectionTitle>Salary Details</SectionTitle>
+        <Row>
+          <Col>
+            <SelectWrapper>
+              <Label htmlFor="salary-type">Salary Type</Label>
+              <Select
+                inputId="salary-type"
+                options={salaryTypeOptions}
+                value={formData.salaryType}
+                onChange={(value) => handleChange("salaryType", value)}
+                placeholder="Select Salary Type"
+                styles={customSelectStyles}
+                isSearchable={false}
+              />
+            </SelectWrapper>
+          </Col>
+        </Row>
         <Row>
           <Col>
             <InputComponent

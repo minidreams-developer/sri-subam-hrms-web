@@ -14,10 +14,12 @@ import {
 import SearchInputComponent from "../../components/SearchInputComponent";
 import FilterIcon from "../../assets/images/DashboardImages/filtericon.svg";
 import Filter from "../../components/filter";
-import { getDashboard, getDepartments, getShifts, getUsers } from "../../services/apiServices";
+import { getDashboard, getDepartments, getShifts, getUsers, getPresentToday } from "../../services/apiServices";
 import { toast } from "react-toastify";
 
 const Dashboard = () => {
+  const today = new Date();
+  const todayDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
   const [dateRange, setDateRange] = useState("Today");
   const [activeTab, setActiveTab] = useState("employees");
   const [searchValue, setSearchValue] = useState("");
@@ -38,9 +40,44 @@ const Dashboard = () => {
   // Fetch dashboard data on component mount
   useEffect(() => {
     fetchDashboardData();
-    fetchEmployeesAndStaff();
     fetchDepartmentsAndShifts();
   }, []);
+
+  useEffect(() => {
+    fetchPresentToday(activeTab === "employees" ? "employee" : "staff");
+  }, [activeTab]);
+
+  const fetchPresentToday = async (role) => {
+    try {
+      const response = await getPresentToday({ role, date: todayDate });
+      const records = Array.isArray(response)
+        ? response
+        : response?.results || response?.data || response?.attendance || [];
+      const rows = records.map((record) => {
+        const user = record.employee || record.user || record.staff || record.employeeDetails || {};
+        return {
+          id: record.id || record._id,
+          employeeId: user.employeeId || record.employeeId || "N/A",
+          name: user.name || record.employeeName || record.name || "N/A",
+          position: user.workInformation?.designation || user.designation || record.designation || "N/A",
+          shift: user.workInformation?.shift || user.shift || record.shift || "N/A",
+          checkIn: record.checkIn || record.loginTime || record.checkInTime || "N/A",
+          checkOut: record.checkOut || record.logoutTime || record.checkOutTime || "N/A",
+          working: record.workingHours || record.working || "N/A",
+          status: record.status || record.attendanceStatus || "N/A",
+          department: user.workInformation?.department || user.department || record.department || "N/A",
+          type: role,
+        };
+      });
+      if (role === "employee") setEmployeesData(rows);
+      else setStaffDataList(rows);
+    } catch (error) {
+      console.error(`Error fetching present-today ${role} attendance:`, error);
+      if (role === "employee") setEmployeesData([]);
+      else setStaffDataList([]);
+      toast.error("Failed to fetch today attendance");
+    }
+  };
 
   const fetchDashboardData = async () => {
     setLoading(true);
@@ -75,11 +112,11 @@ const Dashboard = () => {
         employeeId: emp.employeeId || "N/A",
         name: emp.name || emp.employeeName || "N/A",
         position: emp.workInformation?.designation || emp.designation || "N/A",
-        shift: emp.workInformation?.shift || emp.shift || "Morning",
-        checkIn: "08:50 AM",
-        checkOut: "06:45 PM",
-        working: "8.36 hrs",
-        status: "-",
+        shift: emp.workInformation?.shift || emp.shift || "N/A",
+        checkIn: emp.checkIn || emp.loginTime || "N/A",
+        checkOut: emp.checkOut || emp.logoutTime || "N/A",
+        working: emp.workingHours || emp.working || "N/A",
+        status: emp.status || "N/A",
         department: emp.workInformation?.department || emp.department || "N/A",
         type: "employee",
       }));
@@ -104,14 +141,14 @@ const Dashboard = () => {
         employeeId: staff.employeeId || "N/A",
         name: staff.name || staff.employeeName || "N/A",
         position:
-          staff.workInformation?.designation || staff.designation || "Manager",
-        shift: staff.workInformation?.shift || staff.shift || "Morning",
-        checkIn: "08:00 AM",
-        checkOut: "05:00 PM",
-        working: "9 hrs",
-        status: "-",
+          staff.workInformation?.designation || staff.designation || "N/A",
+        shift: staff.workInformation?.shift || staff.shift || "N/A",
+        checkIn: staff.checkIn || staff.loginTime || "N/A",
+        checkOut: staff.checkOut || staff.logoutTime || "N/A",
+        working: staff.workingHours || staff.working || "N/A",
+        status: staff.status || "N/A",
         department:
-          staff.workInformation?.department || staff.department || "Operations",
+          staff.workInformation?.department || staff.department || "N/A",
         type: "staff",
       }));
       setStaffDataList(transformedStaff);
@@ -214,13 +251,14 @@ const Dashboard = () => {
           // positive: dashboardData.quickStats.payroll?.trend === "up",
         },
       ]
-    : [
+    : [];
+  /*
         { label: "Total Employees", value: "0", change: "0%", positive: true },
         { label: "Present Today", value: "0", change: "0%", positive: true },
         { label: "On Leave", value: "0", change: "0%", positive: true },
         { label: "OT Employees", value: "0", change: "0%", positive: false },
         { label: "Payroll", value: "₹0", change: "0%", positive: true },
-      ];
+      */
 
   // Handle department filter dropdown - only updates UI state
   const handleDepartmentChange = (value) => {
@@ -238,7 +276,7 @@ const Dashboard = () => {
   const handleFilterApply = (queryParams) => {
     console.log("Applied filter query params:", queryParams);
     // Build the API URL with query parameters
-    let url = `/v1/users?role=employee`;
+    let url = `/v1/attendance/present-today?role=${activeTab === "employees" ? "employee" : "staff"}&date=${todayDate}`;
 
     // Add all filter parameters
     if (queryParams.departmentId) {
@@ -275,7 +313,8 @@ const Dashboard = () => {
 
   const fetchEmployeesAndStaffWithFilters = async (url) => {
     try {
-      const empResponse = await getUsers(Object.fromEntries(new URL(url, window.location.origin).searchParams));
+      const queryParams = Object.fromEntries(new URL(url, window.location.origin).searchParams);
+      const empResponse = await getPresentToday(queryParams);
       console.log("Filtered employees data:", empResponse);
 
       let empList = [];
@@ -316,7 +355,8 @@ const Dashboard = () => {
       onLeave: item.onLeave,
       late: item.late,
     }),
-  ) || [
+  ) || [];
+  /*
     { date: "14-07", present: 200, onLeave: 100, late: 20 },
     { date: "15-07", present: 220, onLeave: 80, late: 25 },
     { date: "16-07", present: 210, onLeave: 95, late: 18 },
@@ -324,7 +364,7 @@ const Dashboard = () => {
     { date: "18-07", present: 195, onLeave: 110, late: 28 },
     { date: "19-07", present: 230, onLeave: 75, late: 20 },
     { date: "20-07", present: 250, onLeave: 50, late: 15 },
-  ];
+  */
 
   // Build payroll breakdown from API
   const payrollData = dashboardData?.payrollBreakdown?.categories
@@ -368,17 +408,17 @@ const Dashboard = () => {
           color: "#2C2C2C",
         },
       ]
-    : [
+    : [];
+  /*
         { name: "Salary", value: 88.3, percentage: "₹ 0", color: "#0B7A75" },
         { name: "Allowances", value: 8.3, percentage: "₹ 0", color: "#FDB750" },
         { name: "Deduction", value: 2.1, percentage: "₹ 0", color: "#E0E3E6" },
         { name: "Incentives", value: 0.5, percentage: "₹ 0", color: "#0B7A75" },
         { name: "Overtimes", value: 0.8, percentage: "₹ 0", color: "#2C2C2C" },
-      ];
+      */
 
-  const employees =
-    employeesData.length > 0
-      ? employeesData
+  const employees = employeesData;
+  /*
       : [
           {
             id: 1,
@@ -421,9 +461,9 @@ const Dashboard = () => {
           },
         ];
 
-  const staffData =
-    staffDataList.length > 0
-      ? staffDataList
+  */
+  const staffData = staffDataList;
+  /*
       : [
           {
             id: 4,
@@ -452,6 +492,7 @@ const Dashboard = () => {
             type: "staff",
           },
         ];
+  */
 
   // Filter employees based on search and filter criteria
   const filteredEmployees = employees.filter((emp) => {
@@ -575,7 +616,7 @@ const Dashboard = () => {
               </PayrollAmount>
               <PayrollLabel>Total Pay This Month</PayrollLabel>
             </PayrollMain>
-            <BreakdownBars>
+            {payrollData.length > 0 && <BreakdownBars>
               {[...Array(50)].map((_, idx) => (
                 <BreakdownBar
                   key={idx}
@@ -590,7 +631,7 @@ const Dashboard = () => {
                   }
                 />
               ))}
-            </BreakdownBars>
+            </BreakdownBars>}
             <PayrollLegend>
               {payrollData.map((item, idx) => (
                 <PayrollLegendItem key={idx}>
@@ -628,7 +669,13 @@ const Dashboard = () => {
         </TabsAndButtonSection>
         <AttendanceHeading>
           <RightControls>
-            <DateText>Today (18 Aug 2025)</DateText>
+            <DateText>
+              Today ({new Intl.DateTimeFormat("en-IN", {
+                day: "2-digit",
+                month: "short",
+                year: "numeric",
+              }).format(new Date())})
+            </DateText>
             <AddEmployeeButton
               onClick={() => navigate("/admin/time-hub/attendance/add")}
             >

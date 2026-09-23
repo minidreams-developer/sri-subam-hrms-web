@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import ReusableTable from "../../../components/ReusableTable";
 import TableToolbar from "../../../components/TableToolbar";
 import PlusIcon from "../../../assets/images/DashboardImages/plus-large_svgrepo.com.svg";
-import { deleteLeaveRequest, getLeaveRequests } from "../../../services/apiServices";
+import { deleteLeaveRequest, getLeaveRequests, updateLeaveRequestStatus } from "../../../services/apiServices";
 import { toast } from "react-toastify";
 
 const EmployeeLeaves = () => {
@@ -15,7 +15,22 @@ const EmployeeLeaves = () => {
     { header: "Type", accessor: "type" },
     { header: "From", accessor: "from" },
     { header: "To", accessor: "to" },
-    { header: "Status", accessor: "status" }, { header: "Action", accessor: "actions" },
+    { header: "Status", accessor: "status" },
+    {
+      header: "Approval",
+      key: "approvalActions",
+      render: (row) => String(row.status).toLowerCase() !== "pending" ? (
+        <span style={{ color: String(row.status).toLowerCase() === "approved" ? "#087c86" : "#dc2626", fontWeight: 600, fontSize: "0.75rem", textTransform: "capitalize" }}>
+          {row.status}
+        </span>
+      ) : (
+        <div style={{ display: "flex", gap: "0.4rem", alignItems: "center" }}>
+          <button type="button" style={{ background: "#fee2e2", color: "#dc2626", border: "none", borderRadius: "0.375rem", padding: "0.45rem 0.65rem", fontSize: "0.625rem", fontWeight: 600, cursor: "pointer" }} onClick={(event) => { event.stopPropagation(); handleLeaveStatus(row, "Rejected"); }}>Reject</button>
+          <button type="button" style={{ background: "#087c86", color: "#fff", border: "none", borderRadius: "0.375rem", padding: "0.45rem 0.65rem", fontSize: "0.625rem", fontWeight: 600, cursor: "pointer" }} onClick={(event) => { event.stopPropagation(); handleLeaveStatus(row, "Approved"); }}>Approve</button>
+        </div>
+      ),
+    },
+    { header: "Action", key: "actions", accessor: "actions", useDefaultActionMenu: true },
   ];
 
   const [leaveData, setLeaveData] = useState([]);
@@ -32,7 +47,7 @@ const EmployeeLeaves = () => {
     const fetchLeaveRequests = async () => {
       try {
         setLoading(true);
-        const response = await getLeaveRequests({ page: currentPage, limit: pageSize });
+        const response = await getLeaveRequests({ page: currentPage, limit: pageSize, role: "employee" });
 
         const results = response.results || response.data || [];
         const transformedData = results.map((leave) => ({
@@ -68,6 +83,16 @@ const EmployeeLeaves = () => {
 
   const handleAddLeave = () => {
     navigate("/admin/time-hub/leaveAttendance/add-LeaveOrPermissions");
+  };
+
+  const handleLeaveStatus = async (row, status) => {
+    try {
+      await updateLeaveRequestStatus(row.id, status.toLowerCase());
+      setLeaveData((items) => items.map((item) => item.id === row.id ? { ...item, status: status.toLowerCase() } : item));
+      toast.success(`Leave request ${status.toLowerCase()}`);
+    } catch (error) {
+      toast.error(error.response?.data?.message || `Failed to ${status.toLowerCase()} leave request`);
+    }
   };
 
   const filtered = leaveData.filter((row) => {
