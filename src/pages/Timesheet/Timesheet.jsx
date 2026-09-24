@@ -1,15 +1,16 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 import { FiCheck, FiChevronLeft, FiChevronRight, FiClock, FiFilter, FiPlus, FiSearch, FiX } from "react-icons/fi";
 import theme from "../../theme/theme";
 import sampleProfile from "../../assets/images/employee/sampleProfile.jpg";
+import { getUsers } from "../../services/apiServices";
 
-const employees = [
-  { name: "Manoj Kumar", role: "Senior UI UX Designer" },
-  { name: "Deepak Kumar", role: "Co Founder" },
-  { name: "Maheshwari", role: "Co founder" },
-  { name: "Arun Prince", role: "Team Lead" },
-  { name: "Ruban", role: "Developer" },
+const fallbackEmployees = [
+  { id: 1, name: "Manoj Kumar", role: "Senior UI UX Designer" },
+  { id: 2, name: "Deepak Kumar", role: "Co Founder" },
+  { id: 3, name: "Maheshwari", role: "Co founder" },
+  { id: 4, name: "Arun Prince", role: "Team Lead" },
+  { id: 5, name: "Ruban", role: "Developer" },
 ];
 
 const weeks = [
@@ -62,9 +63,53 @@ const Timesheet = () => {
   const [search, setSearch] = useState("");
   const [weekIndex, setWeekIndex] = useState(2);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
-  const [showManualForm, setShowManualForm] = useState(false);
+  const [showManualForm, setShowManualForm] = useState(true);
   const [manualEntries, setManualEntries] = useState({});
   const [manualForm, setManualForm] = useState({ employee: "0", day: "0", login: "09:00", logout: "17:30", breakHours: "0.30", shift: "Morning", status: "Present" });
+  const [employees, setEmployees] = useState(fallbackEmployees);
+  const [isLoadingEmployees, setIsLoadingEmployees] = useState(true);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const fetchEmployees = async () => {
+      try {
+        setIsLoadingEmployees(true);
+        const response = await getUsers({ page: 1, limit: 100 });
+        const users = Array.isArray(response)
+          ? response
+          : Array.isArray(response?.results)
+            ? response.results
+            : Array.isArray(response?.data)
+              ? response.data
+              : Array.isArray(response?.users)
+                ? response.users
+                : [];
+
+        const normalizedUsers = users.map((user, index) => ({
+          id: user.id || user._id || user.userId || index + 1,
+          name: user.name || `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.email || `Employee ${index + 1}`,
+          role: user.designation || user.role || user.position || "Employee",
+          employeeId: user.employeeId || user.staffId || user.agentId || "N/A",
+          profilePic: user.profilePic || user.avatar || sampleProfile,
+        }));
+
+        if (mounted) {
+          setEmployees(normalizedUsers.length ? normalizedUsers : fallbackEmployees);
+          setManualForm((current) => ({ ...current, employee: normalizedUsers.length ? "0" : "0" }));
+        }
+      } catch (error) {
+        console.error("Failed to load employees for timesheet:", error);
+        if (mounted) setEmployees(fallbackEmployees);
+      } finally {
+        if (mounted) setIsLoadingEmployees(false);
+      }
+    };
+
+    fetchEmployees();
+    return () => { mounted = false; };
+  }, []);
+
   const week = weeks[weekIndex];
   const stats = useMemo(() => {
     const workingEntries = week.entries.flat().filter((entry) => entry !== "weekend");
@@ -122,12 +167,17 @@ const Timesheet = () => {
       <TableScroll>
         <Grid>
           <HeaderCell>Employee ID</HeaderCell>{days.map((day) => <HeaderCell key={day}>{day}</HeaderCell>)}
-          {visibleEmployees.map((employee) => {
+          {isLoadingEmployees ? (
+            <EmptyStateCell colSpan={8}>Loading employees...</EmptyStateCell>
+          ) : visibleEmployees.length === 0 ? (
+            <EmptyStateCell colSpan={8}>No employees found.</EmptyStateCell>
+          ) : visibleEmployees.map((employee) => {
             const rowIndex = employees.findIndex((item) => item.name === employee.name);
-            return [<EmployeeCell key={`${employee.name}-employee`}><Avatar src={sampleProfile} alt="" /><EmployeeInfo><strong>{employee.name}</strong><span>{employee.role}</span></EmployeeInfo><OpenButton onClick={() => setSelectedEmployee(employee)}>Open</OpenButton></EmployeeCell>, ...days.map((_, dayIndex) => {
-              const entry = manualEntries[`${weekIndex}-${rowIndex}-${dayIndex}`] || week.entries[rowIndex][dayIndex];
-              const isPartial = entry.startsWith("4.");
-              return <DayCell key={`${week.label}-${employee.name}-${dayIndex}`} $weekend={entry === 'weekend'}><DayNumber>{String(week.dates[dayIndex]).padStart(2, "0")}</DayNumber>{entry !== 'weekend' && <Status $type={entry}>{entry === 'Absent' ? <FiX /> : isPartial ? <FiClock /> : <FiCheck />}{entry}</Status>}{week.overtime.row === rowIndex && week.overtime.day === dayIndex && <Overtime>{week.overtime.value}</Overtime>}</DayCell>;
+            const safeRowIndex = rowIndex >= 0 ? rowIndex : 0;
+            return [<EmployeeCell key={`${employee.name}-employee`}><Avatar src={employee.profilePic || sampleProfile} alt="" /><EmployeeInfo><strong>{employee.name}</strong><span>{employee.role}</span></EmployeeInfo><OpenButton onClick={() => setSelectedEmployee(employee)}>Open</OpenButton></EmployeeCell>, ...days.map((_, dayIndex) => {
+              const entry = manualEntries[`${weekIndex}-${safeRowIndex}-${dayIndex}`] || week.entries[safeRowIndex]?.[dayIndex] || "weekend";
+              const isPartial = typeof entry === "string" && entry.startsWith("4.");
+              return <DayCell key={`${week.label}-${employee.name}-${dayIndex}`} $weekend={entry === 'weekend'}><DayNumber>{String(week.dates[dayIndex]).padStart(2, "0")}</DayNumber>{entry !== 'weekend' && <Status $type={entry}>{entry === 'Absent' ? <FiX /> : isPartial ? <FiClock /> : <FiCheck />}{entry}</Status>}{week.overtime.row === safeRowIndex && week.overtime.day === dayIndex && <Overtime>{week.overtime.value}</Overtime>}</DayCell>;
             })];
           })}
         </Grid>
@@ -178,7 +228,7 @@ const Timesheet = () => {
               setShowManualForm(false);
             }}>
               <FormGrid>
-                <Field $wide><label>Employee</label><select value={manualForm.employee} onChange={(event) => setManualForm({...manualForm, employee:event.target.value})}>{employees.map((employee,index)=><option key={employee.name} value={index}>{employee.name}</option>)}</select></Field>
+                <Field $wide><label>Employee</label><select value={manualForm.employee} onChange={(event) => setManualForm({...manualForm, employee:event.target.value})}>{employees.map((employee,index)=><option key={employee.id || employee.name} value={index}>{employee.name}</option>)}</select></Field>
                 <Field><label>Date</label><select value={manualForm.day} onChange={(event) => setManualForm({...manualForm, day:event.target.value})}>{week.dates.map((date,index)=><option key={date} value={index}>{String(date).padStart(2,"0")} {week.range.split(" ")[1]}</option>)}</select></Field>
                 <Field><label>Status</label><select value={manualForm.status} onChange={(event) => setManualForm({...manualForm, status:event.target.value})}><option>Present</option><option>Absent</option><option>Leave</option></select></Field>
                 <Field><label>Login Time</label><input type="time" required value={manualForm.login} onChange={(event) => setManualForm({...manualForm, login:event.target.value})} /></Field>
@@ -225,6 +275,7 @@ const EmployeeCell = styled.div`min-height:100px;padding:18px 10px;display:flex;
 const EmployeeInfo = styled.div`min-width:0;flex:1;strong,span{display:block;}strong{font-size:15px;margin-bottom:8px;}span{color:#777;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}`;
 const OpenButton = styled.button`border:0;background:transparent;color:${theme.colors.primary};font-size:12px;font-weight:600;cursor:pointer;padding:6px;&:hover{text-decoration:underline;}`;
 const Avatar = styled.img`width:48px;height:48px;border-radius:50%;object-fit:cover;`;
+const EmptyStateCell = styled.div`grid-column: 1 / -1; min-height: 120px; display: grid; place-items: center; background: #fff; border-bottom: 1px solid #d8dde3; color: #4f5e61; font-weight: 600;`;
 const DayCell = styled.div`min-height:100px;padding:10px 12px;border-left:1px solid #d8dde3;border-bottom:1px solid #d8dde3;background:${({$weekend})=>$weekend?'repeating-linear-gradient(135deg,#fff,#fff 5px,#edf0f2 5px,#edf0f2 7px)':'#fff'};`;
 const DayNumber = styled.div`font-size:12px;font-weight:600;margin-bottom:12px;`;
 const Status = styled.div`height:28px;border:1px solid ${({$type})=>$type==='Absent'?'#ff3131':$type==='Leave'?'#6542bd':$type==='4.26 Hrs'?'#ff8a3d':'#23b45b'};color:${({$type})=>$type==='Absent'?'#ff3131':$type==='Leave'?'#6542bd':$type==='4.26 Hrs'?'#ff8a3d':'#23b45b'};background:${({$type})=>$type==='Absent'?'#fff0f0':$type==='Leave'?'#f0ebff':$type==='4.26 Hrs'?'#fff3e9':'#edfbf2'};border-radius:7px;display:flex;align-items:center;justify-content:center;gap:5px;font-size:12px;white-space:nowrap;`;

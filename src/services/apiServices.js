@@ -139,16 +139,34 @@ export const getPresentToday = (params, config) =>
   list("/v1/attendance/present-today", params, config);
 
 export const getEmployeeAttendanceSummary = (employeeId, params, config) =>
-  list(`/v1/attendance/employee/${encodeURIComponent(employeeId)}/summary`, params, config);
+  list(
+    `/v1/attendance/employee/${encodeURIComponent(employeeId)}/summary`,
+    params,
+    config,
+  );
 
 export const getEmployeeAttendance = (employeeId, params, config) =>
-  list(`/v1/attendance/employee/${encodeURIComponent(employeeId)}`, params, config);
+  list(
+    `/v1/attendance/employee/${encodeURIComponent(employeeId)}`,
+    params,
+    config,
+  );
 
 export const getEmployeeAttendanceCalendar = (employeeId, params, config) =>
-  list(`/v1/attendance/employee/${encodeURIComponent(employeeId)}/calendar`, params, config);
+  list(
+    `/v1/attendance/employee/${encodeURIComponent(employeeId)}/calendar`,
+    params,
+    config,
+  );
 
 export const updateAttendance = (attendanceId, payload, config) =>
-  data(api.patch(`/v1/attendance/${encodeURIComponent(attendanceId)}`, payload, config));
+  data(
+    api.patch(
+      `/v1/attendance/${encodeURIComponent(attendanceId)}`,
+      payload,
+      config,
+    ),
+  );
 
 export const createAttendance = (payload) =>
   data(api.post("/v1/attendance", payload));
@@ -172,7 +190,7 @@ export const createOvertime = (payload) =>
   data(api.post("/v1/overtime", payload));
 
 export const updateOvertime = (id, payload) =>
-  data(api.patch(`/v1/overtime/${id}`, payload));
+  data(api.patch(`/v1/overtime/${id}/status`, payload));
 
 export const getHolidays = (params) => list("/v1/holidays", params);
 

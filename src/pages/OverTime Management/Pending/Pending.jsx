@@ -4,16 +4,6 @@ import ReusableTable from "../../../components/ReusableTable";
 import { getOvertimeRecords, updateOvertime } from "../../../services/apiServices";
 import { toast } from "react-toastify";
 
-const fallbackPendingRequests = Array.from({ length: 8 }, (_, index) => ({
-  id: `preview-${index + 1}`,
-  requestedDate: "01-01-2026",
-  overtimeDate: "01-01-2026",
-  name: "Manoj Kumar",
-  duration: "3 Hrs",
-  overtime: "07 : 30 PM  -  10 : 00 PM",
-  action: "pending",
-}));
-
 const Pending = ({ onStatusChange, onApproveAll, refreshKey = 0 }) => {
   const [search, setSearch] = useState("");
   const [dateFilter, setDateFilter] = useState("Today");
@@ -82,14 +72,9 @@ const Pending = ({ onStatusChange, onApproveAll, refreshKey = 0 }) => {
         };
       });
 
-      // Keep the API as the source of truth. Figma preview rows are shown only
-      // when the API succeeds but contains no records.
-      const displayData = transformedData.length
-        ? transformedData
-        : fallbackPendingRequests;
-
-      setOvertimeData(displayData);
-      filterData(displayData, search);
+      // The API is the only source of pending overtime rows.
+      setOvertimeData(transformedData);
+      filterData(transformedData, search);
     } catch (error) {
       console.error("Error fetching overtime data:", error);
       toast.error("Failed to fetch overtime records");

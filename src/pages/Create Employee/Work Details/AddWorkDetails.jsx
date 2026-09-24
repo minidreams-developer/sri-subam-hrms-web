@@ -36,6 +36,8 @@ const AddWorkDetails = forwardRef(({ onNext, onBack, showContractAgent = false }
     specialAllowance: "5000",
     specialAllowance2: "1000",
     otherFixedAllowances: "2000",
+    pfAmount: "0",
+    esiAmount: "0",
     salaryDisbursementType: { value: "bank_transfer", label: "Bank Transfer" },
     accHolderName: "Test Employee",
     bank: "State Bank of India",
@@ -577,6 +579,28 @@ const AddWorkDetails = forwardRef(({ onNext, onBack, showContractAgent = false }
               placeholder="1500"
               value={formData.hra}
               onChange={(e) => handleNumericChange("hra", e)}
+              labelMargin="0 0 0.625rem 0"
+              prefix="₹"
+            />
+          </Col>
+        </Row>
+        <Row>
+          <Col>
+            <InputComponent
+              label="PF Amount"
+              placeholder="0"
+              value={formData.pfAmount}
+              onChange={(e) => handleNumericChange("pfAmount", e)}
+              labelMargin="0 0 0.625rem 0"
+              prefix="₹"
+            />
+          </Col>
+          <Col>
+            <InputComponent
+              label="ESI Amount"
+              placeholder="0"
+              value={formData.esiAmount}
+              onChange={(e) => handleNumericChange("esiAmount", e)}
               labelMargin="0 0 0.625rem 0"
               prefix="₹"
             />

@@ -170,6 +170,8 @@ const CreateEmployee = () => {
           conveyanceAllowance: Number(workData.conveyanceAllowance),
           specialAllowance: Number(workData.specialAllowance),
           otherFixedAllowance: Number(workData.otherFixedAllowances) || 0,
+          pfAmount: Number(workData.pfAmount) || 0,
+          esiAmount: Number(workData.esiAmount) || 0,
         },
 
         ...(selectedType === "agent"
