@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import Select from "react-select";
 import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import theme from "../../../theme/theme";
@@ -9,10 +10,10 @@ import PlusIcon from "../../../assets/images/DashboardImages/plus-large_svgrepo.
 import TabSwitcher from "../../../components/TabSwitcher";
 import ListView from "../../../components/ListView";
 import CalendarView from "../../../components/CalendarView";
-import { getEmployeeAttendance, getEmployeeAttendanceCalendar, getEmployeeAttendanceSummary, getHolidays } from "../../../services/apiServices";
+import { getEmployeeAttendance, getEmployeeAttendanceCalendar, getEmployeeAttendanceSummary, getHolidays, getShifts, updateUser } from "../../../services/apiServices";
 import { toast } from "react-toastify";
 
-export const Attendance = ({ employee }) => {
+export const Attendance = ({ employee, onEmployeeUpdated }) => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("List View");
   const [summary, setSummary] = useState(null);
@@ -20,6 +21,11 @@ export const Attendance = ({ employee }) => {
   const [holidays, setHolidays] = useState([]);
   const [attendanceRecords, setAttendanceRecords] = useState([]);
   const [attendanceLoading, setAttendanceLoading] = useState(false);
+  const [shiftModalOpen, setShiftModalOpen] = useState(false);
+  const [shiftOptions, setShiftOptions] = useState([]);
+  const [selectedShift, setSelectedShift] = useState(null);
+  const [shiftsLoading, setShiftsLoading] = useState(false);
+  const [savingShift, setSavingShift] = useState(false);
   const monthRange = useMemo(() => {
     const now = new Date();
     const pad = (value) => String(value).padStart(2, "0");
@@ -74,8 +80,66 @@ export const Attendance = ({ employee }) => {
     setActiveTab(val);
   };
 
-  const handleEditDetails = () => {
-    navigate("/admin/peopleHub/employees/attendance/edit");
+  const handleEditDetails = async () => {
+    const currentShiftId = shift?._id || shift?.id;
+    const currentOption = currentShiftId ? {
+      value: currentShiftId,
+      label: shift?.shiftName || shift?.name || "Current shift",
+      shift,
+    } : null;
+    setSelectedShift(currentOption);
+    setShiftModalOpen(true);
+    setShiftsLoading(true);
+    try {
+      const response = await getShifts({ page: 1, limit: 100 });
+      const records = Array.isArray(response)
+        ? response
+        : response?.results || response?.data?.results || response?.data || [];
+      const options = records.map((item) => ({
+        value: item._id || item.id,
+        label: item.shiftName || item.name || "Unknown shift",
+        shift: item,
+      }));
+      setShiftOptions(options);
+      setSelectedShift(options.find((option) => String(option.value) === String(currentShiftId)) || currentOption);
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to load shifts");
+    } finally {
+      setShiftsLoading(false);
+    }
+  };
+
+  const saveShift = async (event) => {
+    event.preventDefault();
+    const employeeId = employee?._id || employee?.id || employee?.userId;
+    if (!employeeId) return toast.error("Employee ID is missing");
+    if (!selectedShift?.value) return toast.error("Please select a shift");
+
+    const workInformation = {
+      ...(employee?.workInformation || {}),
+      shiftId: selectedShift.value,
+    };
+    setSavingShift(true);
+    try {
+      const response = await updateUser(employeeId, { workInformation });
+      const responseEmployee = response?.data?.user || response?.data || response?.user || response;
+      const updatedEmployee = {
+        ...employee,
+        ...(responseEmployee && typeof responseEmployee === "object" ? responseEmployee : {}),
+        workInformation: {
+          ...workInformation,
+          ...(responseEmployee?.workInformation || {}),
+          shiftId: responseEmployee?.workInformation?.shiftId || selectedShift.shift,
+        },
+      };
+      onEmployeeUpdated?.(updatedEmployee);
+      setShiftModalOpen(false);
+      toast.success("Shift updated successfully");
+    } catch (error) {
+      toast.error(error.response?.data?.message || error.message || "Failed to update shift");
+    } finally {
+      setSavingShift(false);
+    }
   };
 
   const openLeaveForm = (mode) => {
@@ -101,11 +165,37 @@ export const Attendance = ({ employee }) => {
           </IconWrap>
           <Title>Attendance</Title>
         </LeftHead>
-        <EditBtn onClick={handleEditDetails}>
+        <EditBtn type="button" onClick={handleEditDetails}>
           <img src={EditIcon} alt="edit" width="16" height="16" />
           Edit details
         </EditBtn>
       </HeaderRow>
+      {shiftModalOpen && (
+        <ModalBackdrop onMouseDown={() => !savingShift && setShiftModalOpen(false)}>
+          <Modal role="dialog" aria-modal="true" aria-labelledby="edit-shift-title" onMouseDown={(event) => event.stopPropagation()}>
+            <ModalHeader>
+              <ModalTitle id="edit-shift-title">Edit Shift</ModalTitle>
+              <CloseButton type="button" onClick={() => setShiftModalOpen(false)} disabled={savingShift} aria-label="Close">×</CloseButton>
+            </ModalHeader>
+            <ShiftForm onSubmit={saveShift}>
+              <FieldLabel htmlFor="employee-shift">Shift</FieldLabel>
+              <Select
+                inputId="employee-shift"
+                options={shiftOptions}
+                value={selectedShift}
+                onChange={setSelectedShift}
+                isLoading={shiftsLoading}
+                isDisabled={shiftsLoading || savingShift}
+                placeholder="Select shift"
+              />
+              <ModalActions>
+                <CancelButton type="button" onClick={() => setShiftModalOpen(false)} disabled={savingShift}>Cancel</CancelButton>
+                <SaveButton type="submit" disabled={savingShift || shiftsLoading || !selectedShift}>{savingShift ? "Saving..." : "Set Shift"}</SaveButton>
+              </ModalActions>
+            </ShiftForm>
+          </Modal>
+        </ModalBackdrop>
+      )}
       <CardDetails
         title="Shift Details"
         columns={3}
@@ -264,4 +354,87 @@ const EditBtn = styled.button`
   font-weight: 600;
   font-family: "Inter-SemiBold", sans-serif;
   cursor: pointer;
+`;
+
+const ModalBackdrop = styled.div`
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgba(12, 36, 39, 0.45);
+`;
+
+const Modal = styled.div`
+  width: min(460px, 100%);
+  border-radius: 12px;
+  background: ${theme.colors.white};
+  box-shadow: 0 24px 60px rgba(12, 36, 39, 0.2);
+  padding: 1.25rem;
+`;
+
+const ModalHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.25rem;
+`;
+
+const ModalTitle = styled.h2`
+  margin: 0;
+  color: ${theme.colors.textColor};
+  font: 600 1.125rem/1.6 "Inter-SemiBold", sans-serif;
+`;
+
+const CloseButton = styled.button`
+  border: 0;
+  background: transparent;
+  color: #667085;
+  font-size: 1.75rem;
+  line-height: 1;
+  cursor: pointer;
+`;
+
+const ShiftForm = styled.form`
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+`;
+
+const FieldLabel = styled.label`
+  color: ${theme.colors.textColor};
+  font: 500 0.875rem/1.5 "Inter-Medium", sans-serif;
+`;
+
+const ModalActions = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1rem;
+`;
+
+const CancelButton = styled.button`
+  height: 40px;
+  padding: 0 1rem;
+  border: 1px solid ${theme.colors.border};
+  border-radius: 8px;
+  background: ${theme.colors.white};
+  color: ${theme.colors.textColor};
+  cursor: pointer;
+`;
+
+const SaveButton = styled.button`
+  height: 40px;
+  padding: 0 1rem;
+  border: 0;
+  border-radius: 8px;
+  background: ${theme.colors.primary};
+  color: ${theme.colors.white};
+  cursor: pointer;
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
 `;
