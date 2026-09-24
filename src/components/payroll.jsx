@@ -66,6 +66,8 @@ const PayrollComponent = ({ employee, onEmployeeUpdated }) => {
       conveyanceAllowance: salaryDetails.conveyanceAllowance ?? "",
       specialAllowance: salaryDetails.specialAllowance ?? "",
       otherFixedAllowance: salaryDetails.otherFixedAllowance ?? "",
+      pfAmount: salaryDetails.pfAmount ?? "",
+      esiAmount: salaryDetails.esiAmount ?? "",
     });
     setEditor("salaryBasic");
   };
@@ -197,6 +199,8 @@ const PayrollComponent = ({ employee, onEmployeeUpdated }) => {
               label: "Other Fixed Allowance",
               value: money(salaryDetails.otherFixedAllowance),
             },
+            { label: "PF Amount", value: money(salaryDetails.pfAmount) },
+            { label: "ESI Amount", value: money(salaryDetails.esiAmount) },
           ]}
         />
       )}
@@ -400,6 +404,8 @@ const PayrollComponent = ({ employee, onEmployeeUpdated }) => {
                         "Other Fixed Allowance",
                         "number",
                       ],
+                      ["pfAmount", "PF Amount", "number"],
+                      ["esiAmount", "ESI Amount", "number"],
                     ]
                   : [
                       ["totalSalary", "Total Salary", "number"],
