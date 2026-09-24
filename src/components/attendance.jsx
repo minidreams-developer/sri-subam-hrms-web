@@ -31,22 +31,40 @@ const Attendance = () => {
 
   const handleFilterApply = (filters) => {
     setAppliedFilters(filters);
+    setCurrentPage(1);
     setShowFilter(false);
-    console.log("Applied filters:", filters);
   };
 
   // Fetch attendance data from API
   useEffect(() => {
     fetchAttendanceData();
+  }, [currentPage, activeTab, searchValue, departmentFilter, shiftFilter, appliedFilters]);
+
+  useEffect(() => {
     fetchDepartmentsAndShifts();
-  }, [currentPage]);
+  }, []);
 
   const fetchAttendanceData = async () => {
     try {
       setLoading(true);
-      const response = await getAttendance({ page: currentPage, limit: rowsPerPage });
+      const params = {
+        page: currentPage,
+        limit: rowsPerPage,
+        role: activeTab === "Staffs" ? "staff" : "employee",
+      };
+
+      if (searchValue.trim()) params.search = searchValue.trim();
+      if (departmentFilter !== "All Department") params.department = departmentFilter;
+      if (shiftFilter !== "All Shifts") params.shift = shiftFilter;
+      Object.entries(appliedFilters || {}).forEach(([key, value]) => {
+        if (value !== "" && value !== null && value !== undefined) {
+          params[key] = Array.isArray(value) ? value[0] : value;
+        }
+      });
+
+      const response = await getAttendance(params);
       
-      const records = response.results || [];
+      const records = response.results || response.data || response.attendance || [];
       
       // Transform API data to match table format
       const transformedData = records.map((record) => {
@@ -125,9 +143,7 @@ const Attendance = () => {
   ];
 
   // Filter data based on search
-  const filteredData = attendanceData.filter((item) =>
-    item.name.toLowerCase().includes(searchValue.toLowerCase())
-  );
+  const filteredData = attendanceData;
 
   // Reset to page 1 when search changes
   const handleSearch = (value) => {
