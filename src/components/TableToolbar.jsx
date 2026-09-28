@@ -4,6 +4,7 @@ import theme from "../theme/theme";
 import SearchInputComponent from "./SearchInputComponent";
 import Button from "./Button";
 import FilterIcon from "../assets/images/DashboardImages/filtericon.svg";
+import DropdownComponent from "./DropdownComponent";
 
 const TableToolbar = ({
   searchPlaceholder = "Search",
@@ -59,36 +60,22 @@ const TableToolbar = ({
       <Right>
         {select1Options?.length > 0 && (
           <SelectWrap $w={widths.select}>
-            <select
-              className="form-select"
+            <DropdownComponent
+              options={select1Options}
               value={select1Value}
-              onChange={(e) =>
-                onSelect1Change && onSelect1Change(e.target.value)
-              }
-            >
-              {select1Options.map((opt, idx) => (
-                <option key={opt?.value ?? idx} value={opt?.value ?? opt}>
-                  {opt?.label ?? opt}
-                </option>
-              ))}
-            </select>
+              onChange={onSelect1Change}
+              placeholder="Select"
+            />
           </SelectWrap>
         )}
         {select2Options?.length > 0 && (
           <SelectWrap $w={widths.select}>
-            <select
-              className="form-select"
+            <DropdownComponent
+              options={select2Options}
               value={select2Value}
-              onChange={(e) =>
-                onSelect2Change && onSelect2Change(e.target.value)
-              }
-            >
-              {select2Options.map((opt, idx) => (
-                <option key={opt?.value ?? idx} value={opt?.value ?? opt}>
-                  {opt?.label ?? opt}
-                </option>
-              ))}
-            </select>
+              onChange={onSelect2Change}
+              placeholder="Select"
+            />
           </SelectWrap>
         )}
         {searchPosition === "right" && (

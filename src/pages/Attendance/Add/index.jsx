@@ -188,13 +188,29 @@ const AddAttendance = () => {
         return `${year}-${month}-${day}`;
       };
 
+      // TimePicker returns a Date whose calendar day is incidental (usually today).
+      // Build the timestamp from the selected attendance date so the picker day and
+      // the browser timezone cannot change the submitted login/logout date.
+      const formatAttendanceTimestamp = (timeValue, attendanceDate, addDay = false) => {
+        const result = new Date(attendanceDate);
+        result.setHours(timeValue.getHours(), timeValue.getMinutes(), 0, 0);
+        if (addDay) result.setDate(result.getDate() + 1);
+        return result.toISOString();
+      };
+
+      const loginDate = new Date(date);
+      const logoutDate = new Date(date);
+      logoutDate.setHours(logoutTime.getHours(), logoutTime.getMinutes(), 0, 0);
+      const loginMinutes = loginTime.getHours() * 60 + loginTime.getMinutes();
+      const logoutMinutes = logoutTime.getHours() * 60 + logoutTime.getMinutes();
+
       // Prepare payload according to API spec
       const payload = {
         employeeId: employee.value,
         date: formatDateToString(date),
         shiftId: shift.value,
-        loginTime: loginTime,
-        logoutTime: logoutTime,
+        loginTime: formatAttendanceTimestamp(loginTime, loginDate),
+        logoutTime: formatAttendanceTimestamp(logoutTime, loginDate, logoutMinutes < loginMinutes),
         attendanceStatus: attendanceStatus.value,
         IsOverTimeWoked: false,
         overTimeWorkedHours: 0,
@@ -342,6 +358,7 @@ const AddAttendance = () => {
             placeholder="Start Time"
             onTimeSelect={setLoginTime}
             initialTime={loginTime}
+            timeFormat="HH:mm"
           />
         </Col>
         <Col>
@@ -350,6 +367,7 @@ const AddAttendance = () => {
             placeholder="End Time"
             onTimeSelect={setLogoutTime}
             initialTime={logoutTime}
+            timeFormat="HH:mm"
           />
         </Col>
       </Row>

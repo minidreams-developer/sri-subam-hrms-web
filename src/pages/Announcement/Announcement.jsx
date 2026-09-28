@@ -5,6 +5,7 @@ import { toast } from "react-toastify";
 import { FiEdit2, FiPlus, FiTrash2 } from "react-icons/fi";
 import { useOutletContext } from "react-router-dom";
 import SearchInputComponent from "../../components/SearchInputComponent";
+import DropdownComponent from "../../components/DropdownComponent";
 import Button from "../../components/Button";
 import CalenderInput from "../../components/CalenderInput";
 import TimeInputComponent from "../../components/TimeInputComponent";
@@ -471,10 +472,14 @@ const Announcement = () => {
         </SearchInputWrapper>
         <RightActions>
           {isAdmin && (
-            <FilterSelect value={filter} onChange={(e) => setFilter(e.target.value)}>
-              <option value="Published">Published</option>
-              <option value="Scheduled">Scheduled</option>
-            </FilterSelect>
+            <AnnouncementFilter>
+              <DropdownComponent
+                options={["Published", "Scheduled"]}
+                value={filter}
+                onChange={setFilter}
+                placeholder="Select status"
+              />
+            </AnnouncementFilter>
           )}
           <Button
             text="New Announcement"
@@ -718,6 +723,10 @@ const RightActions = styled.div`
     width: 100%;
     flex-direction: column;
   }
+`;
+
+const AnnouncementFilter = styled.div`
+  width: 183px;
 `;
 
 const FilterSelect = styled.select`

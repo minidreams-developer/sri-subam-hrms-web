@@ -4,6 +4,7 @@ import styled from "styled-components";
 import ReusableTable from "../../components/ReusableTable";
 import theme from "../../theme/theme";
 import Button from "../../components/Button";
+import DropdownComponent from "../../components/DropdownComponent";
 import TableToolbar from "../../components/TableToolbar";
 import PlusIcon from "../../assets/images/DashboardImages/plus-large_svgrepo.com.svg";
 import TabSwitcher from "../../components/TabSwitcher";
@@ -482,30 +483,20 @@ const Employees = () => {
         <TopTitle>Quick Stats</TopTitle>
         <Controls>
           <FilterSelect>
-            <select
-              className="form-select"
+            <DropdownComponent
+              options={["All", "Active", "In-Active"]}
               value={selectedDepartment}
-              onChange={(e) => {
-                setSelectedDepartment(e.target.value);
-              }}
-            >
-              <option>All</option>
-              <option>Active</option>
-              <option>In-Active</option>
-            </select>
+              onChange={setSelectedDepartment}
+              placeholder="Select status"
+            />
           </FilterSelect>
           <FilterSelect>
-            <select
-              className="form-select"
+            <DropdownComponent
+              options={["Last 7 days", "Last 30 days", "Last 90 days"]}
               value={selectedRange}
-              onChange={(e) => {
-                setSelectedRange(e.target.value);
-              }}
-            >
-              <option>Last 7 days</option>
-              <option>Last 30 days</option>
-              <option>Last 90 days</option>
-            </select>
+              onChange={setSelectedRange}
+              placeholder="Select range"
+            />
           </FilterSelect>
           <Button
             text="Export Data"

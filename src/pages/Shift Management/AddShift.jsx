@@ -93,7 +93,11 @@ const AddShift = () => {
 
         // Shift Type
         if (response.shiftType) {
-          setShiftType({ value: response.shiftType, label: response.shiftType.charAt(0).toUpperCase() + response.shiftType.slice(1) });
+          const normalizedShiftType = response.shiftType.toLowerCase();
+          setShiftType({
+            value: normalizedShiftType,
+            label: normalizedShiftType.charAt(0).toUpperCase() + normalizedShiftType.slice(1),
+          });
         }
 
         // Same timing for all days
@@ -103,14 +107,17 @@ const AddShift = () => {
 
         // Shift Timing
         if (response.timings && response.timings.length > 0) {
-          const firstTiming = response.timings[0];
-          setStartTime(firstTiming.startTime || "");
-          setEndTime(firstTiming.endTime || "");
+          const firstWorkingTiming = response.timings.find((timing) => !timing.off);
+          if (firstWorkingTiming) {
+            setStartTime(firstWorkingTiming.startTime || "");
+            setEndTime(firstWorkingTiming.endTime || "");
+          }
         }
 
         setTotalShiftDuration(response.totalShiftDuration || "");
         setMinimumWorkingHours(response.minWorkingHours || "");
         setHalfDayWorkingHours(response.halfDayWorkingHours || "");
+        setOvertimeAfterHours(response.overtimeAfterHours?.toString() || "8");
 
         // Grace Periods
         if (response.gracePeriod) {
@@ -162,10 +169,8 @@ const AddShift = () => {
         }
 
         // Weekly Pattern
-        if (response.timings && response.timings.length > 0) {
-          const offDays = response.timings
-            .filter(t => t.off)
-            .map(t => ({ value: t.day, label: t.day }));
+        if (response.weekOff) {
+          const offDays = response.weekOff.map((day) => ({ value: day, label: day }));
           setFixedDays(offDays.length > 0 ? offDays : null);
         }
 
@@ -221,6 +226,7 @@ const AddShift = () => {
   const [autoHalfDayAfter, setAutoHalfDayAfter] = useState("");
   const [autoAbsentIfWorkingHours, setAutoAbsentIfWorkingHours] = useState("");
   const [overtimeEligibility, setOvertimeEligibility] = useState(null);
+  const [overtimeAfterHours, setOvertimeAfterHours] = useState("8");
 
   // Weekly Pattern
   const [fixedDays, setFixedDays] = useState(null);
@@ -238,9 +244,17 @@ const AddShift = () => {
         return `${Number((hours + minutes / 60).toFixed(2))}h`;
       }
     }
-    const hoursMatch = input.match(/^(\d+(?:\.\d+)?)\s*h?$/);
+    const hoursMatch = input.match(/^(\d+(?:\.\d+)?)\s*(?:h|hrs?|hours?)?$/);
     if (hoursMatch && Number(hoursMatch[1]) <= 24) return `${Number(hoursMatch[1])}h`;
     return null;
+  };
+
+  const formatTimeForPayload = (value) => {
+    if (!value) return "";
+    if (typeof value === "string" && /^([01]\d|2[0-3]):[0-5]\d$/.test(value)) return value;
+    const date = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(date.getTime())) return "";
+    return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
   };
 
   // Keep the duration in sync with the selected shift times. Only the time
@@ -310,20 +324,26 @@ const AddShift = () => {
       if (shiftType?.value === "fixed") {
         if (sameTiming?.value === "yes") {
           // Same timing for all days
-          timingsArray = weekDays.map((day) => ({
-            day,
-            startTime,
-            endTime,
-            off: false,
-          }));
+          timingsArray = weekDays.map((day) => {
+            const isWeekOff = fixedDays?.some((fixedDay) => fixedDay.value === day);
+            return {
+              day,
+              startTime: isWeekOff ? "" : formatTimeForPayload(startTime),
+              endTime: isWeekOff ? "" : formatTimeForPayload(endTime),
+              off: isWeekOff,
+            };
+          });
         } else {
           // Different timing per day - use the same start/end for now
-          timingsArray = weekDays.map((day) => ({
-            day,
-            startTime,
-            endTime,
-            off: false,
-          }));
+          timingsArray = weekDays.map((day) => {
+            const isWeekOff = fixedDays?.some((fixedDay) => fixedDay.value === day);
+            return {
+              day,
+              startTime: isWeekOff ? "" : formatTimeForPayload(startTime),
+              endTime: isWeekOff ? "" : formatTimeForPayload(endTime),
+              off: isWeekOff,
+            };
+          });
         }
       }
 
@@ -339,11 +359,12 @@ const AddShift = () => {
       const payload = {
         shiftCode,
         shiftName,
-        shiftType: shiftType?.value || "fixed",
+        shiftType: shiftType?.label || "Fixed",
         sameTimingForAllDays: sameTiming?.value === "yes",
-        totalShiftDuration: totalShiftDuration || "0",
+        totalShiftDuration: normalizeWorkingHours(totalShiftDuration) || "0h",
         minWorkingHours: normalizedMinimumWorkingHours,
         halfDayWorkingHours: normalizedHalfDayWorkingHours,
+        overtimeAfterHours: Number(overtimeAfterHours) || 0,
         timings: timingsArray,
         breakManagement: {
           enabled: breakManagementEnabled,
@@ -366,8 +387,6 @@ const AddShift = () => {
         attendanceRules: {
           lateMarkAfter: parseInt(lateMarkAfter) || 0,
           autoHalfDayAfterLate: parseInt(autoHalfDayAfter) || 0,
-          autoAbsentIfWorkingHours: parseInt(autoAbsentIfWorkingHours) || 0,
-          overtimeEligibility: overtimeEligibility?.value === "yes",
         },
         weekOff: fixedDays
           ? fixedDays.map((d) => d.value)
@@ -1217,16 +1236,41 @@ const AddShift = () => {
 const Container = styled.div`
   min-height: calc(100vh - 100px);
   position: relative;
+  width: 100%;
+  color: #10272b;
 `;
 
 const Footer = styled.div`
-  padding: 2rem 0 0 0;
+  width: 100%;
+  padding: 1.75rem 0 0;
   border-top: 1px solid ${theme.colors.border};
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-top: 2rem;
   z-index: 10;
+
+  button {
+    min-height: 42px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 600;
+  }
+
+  @media (max-width: 768px) {
+    flex-direction: column-reverse;
+    gap: 1rem;
+    align-items: stretch;
+
+    > div {
+      width: 100%;
+      flex-direction: column;
+    }
+
+    button {
+      width: 100% !important;
+    }
+  }
 `;
 
 const SubHeader = styled.div`
@@ -1238,18 +1282,18 @@ const SubHeader = styled.div`
 `;
 
 const Title = styled.h2`
-  font-size: 1.125rem;
+  font-size: 1rem;
   font-family: "Inter", sans-serif;
   font-weight: 600;
-  margin: 0 0 1.5rem 0;
+  margin: 0 0 1.25rem 0;
   color: ${theme.colors.primary};
 `;
 
 const Row = styled.div`
   display: flex;
-  gap: 1.5rem;
+  gap: 1rem;
   width: 80%;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.75rem;
   align-items: flex-end;
 
   @media (max-width: 768px) {
@@ -1263,13 +1307,14 @@ const Col = styled.div`
   flex: 1;
   display: flex;
   flex-direction: column;
+  min-width: 0;
 `;
 
 const Divider = styled.div`
   height: 1px;
   background-color: #e0e3e6;
   width: 100%;
-  margin: 2rem 0;
+  margin: 1.75rem 0 2rem;
 `;
 
 const Tag = styled.div`

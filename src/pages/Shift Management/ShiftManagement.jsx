@@ -39,8 +39,13 @@ const ShiftManagement = () => {
   // Helper function to extract time from ISO datetime string (HH:MM format)
   const extractTime = (dateTimeString) => {
     if (!dateTimeString) return "-";
+    // Shift timings are commonly returned as plain HH:mm strings.
+    if (/^\d{1,2}:\d{2}$/.test(String(dateTimeString))) {
+      return String(dateTimeString).padStart(5, "0");
+    }
     try {
       const date = new Date(dateTimeString);
+      if (Number.isNaN(date.getTime())) return String(dateTimeString);
       const hours = String(date.getHours()).padStart(2, "0");
       const minutes = String(date.getMinutes()).padStart(2, "0");
       return `${hours}:${minutes}`;
@@ -81,6 +86,7 @@ const ShiftManagement = () => {
       
       // Map API response to table format
       const mappedData = data.map(shift => ({
+        ...shift,
         id: shift.id || shift._id,
         shiftCode: shift.shiftCode,
         shiftName: shift.shiftName,
@@ -91,8 +97,7 @@ const ShiftManagement = () => {
         status: shift.isShiftActive ? "Active" : "Inactive",
         type: shift.shiftType,
         action: <ActionCell row={{id: shift.id || shift._id}} />,
-        // Store full object for sidebar
-        ...shift
+        // Keep the raw shift fields while preserving the table's normalized values above.
       }));
       
       setShiftsData(mappedData);

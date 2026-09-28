@@ -10,6 +10,7 @@ const TimeInputComponent = ({
   initialTime,
   label = "Time",
   placeholder = "Select Time",
+  timeFormat = "h:mm aa",
 }) => {
   const [selectedTime, setSelectedTime] = useState(null);
   const datePickerRef = useRef(null);
@@ -46,7 +47,7 @@ const TimeInputComponent = ({
           showTimeSelectOnly
           timeIntervals={15}
           timeCaption="Time"
-          dateFormat="h:mm aa"
+          dateFormat={timeFormat}
           placeholderText={placeholder}
           popperPlacement="bottom-start"
           showPopperArrow={false}

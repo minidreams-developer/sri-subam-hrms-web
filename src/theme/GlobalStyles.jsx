@@ -170,6 +170,27 @@ const GlobalStyles = createGlobalStyle`
     font-weight: 900;
     font-style: normal;
   }
+
+  /* Shared native dropdown appearance across the application */
+  select {
+    min-height: 40px;
+    border: 1px solid #d8dde3;
+    border-radius: 10px;
+    background: #fff;
+    color: #10272b;
+    padding: 0 14px;
+    font-family: 'Inter-Regular', sans-serif;
+    outline: none;
+    cursor: pointer;
+  }
+  select:hover { border-color: #087985; }
+  select:focus {
+    border-color: #087985;
+    box-shadow: 0 0 0 3px rgba(8, 121, 133, .15);
+  }
+  select option { background: #fff; color: #10272b; }
+  select option:checked { background: #087985; color: #fff; }
+  select option:hover { background: #e8f5f4; color: #10272b; }
 `;
 
 export default GlobalStyles;

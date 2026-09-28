@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React from "react";
+import Select from "react-select";
 import styled from "styled-components";
 import theme from "../theme/theme";
 
@@ -18,22 +19,6 @@ const Label = styled.label`
   margin: 1rem 0 0.625rem 0;
 `;
 
-const Select = styled.select`
-  width: 100%;
-  padding: 0.875rem;
-  border-radius: 6px;
-  border: 1px solid ${theme.colors.border};
-  font-size: 16px;
-  color: ${theme.colors.textColor};
-  outline: none;
-  appearance: none;
-  cursor: pointer;
-
-  &:focus {
-    border-color: ${theme.colors.primaryGreen};
-  }
-`;
-
 const DropdownComponent = ({
   title,
   options,
@@ -41,30 +26,34 @@ const DropdownComponent = ({
   onChange,
   placeholder,
 }) => {
-  const [isFocused, setIsFocused] = useState(false);
+  const selectOptions = options.map((option) =>
+    typeof option === "object"
+      ? option
+      : { value: option, label: option },
+  );
+  const selected = selectOptions.find(
+    (option) => String(option.value) === String(value),
+  );
 
   return (
     <DropdownContainer>
-      {title && <Label isFocused={isFocused}>{title}</Label>}
+      {title && <Label>{title}</Label>}
       <Select
-        value={value ?? ""}
-        onChange={(e) => onChange(e.target.value)}
-        onFocus={() => setIsFocused(true)}
-        onBlur={() => setIsFocused(false)}
-      >
-        {placeholder && (
-          <option value="" disabled hidden>
-            {placeholder}
-          </option>
-        )}
-        {options.map((option, index) => (
-          <option key={index} value={option}>
-            {option}
-          </option>
-        ))}
-      </Select>
+        value={selected || null}
+        options={selectOptions}
+        placeholder={placeholder}
+        onChange={(option) => onChange(option?.value || "")}
+        styles={dropdownStyles}
+        isSearchable={false}
+      />
     </DropdownContainer>
   );
+};
+
+const dropdownStyles = {
+  control: (provided, state) => ({ ...provided, minHeight: 44, borderRadius: 10, borderColor: state.isFocused ? theme.colors.primary : theme.colors.border, boxShadow: state.isFocused ? `0 0 0 3px rgba(8,121,133,.15)` : "none", "&:hover": { borderColor: theme.colors.primary } }),
+  menu: (provided) => ({ ...provided, zIndex: 9999, borderRadius: 10, overflow: "hidden" }),
+  option: (provided, state) => ({ ...provided, backgroundColor: state.isSelected ? theme.colors.primary : state.isFocused ? "#e8f5f4" : "#fff", color: state.isSelected ? "#fff" : theme.colors.textColor, cursor: "pointer" }),
 };
 
 export default DropdownComponent;

@@ -16,6 +16,7 @@ import FilterIcon from "../../assets/images/DashboardImages/filtericon.svg";
 import Filter from "../../components/filter";
 import { getDashboard, getDepartments, getShifts, getUsers, getPresentToday } from "../../services/apiServices";
 import { toast } from "react-toastify";
+import DropdownComponent from "../../components/DropdownComponent";
 
 const formatAttendanceTime = (value) => {
   if (!value || value === "N/A") return "N/A";
@@ -28,6 +29,8 @@ const Dashboard = () => {
   const today = new Date();
   const todayDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
   const [dateRange, setDateRange] = useState("Today");
+  const [attendancePeriod, setAttendancePeriod] = useState("This Week");
+  const [payrollPeriod, setPayrollPeriod] = useState("This Month");
   const [activeTab, setActiveTab] = useState("employees");
   const [searchValue, setSearchValue] = useState("");
   const [departmentFilter, setDepartmentFilter] = useState("All Department");
@@ -363,15 +366,6 @@ const Dashboard = () => {
       late: item.late,
     }),
   ) || [];
-  /*
-    { date: "14-07", present: 200, onLeave: 100, late: 20 },
-    { date: "15-07", present: 220, onLeave: 80, late: 25 },
-    { date: "16-07", present: 210, onLeave: 95, late: 18 },
-    { date: "17-07", present: 240, onLeave: 60, late: 22 },
-    { date: "18-07", present: 195, onLeave: 110, late: 28 },
-    { date: "19-07", present: 230, onLeave: 75, late: 20 },
-    { date: "20-07", present: 250, onLeave: 50, late: 15 },
-  */
 
   // Build payroll breakdown from API
   const payrollData = dashboardData?.payrollBreakdown?.categories
@@ -540,14 +534,7 @@ const Dashboard = () => {
         <SectionHeader>
           <SectionTitle>Quick Stats</SectionTitle>
           <HeaderRight>
-            <DateSelect
-              value={dateRange}
-              onChange={(e) => setDateRange(e.target.value)}
-            >
-              <option>Today</option>
-              <option>This Week</option>
-              <option>This Month</option>
-            </DateSelect>
+            <DropdownComponent value={dateRange} onChange={setDateRange} options={["Today", "This Week", "This Month"]} />
           </HeaderRight>
         </SectionHeader>
 
@@ -571,10 +558,7 @@ const Dashboard = () => {
         <AttendanceCard>
           <ChartHeader>
             <ChartTitle>Attendance Overview</ChartTitle>
-            <PeriodSelect>
-              <option>This Week</option>
-              <option>This Month</option>
-            </PeriodSelect>
+            <DropdownComponent value={attendancePeriod} onChange={setAttendancePeriod} options={["This Week", "This Month"]} />
           </ChartHeader>
           <ChartContainer>
             <Legend>
@@ -608,10 +592,7 @@ const Dashboard = () => {
         <PayrollCard>
           <ChartHeader>
             <ChartTitle>Payroll Breakdown</ChartTitle>
-            <PeriodSelect>
-              <option>This Month</option>
-              <option>This Year</option>
-            </PeriodSelect>
+            <DropdownComponent value={payrollPeriod} onChange={setPayrollPeriod} options={["This Month", "This Year"]} />
           </ChartHeader>
           <PayrollContent>
             <PayrollMain>
@@ -703,33 +684,11 @@ const Dashboard = () => {
           </SearchWrap>
 
           <SelectWrap>
-            <select
-              value={departmentFilter}
-              onChange={(e) => handleDepartmentChange(e.target.value)}
-              disabled={loadingDepts}
-            >
-              <option>All Department</option>
-              {departmentOptions.map((dept) => (
-                <option key={dept.value} value={dept.value}>
-                  {dept.label}
-                </option>
-              ))}
-            </select>
+            <DropdownComponent value={departmentFilter} onChange={handleDepartmentChange} options={["All Department", ...departmentOptions.map((dept) => dept.value)]} />
           </SelectWrap>
 
           <SelectWrap>
-            <select
-              value={shiftFilter}
-              onChange={(e) => handleShiftChange(e.target.value)}
-              disabled={loadingShifts}
-            >
-              <option>All Shifts</option>
-              {shiftOptions.map((shift) => (
-                <option key={shift.value} value={shift.value}>
-                  {shift.label}
-                </option>
-              ))}
-            </select>
+            <DropdownComponent value={shiftFilter} onChange={handleShiftChange} options={["All Shifts", ...shiftOptions.map((shift) => shift.value)]} />
           </SelectWrap>
 
           <FilterButton onClick={() => setShowFilter(true)}>
