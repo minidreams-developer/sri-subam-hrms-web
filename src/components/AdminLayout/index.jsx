@@ -420,7 +420,7 @@ const AdminLayout = () => {
           </HeaderActions>
         </Header>
         <Content>
-          <Outlet context={{ setHeaderTitle, setHeaderBackAction }} />
+          <Outlet key={location.pathname} context={{ setHeaderTitle, setHeaderBackAction }} />
         </Content>
       </MainContent>
       {logoutConfirmationOpen && (

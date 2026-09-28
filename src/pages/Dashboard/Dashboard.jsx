@@ -17,6 +17,13 @@ import Filter from "../../components/filter";
 import { getDashboard, getDepartments, getShifts, getUsers, getPresentToday } from "../../services/apiServices";
 import { toast } from "react-toastify";
 
+const formatAttendanceTime = (value) => {
+  if (!value || value === "N/A") return "N/A";
+  if (typeof value === "string" && !value.includes("T")) return value;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "N/A" : date.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true });
+};
+
 const Dashboard = () => {
   const today = new Date();
   const todayDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
@@ -61,9 +68,9 @@ const Dashboard = () => {
           name: user.name || record.employeeName || record.name || "N/A",
           position: user.workInformation?.designation || user.designation || record.designation || "N/A",
           shift: user.workInformation?.shift || user.shift || record.shift || "N/A",
-          checkIn: record.checkIn || record.loginTime || record.checkInTime || "N/A",
-          checkOut: record.checkOut || record.logoutTime || record.checkOutTime || "N/A",
-          working: record.workingHours || record.working || "N/A",
+          checkIn: formatAttendanceTime(record.checkIn || record.loginTime || record.checkInTime),
+          checkOut: formatAttendanceTime(record.checkOut || record.logoutTime || record.checkOutTime),
+          working: record.workingHours != null ? `${Number(record.workingHours).toFixed(2)} Hrs` : record.working || "N/A",
           status: record.status || record.attendanceStatus || "N/A",
           department: user.workInformation?.department || user.department || record.department || "N/A",
           type: role,
