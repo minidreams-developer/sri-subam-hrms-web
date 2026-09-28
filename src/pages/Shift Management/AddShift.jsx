@@ -26,7 +26,10 @@ const AddShift = () => {
   const [effectiveStartDate, setEffectiveStartDate] = useState(null);
   const [breaks, setBreaks] = useState([{ id: 1 }]);
   const [breakManagementEnabled, setBreakManagementEnabled] = useState(false);
-  const [sameTiming, setSameTiming] = useState({ value: "yes", label: "Yes" });
+  // New shifts show an individual timing row for each weekday by default,
+  // matching the Shift Management form design. Existing shifts are populated
+  // from the API in fetchShiftDetails.
+  const [sameTiming, setSameTiming] = useState({ value: "no", label: "No" });
   const [shiftType, setShiftType] = useState({
     value: "fixed",
     label: "Fixed",
@@ -112,6 +115,13 @@ const AddShift = () => {
             setStartTime(firstWorkingTiming.startTime || "");
             setEndTime(firstWorkingTiming.endTime || "");
           }
+          setDayTimings(response.timings.reduce((result, timing) => ({
+            ...result,
+            [timing.day]: {
+              startTime: timing.startTime || "",
+              endTime: timing.endTime || "",
+            },
+          }), {}));
         }
 
         setTotalShiftDuration(response.totalShiftDuration || "");
@@ -208,6 +218,7 @@ const AddShift = () => {
   // Shift Timing
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
+  const [dayTimings, setDayTimings] = useState({});
   const [totalShiftDuration, setTotalShiftDuration] = useState("");
   const [minimumWorkingHours, setMinimumWorkingHours] = useState("");
   const [halfDayWorkingHours, setHalfDayWorkingHours] = useState("");
@@ -334,13 +345,14 @@ const AddShift = () => {
             };
           });
         } else {
-          // Different timing per day - use the same start/end for now
+          // Different timing per day: use each weekday's own values.
           timingsArray = weekDays.map((day) => {
             const isWeekOff = fixedDays?.some((fixedDay) => fixedDay.value === day);
+            const timing = dayTimings[day] || {};
             return {
               day,
-              startTime: isWeekOff ? "" : formatTimeForPayload(startTime),
-              endTime: isWeekOff ? "" : formatTimeForPayload(endTime),
+              startTime: isWeekOff ? "" : formatTimeForPayload(timing.startTime),
+              endTime: isWeekOff ? "" : formatTimeForPayload(timing.endTime),
               off: isWeekOff,
             };
           });
@@ -723,16 +735,22 @@ const AddShift = () => {
                     <TimeInputComponent
                       label="Start Time"
                       placeholder="Start Time"
-                      onTimeSelect={(time) => setStartTime(time)}
-                      initialTime={startTime}
+                      onTimeSelect={(time) => setDayTimings((current) => ({
+                        ...current,
+                        [day]: { ...current[day], startTime: time },
+                      }))}
+                      initialTime={dayTimings[day]?.startTime || ""}
                     />
                   </Col>
                   <Col>
                     <TimeInputComponent
                       label="End Time"
                       placeholder="End Time"
-                      onTimeSelect={(time) => setEndTime(time)}
-                      initialTime={endTime}
+                      onTimeSelect={(time) => setDayTimings((current) => ({
+                        ...current,
+                        [day]: { ...current[day], endTime: time },
+                      }))}
+                      initialTime={dayTimings[day]?.endTime || ""}
                     />
                   </Col>
                 </Row>
