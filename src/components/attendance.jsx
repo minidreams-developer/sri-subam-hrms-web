@@ -7,7 +7,7 @@ import ReusableTable from "./ReusableTable";
 import SearchInputComponent from "./SearchInputComponent";
 import FilterIcon from "../assets/images/DashboardImages/filtericon.svg";
 import Filter from "./filter";
-import { getAttendance, getDepartments, getShifts } from "../services/apiServices";
+import { getPresentToday, getDepartments, getShifts } from "../services/apiServices";
 import { toast } from "react-toastify";
 
 const Attendance = () => {
@@ -62,31 +62,31 @@ const Attendance = () => {
         }
       });
 
-      const response = await getAttendance(params);
+      const response = await getPresentToday(params);
       
-      const records = response.results || response.data || response.attendance || [];
+      const records = Array.isArray(response)
+        ? response
+        : response.results || response.data || response.attendance || [];
       
       // Transform API data to match table format
       const transformedData = records.map((record) => {
-        // Extract employee name - handle object or string
-        const employeeName = typeof record.employeeId === "object" 
-          ? record.employeeId?.name || record.employeeId?.employeeName || "N/A"
+        const employee = record.employee || record.employeeId;
+        const employeeName = typeof employee === "object"
+          ? employee?.name || employee?.employeeName || "N/A"
           : record.employeeName || "N/A";
 
-        // Extract employee ID - handle object or string
-        const empId = typeof record.employeeId === "object"
-          ? record.employeeId?.employeeId || record.employeeId?.id || "N/A"
-          : record.employeeId || "N/A";
+        const empId = typeof employee === "object"
+          ? employee?.employeeId || employee?.id || "N/A"
+          : employee || "N/A";
 
-        // Extract shift name - handle object or string
-        const shiftName = typeof record.shiftId === "object" 
-          ? record.shiftId?.shiftName || record.shiftId?.name || "N/A" 
-          : record.shiftId || "N/A";
+        const shiftName = typeof record.shiftId === "object"
+          ? record.shiftId?.shiftName || record.shiftId?.name || "N/A"
+          : record.shiftId || record.shift || "N/A";
 
         // Extract designation - nested in employeeId.workInformation.designation or direct field
         let designation = "N/A";
-        if (typeof record.employeeId === "object" && record.employeeId?.workInformation?.designation) {
-          designation = record.employeeId.workInformation.designation;
+        if (typeof employee === "object" && employee?.workInformation?.designation) {
+          designation = employee.workInformation.designation;
         } else if (typeof record.designation === "object" && record.designation?.name) {
           designation = record.designation.name;
         } else if (typeof record.designation === "string") {
@@ -101,7 +101,7 @@ const Attendance = () => {
           : "N/A";
 
         return {
-          id: record._id || record.id,
+          id: record.attendanceId || record._id || record.id,
           employeeId: empId,
           name: employeeName,
           designation: designation,
@@ -109,15 +109,15 @@ const Attendance = () => {
           checkIn: record.loginTime ? new Date(record.loginTime).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }) : "N/A",
           checkOut: record.logoutTime ? new Date(record.logoutTime).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }) : "N/A",
           workingHrs: workingHours,
-          status: record.attendanceStatus === "onTime" ? "On Time" : record.attendanceStatus === "earlyOut" ? "Early Out" : "Arrived Late",
+          status: record.timingStatus === "onTime" ? "On Time" : record.timingStatus === "earlyOut" ? "Early Out" : "Arrived Late",
           remarks: record.remarks || "N/A",
           raw: record,
         };
       });
 
       setAttendanceData(transformedData);
-      setTotalResults(response.totalResults || 0);
-      setTotalPages(response.totalPages || 1);
+      setTotalResults(response.totalResults || response.total || transformedData.length || 0);
+      setTotalPages(response.totalPages || response.pages || 1);
     } catch (error) {
       console.error("Error fetching attendance:", error);
       toast.error("Failed to fetch attendance records");
@@ -144,6 +144,13 @@ const Attendance = () => {
 
   // Filter data based on search
   const filteredData = attendanceData;
+  const attendanceStats = attendanceData.reduce(
+    (stats, row) => {
+      stats[row.status] = (stats[row.status] || 0) + 1;
+      return stats;
+    },
+    { "On Time": 0, "Early Out": 0, "Arrived Late": 0 },
+  );
 
   // Reset to page 1 when search changes
   const handleSearch = (value) => {
@@ -262,19 +269,19 @@ const Attendance = () => {
         <StatCard>
           <CardTitle>On Time</CardTitle>
           <CardFooter>
-            <CardValue>-</CardValue>
+            <CardValue>{attendanceStats["On Time"]}</CardValue>
           </CardFooter>
         </StatCard>
         <StatCard>
           <CardTitle>Early Out</CardTitle>
           <CardFooter>
-            <CardValue>-</CardValue>
+            <CardValue>{attendanceStats["Early Out"]}</CardValue>
           </CardFooter>
         </StatCard>
         <StatCard>
           <CardTitle>Arrived Late</CardTitle>
           <CardFooter>
-            <CardValue>-</CardValue>
+            <CardValue>{attendanceStats["Arrived Late"]}</CardValue>
           </CardFooter>
         </StatCard>
       </StatsGrid>

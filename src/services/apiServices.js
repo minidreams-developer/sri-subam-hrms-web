@@ -135,6 +135,19 @@ export const deleteShift = (id) => data(api.delete(`/v1/shifts/${id}`));
 
 // Attendance, leave, overtime, holidays, and rosters
 export const getAttendance = (params) => list("/v1/attendance", params);
+export const getTimesheetStats = (params, config) =>
+  list("/v1/timesheet/stats", params, config);
+export const getDailyTimesheet = (params, config) =>
+  list("/v1/timesheet/day", params, config);
+export const getWeeklyTimesheet = (params, config) =>
+  list("/v1/timesheet/week", params, config);
+export const getEmployeeTimesheetDate = (employeeId, date, config) =>
+  data(
+    api.get(
+      `/v1/timesheet/employee/${encodeURIComponent(employeeId)}/date/${encodeURIComponent(date)}`,
+      config,
+    ),
+  );
 export const getPresentToday = (params, config) =>
   list("/v1/attendance/present-today", params, config);
 
