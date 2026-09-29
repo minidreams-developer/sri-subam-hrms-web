@@ -27,9 +27,7 @@ const DropdownComponent = ({
   placeholder,
 }) => {
   const selectOptions = options.map((option) =>
-    typeof option === "object"
-      ? option
-      : { value: option, label: option },
+    typeof option === "object" ? option : { value: option, label: option },
   );
   const selected = selectOptions.find(
     (option) => String(option.value) === String(value),
@@ -51,9 +49,30 @@ const DropdownComponent = ({
 };
 
 const dropdownStyles = {
-  control: (provided, state) => ({ ...provided, minHeight: 44, borderRadius: 10, borderColor: state.isFocused ? theme.colors.primary : theme.colors.border, boxShadow: state.isFocused ? `0 0 0 3px rgba(8,121,133,.15)` : "none", "&:hover": { borderColor: theme.colors.primary } }),
-  menu: (provided) => ({ ...provided, zIndex: 9999, borderRadius: 10, overflow: "hidden" }),
-  option: (provided, state) => ({ ...provided, backgroundColor: state.isSelected ? theme.colors.primary : state.isFocused ? "#e8f5f4" : "#fff", color: state.isSelected ? "#fff" : theme.colors.textColor, cursor: "pointer" }),
+  control: (provided, state) => ({
+    ...provided,
+    minHeight: 44,
+    borderRadius: 10,
+    borderColor: state.isFocused ? theme.colors.primary : theme.colors.border,
+    boxShadow: state.isFocused ? `0 0 0 3px rgba(8,121,133,.15)` : "none",
+    "&:hover": { borderColor: theme.colors.primary },
+  }),
+  menu: (provided) => ({
+    ...provided,
+    zIndex: 9999,
+    borderRadius: 10,
+    overflow: "hidden",
+  }),
+  option: (provided, state) => ({
+    ...provided,
+    backgroundColor: state.isSelected
+      ? theme.colors.primary
+      : state.isFocused
+        ? "#e8f5f4"
+        : "#fff",
+    color: state.isSelected ? "#fff" : theme.colors.textColor,
+    cursor: "pointer",
+  }),
 };
 
 export default DropdownComponent;

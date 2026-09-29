@@ -36,6 +36,15 @@ const formatDate = (dateString) => {
   }
 };
 
+const getAgentStatus = (isActive) => {
+  if (isActive === true) return "Active";
+
+  const normalizedStatus = String(isActive ?? "").trim().toLowerCase();
+  return ["active", "true", "enabled"].includes(normalizedStatus)
+    ? "Active"
+    : "In-Active";
+};
+
 const Agents = () => {
   const navigate = useNavigate();
   const [selectedFilter, setSelectedFilter] = useState("All");
@@ -173,7 +182,7 @@ const Agents = () => {
           name: agent?.name || "N/A",
           laboursCount: Number(agent?.memberCount) || 0,
           joinedDate: formatDate(agent?.workInformation?.joinedDate),
-          status: agent?.isActive ? "Active" : "In-Active",
+          status: getAgentStatus(agent?.isActive),
           action: "",
         };
       });
@@ -185,8 +194,8 @@ const Agents = () => {
 
       // Calculate statistics
       const total = agentsList.length;
-      const active = agentsList.filter((a) => a.isActive === true).length;
-      const inactive = agentsList.filter((a) => a.isActive === false).length;
+      const active = agentsList.filter((a) => getAgentStatus(a.isActive) === "Active").length;
+      const inactive = agentsList.filter((a) => getAgentStatus(a.isActive) === "In-Active").length;
 
       const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
       const newCount = agentsList.filter((a) => {
