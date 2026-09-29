@@ -47,6 +47,7 @@ const Dashboard = () => {
   const [payrollPeriod, setPayrollPeriod] = useState("month");
   const [activeTab, setActiveTab] = useState("employees");
   const [searchValue, setSearchValue] = useState("");
+  const [debouncedSearchValue, setDebouncedSearchValue] = useState("");
   const [departmentFilter, setDepartmentFilter] = useState("All Department");
   const [shiftFilter, setShiftFilter] = useState("All Shifts");
   const [showFilter, setShowFilter] = useState(false);
@@ -81,12 +82,35 @@ const Dashboard = () => {
   }, [payrollPeriod, appliedFilters]);
 
   useEffect(() => {
+    const debounceTimer = window.setTimeout(() => {
+      setDebouncedSearchValue(searchValue);
+    }, 400);
+
+    return () => window.clearTimeout(debounceTimer);
+  }, [searchValue]);
+
+  useEffect(() => {
     fetchPresentToday(activeTab === "employees" ? "employee" : "staff");
-  }, [activeTab]);
+  }, [activeTab, debouncedSearchValue, departmentFilter, shiftFilter, appliedFilters]);
 
   const fetchPresentToday = async (role) => {
     try {
-      const response = await getPresentToday({ role, date: todayDate });
+      const params = {
+        role,
+        date: todayDate,
+      };
+
+      if (debouncedSearchValue.trim()) params.search = debouncedSearchValue.trim();
+      if (departmentFilter !== "All Department") params.departmentId = departmentFilter;
+      if (shiftFilter !== "All Shifts") params.shiftId = shiftFilter;
+
+      Object.entries(appliedFilters || {}).forEach(([key, value]) => {
+        if (["departmentId", "shiftId"].includes(key) && value) {
+          params[key] = Array.isArray(value) ? value[0] : value;
+        }
+      });
+
+      const response = await getPresentToday(params);
       const records = Array.isArray(response)
         ? response
         : response?.results || response?.data || response?.attendance || [];
@@ -249,7 +273,7 @@ const Dashboard = () => {
 
    
       const deptOptions = deptList.map((dept) => ({
-        value: dept.departmentName || dept.name || "N/A",
+        value: dept.id || dept._id,
         label: dept.departmentName || dept.name || "N/A",
       }));
 
@@ -273,7 +297,7 @@ const Dashboard = () => {
 
  
       const shiftOpts = shiftList.map((shift) => ({
-        value: shift.shiftName || shift.name || "N/A",
+        value: shift.id || shift._id,
         label: shift.shiftName || shift.name || "N/A",
       }));
 
@@ -340,52 +364,18 @@ const Dashboard = () => {
   // Handle department filter dropdown - only updates UI state
   const handleDepartmentChange = (value) => {
     setDepartmentFilter(value);
-    // No API call here - client-side filtering only
   };
 
   // Handle shift filter dropdown - only updates UI state
   const handleShiftChange = (value) => {
     setShiftFilter(value);
-    // No API call here - client-side filtering only
   };
 
   // Handle filter modal apply with API query parameters (per user-filters.md spec)
   const handleFilterApply = (queryParams) => {
     console.log("Applied filter query params:", queryParams);
-    // Build the API URL with query parameters
-    let url = `/v1/attendance/present-today?role=${activeTab === "employees" ? "employee" : "staff"}&date=${todayDate}`;
-
-    // Add all filter parameters
-    if (queryParams.departmentId) {
-      url += `&departmentId=${queryParams.departmentId}`;
-    }
-    if (queryParams.designation) {
-      url += `&designation=${encodeURIComponent(queryParams.designation)}`;
-    }
-    if (queryParams.joinedFrom) {
-      url += `&joinedFrom=${queryParams.joinedFrom}`;
-    }
-    if (queryParams.joinedTo) {
-      url += `&joinedTo=${queryParams.joinedTo}`;
-    }
-    if (queryParams.status) {
-      url += `&status=${queryParams.status}`;
-    }
-    if (queryParams.shiftId) {
-      url += `&shiftId=${queryParams.shiftId}`;
-    }
-    if (queryParams.sortBy) {
-      url += `&sortBy=${queryParams.sortBy}`;
-    }
-
-    // Add pagination
-    url += `&page=${queryParams.page || 1}&limit=${queryParams.limit || 10}`;
-
     setAppliedFilters(queryParams);
     setShowFilter(false);
-
-    // Fetch employees with applied filters
-    fetchEmployeesAndStaffWithFilters(url);
   };
 
   const fetchEmployeesAndStaffWithFilters = async (url) => {
@@ -562,37 +552,8 @@ const Dashboard = () => {
         ];
   */
 
-  // Filter employees based on search and filter criteria
-  const filteredEmployees = employees.filter((emp) => {
-    const matchesSearch =
-      emp.name.toLowerCase().includes(searchValue.toLowerCase()) ||
-      emp.position.toLowerCase().includes(searchValue.toLowerCase());
-    const matchesDepartment =
-      departmentFilter === "All Department" ||
-      emp.department === departmentFilter;
-    const matchesShift =
-      shiftFilter === "All Shifts" || emp.shift === shiftFilter;
-
-    return matchesSearch && matchesDepartment && matchesShift;
-  });
-
-  // Filter staff based on search and filter criteria
-  const filteredStaff = staffData.filter((staff) => {
-    const matchesSearch =
-      staff.name.toLowerCase().includes(searchValue.toLowerCase()) ||
-      staff.position.toLowerCase().includes(searchValue.toLowerCase());
-    const matchesDepartment =
-      departmentFilter === "All Department" ||
-      staff.department === departmentFilter;
-    const matchesShift =
-      shiftFilter === "All Shifts" || staff.shift === shiftFilter;
-
-    return matchesSearch && matchesDepartment && matchesShift;
-  });
-
-  // Use appropriate data based on active tab
-  const tableData =
-    activeTab === "employees" ? filteredEmployees : filteredStaff;
+  // The present-today API already applies search and filter parameters.
+  const tableData = activeTab === "employees" ? employees : staffData;
 
   return (
     <Container>
@@ -755,11 +716,11 @@ const Dashboard = () => {
           </SearchWrap>
 
           <SelectWrap>
-            <DropdownComponent value={departmentFilter} onChange={handleDepartmentChange} options={["All Department", ...departmentOptions.map((dept) => dept.value)]} />
+            <DropdownComponent value={departmentFilter} onChange={handleDepartmentChange} options={[{ value: "All Department", label: "All Department" }, ...departmentOptions]} />
           </SelectWrap>
 
           <SelectWrap>
-            <DropdownComponent value={shiftFilter} onChange={handleShiftChange} options={["All Shifts", ...shiftOptions.map((shift) => shift.value)]} />
+            <DropdownComponent value={shiftFilter} onChange={handleShiftChange} options={[{ value: "All Shifts", label: "All Shifts" }, ...shiftOptions]} />
           </SelectWrap>
 
           <FilterButton onClick={() => setShowFilter(true)}>

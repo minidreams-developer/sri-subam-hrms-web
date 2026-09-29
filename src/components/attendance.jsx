@@ -5,6 +5,7 @@ import theme from "../theme/theme";
 import Button from "./Button";
 import ReusableTable from "./ReusableTable";
 import SearchInputComponent from "./SearchInputComponent";
+import DropdownComponent from "./DropdownComponent";
 import FilterIcon from "../assets/images/DashboardImages/filtericon.svg";
 import Filter from "./filter";
 import { getPresentToday, getDepartments, getShifts } from "../services/apiServices";
@@ -29,6 +30,14 @@ const Attendance = () => {
   const [loadingShifts, setLoadingShifts] = useState(false);
   const rowsPerPage = 10;
 
+  const getTodayDate = () => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, "0");
+    const day = String(today.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
   const handleFilterApply = (filters) => {
     setAppliedFilters(filters);
     setCurrentPage(1);
@@ -48,16 +57,17 @@ const Attendance = () => {
     try {
       setLoading(true);
       const params = {
+        role: activeTab === "Staffs" ? "staff" : "employee",
+        date: getTodayDate(),
         page: currentPage,
         limit: rowsPerPage,
-        role: activeTab === "Staffs" ? "staff" : "employee",
       };
 
       if (searchValue.trim()) params.search = searchValue.trim();
-      if (departmentFilter !== "All Department") params.department = departmentFilter;
-      if (shiftFilter !== "All Shifts") params.shift = shiftFilter;
+      if (departmentFilter !== "All Department") params.departmentId = departmentFilter;
+      if (shiftFilter !== "All Shifts") params.shiftId = shiftFilter;
       Object.entries(appliedFilters || {}).forEach(([key, value]) => {
-        if (value !== "" && value !== null && value !== undefined) {
+        if (["departmentId", "shiftId"].includes(key) && value !== "" && value !== null && value !== undefined) {
           params[key] = Array.isArray(value) ? value[0] : value;
         }
       });
@@ -190,7 +200,7 @@ const Attendance = () => {
       
       // Transform to dropdown options
       const deptOptions = deptList.map((dept) => ({
-        value: dept.departmentName || dept.name || "N/A",
+        value: dept.id || dept._id,
         label: dept.departmentName || dept.name || "N/A",
       }));
       
@@ -214,7 +224,7 @@ const Attendance = () => {
       
       // Transform to dropdown options
       const shiftOpts = shiftList.map((shift) => ({
-        value: shift.shiftName || shift.name || "N/A",
+        value: shift.id || shift._id,
         label: shift.shiftName || shift.name || "N/A",
       }));
       
@@ -321,33 +331,21 @@ const Attendance = () => {
         </SearchWrap>
 
         <SelectWrap>
-          <select
+          <DropdownComponent
+            options={[{ value: "All Department", label: "All Department" }, ...departmentOptions]}
             value={departmentFilter}
-            onChange={(e) => handleDepartmentChange(e.target.value)}
-            disabled={loadingDepts}
-          >
-            <option>All Department</option>
-            {departmentOptions.map((dept) => (
-              <option key={dept.value} value={dept.value}>
-                {dept.label}
-              </option>
-            ))}
-          </select>
+            onChange={handleDepartmentChange}
+            placeholder="All Department"
+          />
         </SelectWrap>
 
         <SelectWrap>
-          <select
+          <DropdownComponent
+            options={[{ value: "All Shifts", label: "All Shifts" }, ...shiftOptions]}
             value={shiftFilter}
-            onChange={(e) => handleShiftChange(e.target.value)}
-            disabled={loadingShifts}
-          >
-            <option>All Shifts</option>
-            {shiftOptions.map((shift) => (
-              <option key={shift.value} value={shift.value}>
-                {shift.label}
-              </option>
-            ))}
-          </select>
+            onChange={handleShiftChange}
+            placeholder="All Shifts"
+          />
         </SelectWrap>
 
         <FilterButton onClick={() => setShowFilter(true)}>
