@@ -1134,6 +1134,23 @@ const AddShift = () => {
                 />
               </Col>
             </Row>
+            <Row>
+              <Col>
+                <InputComponent
+                  label="Overtime after hours"
+                  placeholder="Enter hours"
+                  labelMargin="0 0 0.625rem 0"
+                  height="45px"
+                  suffix="Hrs"
+                  type="number"
+                  min="0"
+                  step="0.5"
+                  value={overtimeAfterHours}
+                  onChange={(e) => setOvertimeAfterHours(e.target.value)}
+                />
+              </Col>
+              <Col></Col>
+            </Row>
             <Divider />
             <Title>Weekly Pattern & Working Days</Title>
             <Row>

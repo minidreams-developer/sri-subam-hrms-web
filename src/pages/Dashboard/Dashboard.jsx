@@ -14,7 +14,15 @@ import {
 import SearchInputComponent from "../../components/SearchInputComponent";
 import FilterIcon from "../../assets/images/DashboardImages/filtericon.svg";
 import Filter from "../../components/filter";
-import { getDashboard, getDepartments, getShifts, getUsers, getPresentToday } from "../../services/apiServices";
+import {
+  getDashboard,
+  getDashboardAttendanceOverview,
+  getDashboardPayrollBreakdown,
+  getDepartments,
+  getShifts,
+  getUsers,
+  getPresentToday,
+} from "../../services/apiServices";
 import { toast } from "react-toastify";
 import DropdownComponent from "../../components/DropdownComponent";
 
@@ -25,12 +33,18 @@ const formatAttendanceTime = (value) => {
   return Number.isNaN(date.getTime()) ? "N/A" : date.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true });
 };
 
+const formatDashboardValue = (value) => {
+  if (value == null || value === "") return "N/A";
+  if (typeof value !== "object") return String(value);
+  return value.shiftName || value.name || value.departmentName || value.designation || value.code || value._id || "N/A";
+};
+
 const Dashboard = () => {
   const today = new Date();
   const todayDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
-  const [dateRange, setDateRange] = useState("Today");
-  const [attendancePeriod, setAttendancePeriod] = useState("This Week");
-  const [payrollPeriod, setPayrollPeriod] = useState("This Month");
+  const dateRange = "today";
+  const [attendancePeriod, setAttendancePeriod] = useState("week");
+  const [payrollPeriod, setPayrollPeriod] = useState("month");
   const [activeTab, setActiveTab] = useState("employees");
   const [searchValue, setSearchValue] = useState("");
   const [departmentFilter, setDepartmentFilter] = useState("All Department");
@@ -38,6 +52,8 @@ const Dashboard = () => {
   const [showFilter, setShowFilter] = useState(false);
   const [appliedFilters, setAppliedFilters] = useState(null);
   const [dashboardData, setDashboardData] = useState(null);
+  const [attendanceOverview, setAttendanceOverview] = useState(null);
+  const [payrollBreakdown, setPayrollBreakdown] = useState(null);
   const [loading, setLoading] = useState(false);
   const [employeesData, setEmployeesData] = useState([]);
   const [staffDataList, setStaffDataList] = useState([]);
@@ -49,9 +65,20 @@ const Dashboard = () => {
 
   // Fetch dashboard data on component mount
   useEffect(() => {
-    fetchDashboardData();
     fetchDepartmentsAndShifts();
   }, []);
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  useEffect(() => {
+    fetchAttendanceOverview();
+  }, [attendancePeriod, appliedFilters]);
+
+  useEffect(() => {
+    fetchPayrollBreakdown();
+  }, [payrollPeriod, appliedFilters]);
 
   useEffect(() => {
     fetchPresentToday(activeTab === "employees" ? "employee" : "staff");
@@ -70,11 +97,14 @@ const Dashboard = () => {
           employeeId: user.employeeId || record.employeeId || "N/A",
           name: user.name || record.employeeName || record.name || "N/A",
           position: user.workInformation?.designation || user.designation || record.designation || "N/A",
-          shift: user.workInformation?.shift || user.shift || record.shift || "N/A",
+          shift: formatDashboardValue(user.workInformation?.shift || user.shift || record.shift),
           checkIn: formatAttendanceTime(record.checkIn || record.loginTime || record.checkInTime),
           checkOut: formatAttendanceTime(record.checkOut || record.logoutTime || record.checkOutTime),
-          working: record.workingHours != null ? `${Number(record.workingHours).toFixed(2)} Hrs` : record.working || "N/A",
-          status: record.status || record.attendanceStatus || "N/A",
+          working: record.totalWorkedHours != null
+            ? `${record.totalWorkedHours} Hrs`
+            : record.workingHours != null
+              ? `${Number(record.workingHours).toFixed(2)} Hrs`
+              : record.working || "N/A",
           department: user.workInformation?.department || user.department || record.department || "N/A",
           type: role,
         };
@@ -92,7 +122,7 @@ const Dashboard = () => {
   const fetchDashboardData = async () => {
     setLoading(true);
     try {
-      const response = await getDashboard();
+      const response = await getDashboard({ period: dateRange });
       console.log("Dashboard data:", response);
       setDashboardData(response);
     } catch (error) {
@@ -100,6 +130,43 @@ const Dashboard = () => {
       toast.error("Failed to fetch dashboard data");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const getDashboardFilters = () => {
+    const filters = appliedFilters || {};
+    return {
+      branchId: filters.branchId,
+      departmentId: filters.departmentId,
+      teamId: filters.teamId,
+    };
+  };
+
+  const fetchAttendanceOverview = async () => {
+    try {
+      const response = await getDashboardAttendanceOverview({
+        period: attendancePeriod,
+        ...getDashboardFilters(),
+      });
+      setAttendanceOverview(response);
+    } catch (error) {
+      console.error("Error fetching attendance overview:", error);
+      setAttendanceOverview(null);
+      toast.error("Failed to fetch attendance overview");
+    }
+  };
+
+  const fetchPayrollBreakdown = async () => {
+    try {
+      const response = await getDashboardPayrollBreakdown({
+        period: payrollPeriod,
+        ...getDashboardFilters(),
+      });
+      setPayrollBreakdown(response);
+    } catch (error) {
+      console.error("Error fetching payroll breakdown:", error);
+      setPayrollBreakdown(null);
+      toast.error("Failed to fetch payroll breakdown");
     }
   };
 
@@ -122,7 +189,7 @@ const Dashboard = () => {
         employeeId: emp.employeeId || "N/A",
         name: emp.name || emp.employeeName || "N/A",
         position: emp.workInformation?.designation || emp.designation || "N/A",
-        shift: emp.workInformation?.shift || emp.shift || "N/A",
+        shift: formatDashboardValue(emp.workInformation?.shift || emp.shift),
         checkIn: emp.checkIn || emp.loginTime || "N/A",
         checkOut: emp.checkOut || emp.logoutTime || "N/A",
         working: emp.workingHours || emp.working || "N/A",
@@ -152,7 +219,7 @@ const Dashboard = () => {
         name: staff.name || staff.employeeName || "N/A",
         position:
           staff.workInformation?.designation || staff.designation || "N/A",
-        shift: staff.workInformation?.shift || staff.shift || "N/A",
+        shift: formatDashboardValue(staff.workInformation?.shift || staff.shift),
         checkIn: staff.checkIn || staff.loginTime || "N/A",
         checkOut: staff.checkOut || staff.logoutTime || "N/A",
         working: staff.workingHours || staff.working || "N/A",
@@ -342,7 +409,7 @@ const Dashboard = () => {
         employeeId: emp.employeeId || "N/A",
         name: emp.name || emp.employeeName || "N/A",
         position: emp.workInformation?.designation || emp.designation || "N/A",
-        shift: emp.workInformation?.shift || emp.shift || "Morning",
+        shift: formatDashboardValue(emp.workInformation?.shift || emp.shift),
         checkIn: "08:50 AM",
         checkOut: "06:45 PM",
         working: "8.36 hrs",
@@ -358,7 +425,7 @@ const Dashboard = () => {
   };
 
   // Build attendance data from API
-  const attendanceData = dashboardData?.attendanceOverview?.dailyData?.map(
+  const attendanceData = attendanceOverview?.dailyData?.map(
     (item) => ({
       date: item.label,
       present: item.present,
@@ -368,44 +435,44 @@ const Dashboard = () => {
   ) || [];
 
   // Build payroll breakdown from API
-  const payrollData = dashboardData?.payrollBreakdown?.categories
+  const payrollData = payrollBreakdown?.categories
     ? [
         {
           name: "Salary",
           value:
-            dashboardData.payrollBreakdown.categories.salary?.percentage || 0,
-          percentage: `₹ ${dashboardData.payrollBreakdown.categories.salary?.amount?.toLocaleString("en-IN") || 0}`,
+            payrollBreakdown.categories.salary?.percentage || 0,
+          percentage: `₹ ${payrollBreakdown.categories.salary?.amount?.toLocaleString("en-IN") || 0}`,
           color: "#0B7A75",
         },
         {
           name: "Allowances",
           value:
-            dashboardData.payrollBreakdown.categories.allowances?.percentage ||
+            payrollBreakdown.categories.allowances?.percentage ||
             0,
-          percentage: `₹ ${dashboardData.payrollBreakdown.categories.allowances?.amount?.toLocaleString("en-IN") || 0}`,
+          percentage: `₹ ${payrollBreakdown.categories.allowances?.amount?.toLocaleString("en-IN") || 0}`,
           color: "#FDB750",
         },
         {
           name: "Deduction",
           value:
-            dashboardData.payrollBreakdown.categories.deductions?.percentage ||
+            payrollBreakdown.categories.deductions?.percentage ||
             0,
-          percentage: `₹ ${dashboardData.payrollBreakdown.categories.deductions?.amount?.toLocaleString("en-IN") || 0}`,
+          percentage: `₹ ${payrollBreakdown.categories.deductions?.amount?.toLocaleString("en-IN") || 0}`,
           color: "#E0E3E6",
         },
         {
           name: "Incentives",
           value:
-            dashboardData.payrollBreakdown.categories.incentives?.percentage ||
+            payrollBreakdown.categories.incentives?.percentage ||
             0,
-          percentage: `₹ ${dashboardData.payrollBreakdown.categories.incentives?.amount?.toLocaleString("en-IN") || 0}`,
+          percentage: `₹ ${payrollBreakdown.categories.incentives?.amount?.toLocaleString("en-IN") || 0}`,
           color: "#0B7A75",
         },
         {
           name: "Overtimes",
           value:
-            dashboardData.payrollBreakdown.categories.overtime?.percentage || 0,
-          percentage: `₹ ${dashboardData.payrollBreakdown.categories.overtime?.amount?.toLocaleString("en-IN") || 0}`,
+            payrollBreakdown.categories.overtime?.percentage || 0,
+          percentage: `₹ ${payrollBreakdown.categories.overtime?.amount?.toLocaleString("en-IN") || 0}`,
           color: "#2C2C2C",
         },
       ]
@@ -534,7 +601,7 @@ const Dashboard = () => {
         <SectionHeader>
           <SectionTitle>Quick Stats</SectionTitle>
           <HeaderRight>
-            <DropdownComponent value={dateRange} onChange={setDateRange} options={["Today", "This Week", "This Month"]} />
+            <FixedPeriod>Today</FixedPeriod>
           </HeaderRight>
         </SectionHeader>
 
@@ -558,7 +625,9 @@ const Dashboard = () => {
         <AttendanceCard>
           <ChartHeader>
             <ChartTitle>Attendance Overview</ChartTitle>
-            <DropdownComponent value={attendancePeriod} onChange={setAttendancePeriod} options={["This Week", "This Month"]} />
+            <ChartFilter>
+              <DropdownComponent value={attendancePeriod} onChange={setAttendancePeriod} options={[{ value: "today", label: "Today" }, { value: "week", label: "This Week" }, { value: "month", label: "This Month" }]} />
+            </ChartFilter>
           </ChartHeader>
           <ChartContainer>
             <Legend>
@@ -592,17 +661,19 @@ const Dashboard = () => {
         <PayrollCard>
           <ChartHeader>
             <ChartTitle>Payroll Breakdown</ChartTitle>
-            <DropdownComponent value={payrollPeriod} onChange={setPayrollPeriod} options={["This Month", "This Year"]} />
+            <ChartFilter>
+              <DropdownComponent value={payrollPeriod} onChange={setPayrollPeriod} options={[{ value: "today", label: "Today" }, { value: "week", label: "This Week" }, { value: "month", label: "This Month" }]} />
+            </ChartFilter>
           </ChartHeader>
           <PayrollContent>
             <PayrollMain>
               <PayrollAmount>
                 ₹
                 {(
-                  dashboardData?.payrollBreakdown?.totalPayThisMonth || 0
+                  payrollBreakdown?.totalPayThisMonth || 0
                 ).toLocaleString("en-IN")}
               </PayrollAmount>
-              <PayrollLabel>Total Pay This Month</PayrollLabel>
+              <PayrollLabel>Total Pay {payrollPeriod === "today" ? "Today" : payrollPeriod === "week" ? "This Week" : "This Month"}</PayrollLabel>
             </PayrollMain>
             {payrollData.length > 0 && <BreakdownBars>
               {[...Array(50)].map((_, idx) => (
@@ -707,14 +778,12 @@ const Dashboard = () => {
               <Th>Check-In</Th>
               <Th>Check-Out</Th>
               <Th>Working Hrs</Th>
-              <Th>Status</Th>
-              <Th>Action</Th>
             </TableRow>
           </TableHead>
           <TableBody>
             {tableData.length > 0 ? (
-              tableData.map((emp) => (
-                <TableRow key={emp.id}>
+            tableData.map((emp, index) => (
+                <TableRow key={emp.id || emp.employeeId || `${emp.type}-${index}`}>
                   <Td>{emp.employeeId}</Td>
                   <Td>
                     <EmployeeName>{emp.name}</EmployeeName>
@@ -724,18 +793,12 @@ const Dashboard = () => {
                   <Td>{emp.checkIn}</Td>
                   <Td>{emp.checkOut}</Td>
                   <Td>{emp.working}</Td>
-                  <Td>
-                    <StatusBadge>{emp.status}</StatusBadge>
-                  </Td>
-                  <Td>
-                    <ActionButton>⋯</ActionButton>
-                  </Td>
                 </TableRow>
               ))
             ) : (
-              <TableRow>
+              <TableRow key="empty-state">
                 <Td
-                  colSpan="9"
+                  colSpan="7"
                   style={{ textAlign: "center", padding: "2rem" }}
                 >
                   No {activeTab === "employees" ? "employees" : "staff"} found
@@ -909,6 +972,38 @@ const ChartHeader = styled.div`
   align-items: center;
   justify-content: space-between;
   margin-bottom: 1rem;
+`;
+
+const ChartFilter = styled.div`
+  width: 220px;
+  flex-shrink: 0;
+
+  @media (max-width: 600px) {
+    width: 160px;
+  }
+`;
+
+const FixedPeriod = styled.div`
+  width: 100px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px;
+  border: 1px solid ${theme.colors.border};
+  border-radius: 10px;
+  background: ${theme.colors.white};
+  color: ${theme.colors.textColor};
+  font-size: 0.875rem;
+
+  &::after {
+    content: "";
+    width: 7px;
+    height: 7px;
+    border-right: 2px solid #666;
+    border-bottom: 2px solid #666;
+    transform: rotate(45deg) translateY(-2px);
+  }
 `;
 
 const ChartTitle = styled.h3`
@@ -1259,24 +1354,6 @@ const EmployeeName = styled.span`
   font-size: 0.875rem;
   font-weight: 500;
   color: ${theme.colors.textColor};
-`;
-
-const StatusBadge = styled.span`
-  padding: 0.25rem 0.75rem;
-  background: #f3f4f6;
-  color: #6b7280;
-  border-radius: 16px;
-  font-size: 0.75rem;
-  font-family: "Inter", sans-serif;
-  font-weight: 600;
-`;
-
-const ActionButton = styled.button`
-  background: none;
-  border: none;
-  font-size: 1rem;
-  cursor: pointer;
-  color: ${theme.colors.secondaryTextColor};
 `;
 
 export default Dashboard;

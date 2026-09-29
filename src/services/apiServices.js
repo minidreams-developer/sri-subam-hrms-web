@@ -270,7 +270,11 @@ export const deleteOffboard = (id) => data(api.delete(`/v1/off-board/${id}`));
 
 export const getLeaderboard = (params) => list("/v1/leaderboard", params);
 
-export const getDashboard = () => data(api.get("/v1/dashboard"));
+export const getDashboard = (params) => list("/v1/dashboard", params);
+export const getDashboardAttendanceOverview = (params) =>
+  list("/v1/dashboard/attendance-overview", params);
+export const getDashboardPayrollBreakdown = (params) =>
+  list("/v1/dashboard/payroll-breakdown", params);
 
 export const getOrganizations = (params) => list("/v1/organizations", params);
 

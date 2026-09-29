@@ -79,9 +79,18 @@ const Attendance = () => {
           ? employee?.employeeId || employee?.id || "N/A"
           : employee || "N/A";
 
-        const shiftName = typeof record.shiftId === "object"
-          ? record.shiftId?.shiftName || record.shiftId?.name || "N/A"
-          : record.shiftId || record.shift || "N/A";
+        const shiftValue = record.shift || record.shiftId;
+        let shiftName = "N/A";
+        if (typeof shiftValue === "object") {
+          shiftName = shiftValue?.shiftName || shiftValue?.name || "N/A";
+        } else if (typeof shiftValue === "string") {
+          try {
+            const parsedShift = JSON.parse(shiftValue);
+            shiftName = parsedShift?.shiftName || parsedShift?.name || shiftValue;
+          } catch {
+            shiftName = shiftValue;
+          }
+        }
 
         // Extract designation - nested in employeeId.workInformation.designation or direct field
         let designation = "N/A";
