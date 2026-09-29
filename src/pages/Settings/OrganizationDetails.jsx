@@ -6,6 +6,7 @@ import Button from "../../components/Button";
 import UploadIconSvg from "../../assets/images/Common/upload.svg";
 import { toast } from "react-toastify";
 import { createOrganization } from "../../services/apiServices";
+import { uploadMedia } from "../../helpers/uploadMedia";
 
 const OrganizationDetails = () => {
   const [formData, setFormData] = useState({
@@ -24,16 +25,34 @@ const OrganizationDetails = () => {
   });
 
   const [logoFile, setLogoFile] = useState(null);
+  const [logoUrl, setLogoUrl] = useState("");
   const [loading, setLoading] = useState(false);
+  const [logoUploading, setLogoUploading] = useState(false);
 
   const handleChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleLogoUpload = (e) => {
+  const handleLogoUpload = async (e) => {
     const file = e.target.files[0];
-    if (file) {
-      setLogoFile(file);
+    e.target.value = "";
+
+    if (!file) return;
+
+    setLogoFile(file);
+    setLogoUploading(true);
+
+    try {
+      const uploadedFile = await uploadMedia(file);
+      setLogoUrl(uploadedFile.url);
+      toast.success("Organization logo uploaded successfully");
+    } catch (error) {
+      setLogoFile(null);
+      setLogoUrl("");
+      toast.error(error.response?.data?.message || error.message || "Failed to upload organization logo");
+      console.error("Organization logo upload error:", error);
+    } finally {
+      setLogoUploading(false);
     }
   };
 
@@ -48,6 +67,7 @@ const OrganizationDetails = () => {
       // Prepare payload according to API specs
       const payload = {
         companyName: formData.companyName,
+        ...(logoUrl ? { logo: logoUrl } : {}),
         email: formData.email,
         address: {
           addressLine1: formData.address1,
@@ -93,7 +113,7 @@ const OrganizationDetails = () => {
               <Label>Organization Logo</Label>
               <UploadArea onClick={() => document.getElementById("logoUpload").click()}>
                 <img src={UploadIconSvg} alt="upload" width="32" height="32" />
-                <UploadText>Upload Image</UploadText>
+                <UploadText>{logoUploading ? "Uploading..." : "Upload Image"}</UploadText>
                 <input
                   id="logoUpload"
                   type="file"
@@ -272,7 +292,7 @@ const OrganizationDetails = () => {
             fontWeight="600"
             fontFamily="Inter-SemiBold"
             onClick={handleCancel}
-            disabled={loading}
+                  disabled={loading || logoUploading}
           />
           <Button
             text={loading ? "Saving..." : "Save"}
@@ -284,7 +304,7 @@ const OrganizationDetails = () => {
             fontWeight="600"
             fontFamily="Inter-SemiBold"
             onClick={handleSave}
-            disabled={loading}
+            disabled={loading || logoUploading}
           />
         </ButtonRow>
       </Section>

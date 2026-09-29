@@ -7,10 +7,9 @@ import { toast } from "react-toastify";
 import AddTeamMemberModal from "../../components/AddTeamMemberModal";
 import ReusableTable from "../../components/ReusableTable";
 import SearchInputComponent from "../../components/SearchInputComponent";
-import { getTeam, getUsers, updateUser } from "../../services/apiServices";
+import { addTeamMember, getTeam, updateUser } from "../../services/apiServices";
 import theme from "../../theme/theme";
 
-const listFrom = (response) => response?.results || response?.data?.results || response?.data || response || [];
 const valueOf = (value, keys) => typeof value === "string" ? value : keys.map((key) => value?.[key]).find(Boolean) || "N/A";
 const formatDate = (value) => value ? new Date(value).toLocaleDateString("en-GB").replaceAll("/", "-") : "N/A";
 
@@ -24,15 +23,10 @@ const TeamDetails = () => {
     if (!teamId) { setLoading(false); return; }
     setLoading(true);
     try {
-      const [teamResponse, usersResponse] = await Promise.all([getTeam(teamId), getUsers({ page: 1, limit: 100 })]);
+      const teamResponse = await getTeam(teamId);
       const detail = teamResponse?.data?.team || teamResponse?.data || teamResponse?.team || teamResponse;
       setTeam(detail);
-      const embedded = detail?.members || detail?.teamMembers;
-      const users = Array.isArray(embedded) && embedded.length ? embedded : listFrom(usersResponse).filter((user) => {
-        const assigned = user?.workInformation?.team || user?.team;
-        return String(assigned?.id || assigned?._id || assigned) === String(teamId);
-      });
-      setMembers(Array.isArray(users) ? users : []);
+      setMembers(Array.isArray(detail?.members) ? detail.members : []);
     } catch (error) { toast.error(error.response?.data?.message || "Failed to load team details"); }
     finally { setLoading(false); }
   };
@@ -51,8 +45,7 @@ const TeamDetails = () => {
     if (!employee || !teamId) return toast.error("Please select a member");
     setSaving(true);
     try {
-      const user = employee.raw || {}; const workInformation = { ...(user.workInformation || {}), team: teamId };
-      await updateUser(employee.value, { workInformation, team: teamId });
+      await addTeamMember(teamId, { userId: employee.value });
       toast.success("Member added successfully"); setModalOpen(false); await load();
     } catch (error) { toast.error(error.response?.data?.message || "Failed to add member"); }
     finally { setSaving(false); }
@@ -66,7 +59,7 @@ const TeamDetails = () => {
   const info = { code: team?.teamCode || team?.teamId || "N/A", name: team?.teamName || team?.name || "N/A", department: valueOf(team?.department, ["departmentName", "name"]), lead: valueOf(team?.teamLead || team?.lead, ["name", "fullName", "email"]) };
   const columns = [{ key:"employeeId",header:"Employee ID"},{ key:"name",header:"Name"},{ key:"designation",header:"Designation"},{ key:"dept",header:"Dept."},{ key:"shift",header:"Shift"},{ key:"joinedDate",header:"Joined Date"},{ key:"status",header:"Status"},{ key:"actions",header:"Action",align:"right"}];
 
-  return <><Back type="button" onClick={() => navigate("/admin/peopleHub/teams")}><FiArrowLeft />Team Details</Back><Card><Toolbar><Heading><Icon><FaUsers /></Icon><h1>Team Name</h1></Heading><Controls><SearchInputComponent placeholder="Search Employee" value={search} onSearchChange={setSearch} width="356px" height="40px"/><AddButton type="button" onClick={() => setModalOpen(true)}><FiPlus />Add New</AddButton><Menu type="button"><FiMoreHorizontal /></Menu></Controls></Toolbar><Summary><Column><Line><Label>Team ID</Label><b>:</b><span>{info.code}</span></Line><Line><Label>Name</Label><b>:</b><span>{info.name}</span></Line><Line><Label>Department</Label><b>:</b><span>{info.department}</span></Line></Column><Column><Line><Label>Team Lead</Label><b>:</b><span>{info.lead}</span></Line><Line><Label>Total Members</Label><b>:</b><span>{rows.length}</span></Line></Column></Summary><ReusableTable columns={columns} data={rows} rowsPerPage={10} totalResults={rows.length} isLoading={loading} onDelete={removeMember} showEditAction={false}/><AddTeamMemberModal isOpen={modalOpen} onClose={() => !saving && setModalOpen(false)} onSave={addMember} isLoading={saving} teamId={teamId}/></Card></>;
+  return <><Back type="button" onClick={() => navigate("/admin/peopleHub/teams")}><FiArrowLeft />Team Details</Back><Card><Toolbar><Heading><Icon><FaUsers /></Icon><h1>{info.name}</h1></Heading><Controls><SearchInputComponent placeholder="Search Employee" value={search} onSearchChange={setSearch} width="356px" height="40px"/><AddButton type="button" onClick={() => setModalOpen(true)}><FiPlus />Add New</AddButton><Menu type="button"><FiMoreHorizontal /></Menu></Controls></Toolbar><Summary><Column><Line><Label>Team ID</Label><b>:</b><span>{info.code}</span></Line><Line><Label>Name</Label><b>:</b><span>{info.name}</span></Line><Line><Label>Department</Label><b>:</b><span>{info.department}</span></Line></Column><Column><Line><Label>Team Lead</Label><b>:</b><span>{info.lead}</span></Line><Line><Label>Total Members</Label><b>:</b><span>{team?.totalUsers ?? rows.length}</span></Line></Column></Summary><ReusableTable columns={columns} data={rows} rowsPerPage={10} totalResults={rows.length} isLoading={loading} onDelete={removeMember} showEditAction={false}/><AddTeamMemberModal isOpen={modalOpen} onClose={() => !saving && setModalOpen(false)} onSave={addMember} isLoading={saving} teamId={teamId}/></Card></>;
 };
 export default TeamDetails;
 const Back=styled.button`margin:0 0 18px;border:0;background:transparent;color:#0c2427;display:flex;align-items:center;gap:14px;font:600 18px "Inter-SemiBold",sans-serif;cursor:pointer;svg{font-size:20px;}`;

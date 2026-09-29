@@ -119,6 +119,9 @@ export const updateTeam = (id, payload) =>
 
 export const deleteTeam = (id) => data(api.delete(`/v1/teams/${id}`));
 
+export const addTeamMember = (teamId, payload) =>
+  data(api.post(`/v1/teams/${teamId}/members`, payload));
+
 // Shifts
 export const getShifts = (params, config) => list("/v1/shifts", params, config);
 

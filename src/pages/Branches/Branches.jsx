@@ -6,11 +6,10 @@ import ReusableTable from "../../components/ReusableTable";
 import PlusIcon from "../../assets/images/DashboardImages/plus-large_svgrepo.com.svg";
 import TableToolbar from "../../components/TableToolbar";
 import BranchDetailsSidebar from "./BranchDetailsSidebar";
-import { getBranches } from "../../services/apiServices";
+import { deleteBranch, getBranches } from "../../services/apiServices";
 import { toast } from "react-toastify";
 import PageLoader from "../../components/PageLoader";
 import { HiBuildingOffice2 } from "react-icons/hi2";
-import { BsThreeDots } from "react-icons/bs";
 
 const Branches = () => {
   const navigate = useNavigate();
@@ -66,7 +65,6 @@ const Branches = () => {
         noOfPeople: branch.noOfPeople || branch.totalEmployees || branch.employees?.length || 0,
         status: branch.branchStatus || branch.activeStatus || "Active",
         isPrimary: Boolean(branch.isPrimary || branch.primaryBranch || branch.branchType === "Head Office"),
-        actions: <BsThreeDots size={20} aria-label="Branch actions" />,
         // Store original data for sidebar
         originalData: branch,
       }));
@@ -102,7 +100,7 @@ const Branches = () => {
     { key: "branchNumber", label: "Branch Number" },
     { key: "noOfPeople", label: "No. of People" },
     { key: "status", label: "Status" },
-    { key: "actions", label: "Action" },
+    { key: "actions", label: "Action", useDefaultActionMenu: true },
   ];
 
   const filteredData = branchesData.filter((branch) => {
@@ -140,6 +138,29 @@ const Branches = () => {
     });
   };
 
+  const handleDeleteBranch = async (branch) => {
+    const branchId = branch?.id || branch?._id || branch?.originalData?.id || branch?.originalData?._id;
+
+    if (!branchId) {
+      toast.error("Branch ID is unavailable");
+      return;
+    }
+
+    if (!window.confirm(`Are you sure you want to delete ${branch.branchName || branch.originalData?.branchName || "this branch"}?`)) {
+      return;
+    }
+
+    try {
+      await deleteBranch(branchId);
+      toast.success("Branch deleted successfully");
+      setIsSidebarOpen(false);
+      await fetchBranches(currentPage, pageSize, sortBy);
+    } catch (error) {
+      toast.error(error.response?.data?.message || error.message || "Failed to delete branch");
+      console.error("Delete branch error:", error);
+    }
+  };
+
   if (isLoading) {
     return <PageLoader />;
   }
@@ -173,6 +194,8 @@ const Branches = () => {
         onPageChange={handlePageChange}
         alwaysShowPagination
         onRowClick={handleRowClick}
+        onEdit={handleEditBranch}
+        onDelete={handleDeleteBranch}
       />
 
       <BranchDetailsSidebar

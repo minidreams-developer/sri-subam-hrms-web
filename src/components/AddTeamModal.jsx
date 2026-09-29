@@ -60,22 +60,28 @@ const AddTeamModal = ({ isOpen, onClose, onSave, isLoading = false }) => {
   const fetchTeamLeads = async () => {
     setIsLoadingTeamLeads(true);
     try {
-      const response = await getUsers();
-      console.log("Team leads response:", response);
-      
-      // Handle different response structures
-      const usersList = response?.results || response?.data || response || [];
-      
-      // Transform users to select options
-      const options = usersList.map((user) => ({
-        value: user.id || user._id,
-        label: user.name || user.firstName + " " + user.lastName || user.email || "N/A",
-      }));
-      
-      console.log("Team lead options:", options);
+      const response = await getUsers({ page: 1, limit: 100 });
+      const usersList =
+        response?.results ||
+        response?.data?.results ||
+        response?.data ||
+        response ||
+        [];
+      const users = Array.isArray(usersList) ? usersList : [];
+      const options = users
+        .map((user) => {
+          const fullName = [user.firstName, user.lastName]
+            .filter(Boolean)
+            .join(" ");
+          return {
+            value: user.id || user._id,
+            label: user.name || fullName || user.email || "N/A",
+          };
+        })
+        .filter((option) => option.value);
+
       setTeamLeadOptions(options);
     } catch (error) {
-      console.error("Error fetching team leads:", error);
       toast.error("Failed to fetch team leads");
     } finally {
       setIsLoadingTeamLeads(false);
