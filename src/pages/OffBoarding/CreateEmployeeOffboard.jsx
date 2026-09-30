@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useOutletContext } from "react-router-dom";
+import { useLocation, useNavigate, useOutletContext } from "react-router-dom";
 import styled from "styled-components";
 import theme from "../../theme/theme";
 import CalenderInput from "../../components/CalenderInput";
@@ -19,14 +19,18 @@ import {
   generateEmployeeId as requestEmployeeId,
   getDepartments,
   getEmployeeByEmployeeId,
+  getOffboard,
   getTeams,
   getUsers,
+  updateOffboard,
 } from "../../services/apiServices";
 import { toast } from "react-toastify";
 
 const CreateEmployeeOffboard = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { setHeaderTitle, setHeaderBackAction } = useOutletContext();
+  const editOffboardId = location.state?.offboardId;
   const [formData, setFormData] = useState({
     employeeId: "",
     employee: null,
@@ -77,23 +81,113 @@ const CreateEmployeeOffboard = () => {
 
   // Generate Employee ID on component mount
   useEffect(() => {
-    generateEmployeeId();
+    if (!editOffboardId) generateEmployeeId();
     fetchEmployees();
     fetchDepartments();
     fetchTeams();
     fetchUsers();
     fetchEmployeeIds();
-  }, []);
+  }, [editOffboardId]);
 
   useEffect(() => {
-    setHeaderTitle("Employee Off-Board");
+    if (!editOffboardId) return;
+
+    const loadOffboardForEdit = async () => {
+      try {
+        const response = await getOffboard(editOffboardId);
+        const record = response?.data || response?.result || response;
+        const user = record?.userId || {};
+        const work = user.workInformation || {};
+        const exit = record?.exitInformation || {};
+        const settlement = record?.finalSettlemelastMonthSalary || {};
+        const department = work.department || {};
+        const team = work.team || {};
+        const reportingPerson = work.reportingPerson || {};
+        const employee = {
+          value: user.id || user._id,
+          label: user.name || user.email || user.employeeId || "Employee",
+          employeeData: user,
+        };
+        const asOption = (value, label) => value == null || value === ""
+          ? null
+          : { value, label: label || value };
+        const asDate = (value) => (value ? new Date(value) : null);
+
+        setFormData((previous) => ({
+          ...previous,
+          employeeId: user.employeeId || "",
+          employee,
+          department: asOption(
+            department.id || department._id || department.departmentCode,
+            department.departmentName || department.name || department.departmentCode,
+          ),
+          designation: work.designation || "",
+          team: asOption(
+            team.id || team._id || team.teamCode || team,
+            team.teamName || team.name || team.teamCode,
+          ),
+          reportingPerson: asOption(
+            reportingPerson.id || reportingPerson._id,
+            reportingPerson.name || reportingPerson.email,
+          ),
+          dateOfJoining: asDate(work.joinedDate),
+          employmentType: asOption(work.experienceType, work.experienceType),
+          exitType: asOption(exit.exitType, String(exit.exitType || "").replace(/^./, (letter) => letter.toUpperCase())),
+          exitReason: asOption(exit.exitReason, exit.exitReason),
+          resignationDate: asDate(exit.resignationSubmitionDate || exit.resignationSubmittedDate),
+          lastWorkingDate: asDate(exit.lastWorkingDate),
+          noticePeriod: asOption(exit.noticePeriod, `${exit.noticePeriod} Days`),
+          actualNoticeServed: asOption(exit.actualNoticePeriod, `${exit.actualNoticePeriod} Days`),
+          waiver: asOption(exit.waiver ? "yes" : "no", exit.waiver ? "Yes" : "No"),
+          exitApprovedBy: asOption(
+            exit.exitApprovedBy || reportingPerson.id || reportingPerson._id,
+            reportingPerson.name || exit.exitApprovedBy,
+          ),
+          approvalDate: asDate(exit.approvalDate),
+          lastMonthSalary: settlement.lastMonthSalary || false,
+          pendingSalary: settlement.pendingSalary || false,
+          leaveEncashment: settlement.leaveEncashment || false,
+          bonusIncentives: settlement.bonus_incentives || false,
+          reimbursements: settlement.reimbursements || false,
+          noticePay: settlement.noticePay || false,
+          assetDamage: settlement.assetDamge || false,
+          loanRecovery: settlement.loanRecovery || false,
+          advanceSalary: settlement.advanceSalary || false,
+          taxAdjustments: settlement.taxAdjustments || false,
+          tenthMarksheet: settlement.tenth_marksheet || false,
+          twelfthMarksheet: settlement.twelevth_marksheet || false,
+        }));
+        setAssets(
+          (record?.assetDetails || []).map((asset) => ({
+            asset: {
+              value: asset._id || "",
+              label: asset.assetName || asset._id || "Asset",
+              assetSerialNumber: asset.assetSerialNumber || "",
+            },
+            condition: null,
+            returnStatus: asset.isReturned
+              ? { value: "returned", label: "Returned" }
+              : { value: asset.assetStatus || "currently_using", label: asset.assetStatus || "Currently Using" },
+            issuedDate: asset.issuedDate || null,
+          })),
+        );
+      } catch (error) {
+        toast.error(error.response?.data?.message || "Failed to load offboarding details for edit");
+      }
+    };
+
+    loadOffboardForEdit();
+  }, [editOffboardId]);
+
+  useEffect(() => {
+    setHeaderTitle(editOffboardId ? "Edit Employee Off-Board" : "Employee Off-Board");
     setHeaderBackAction(() => () => navigate("/admin/peopleHub/off-boarding"));
 
     return () => {
       setHeaderTitle("");
       setHeaderBackAction(null);
     };
-  }, [navigate, setHeaderBackAction, setHeaderTitle]);
+  }, [editOffboardId, navigate, setHeaderBackAction, setHeaderTitle]);
 
   // Fetch all employee IDs for dropdown
   const fetchEmployeeIds = async () => {
@@ -585,17 +679,31 @@ const CreateEmployeeOffboard = () => {
           tenth_marksheet: formData.tenthMarksheet || false,
           twelevth_marksheet: formData.twelfthMarksheet || false,
         },
+        assetDetails: assets
+          .filter((item) => item.asset || item.condition || item.returnStatus)
+          .map((item) => ({
+            _id: item.asset?.value || "",
+            assetName: item.asset?.label || "",
+            assetSerialNumber: item.asset?.assetSerialNumber || "",
+            assetStatus: item.returnStatus?.value || "currently_using",
+            isReturned: item.returnStatus?.value === "returned",
+            issuedDate: item.issuedDate || null,
+          })),
         userDocuments: [],
         verificationEmail: formData.employee?.label || "",
       };
 
       console.log("Submitting offboarding payload:", payload);
 
-      // Submit to API
-      const response = await createOffboard(payload);
-      console.log("Offboarding record created:", response);
+      // Create new records with POST and save edit-mode changes with PATCH.
+      const response = editOffboardId
+        ? await updateOffboard(editOffboardId, payload)
+        : await createOffboard(payload);
+      console.log(editOffboardId ? "Offboarding record updated:" : "Offboarding record created:", response);
 
-      toast.success("Offboarding record created successfully");
+      toast.success(editOffboardId
+        ? "Offboarding record updated successfully"
+        : "Offboarding record created successfully");
 
       // Navigate to offboarding list page
       setTimeout(() => {
@@ -982,6 +1090,7 @@ const CreateEmployeeOffboard = () => {
         <SectionTitle>Final Settlement (FnF) Details</SectionTitle>
         <FnFWrapper>
           <CheckboxGroup
+            key={`earnings-${editOffboardId || "new"}-${formData.lastMonthSalary}-${formData.pendingSalary}-${formData.leaveEncashment}-${formData.bonusIncentives}-${formData.reimbursements}`}
             title="Earnings"
             options={[
               "Last Month Salary",
@@ -990,9 +1099,26 @@ const CreateEmployeeOffboard = () => {
               "Bonus / Incentives",
               "Reimbursements",
             ]}
-            defaultChecked={[]}
+            defaultChecked={[
+              formData.lastMonthSalary && "Last Month Salary",
+              formData.pendingSalary && "Pending Salary",
+              formData.leaveEncashment && "Leave Encashment",
+              formData.bonusIncentives && "Bonus / Incentives",
+              formData.reimbursements && "Reimbursements",
+            ].filter(Boolean)}
+            onChange={(option, checked) => {
+              const fields = {
+                "Last Month Salary": "lastMonthSalary",
+                "Pending Salary": "pendingSalary",
+                "Leave Encashment": "leaveEncashment",
+                "Bonus / Incentives": "bonusIncentives",
+                Reimbursements: "reimbursements",
+              };
+              handleChange(fields[option], checked);
+            }}
           />
           <CheckboxGroup
+            key={`deductions-${editOffboardId || "new"}-${formData.noticePay}-${formData.assetDamage}-${formData.loanRecovery}-${formData.advanceSalary}-${formData.taxAdjustments}`}
             title="Deductions"
             options={[
               "Notice Pay",
@@ -1001,7 +1127,23 @@ const CreateEmployeeOffboard = () => {
               "Advance Salary",
               "Tax Adjustments",
             ]}
-            defaultChecked={[]}
+            defaultChecked={[
+              formData.noticePay && "Notice Pay",
+              formData.assetDamage && "Asset Damage",
+              formData.loanRecovery && "Loan Recovery",
+              formData.advanceSalary && "Advance Salary",
+              formData.taxAdjustments && "Tax Adjustments",
+            ].filter(Boolean)}
+            onChange={(option, checked) => {
+              const fields = {
+                "Notice Pay": "noticePay",
+                "Asset Damage": "assetDamage",
+                "Loan Recovery": "loanRecovery",
+                "Advance Salary": "advanceSalary",
+                "Tax Adjustments": "taxAdjustments",
+              };
+              handleChange(fields[option], checked);
+            }}
           />
         </FnFWrapper>
       </Section>
@@ -1009,9 +1151,20 @@ const CreateEmployeeOffboard = () => {
       <Section>
         <FnFWrapper>
           <CheckboxGroup
+            key={`documents-${editOffboardId || "new"}-${formData.tenthMarksheet}-${formData.twelfthMarksheet}`}
             title="Documents Return (Originals)"
             options={["10th Marksheet", "12th Marksheet"]}
-            defaultChecked={[]}
+            defaultChecked={[
+              formData.tenthMarksheet && "10th Marksheet",
+              formData.twelfthMarksheet && "12th Marksheet",
+            ].filter(Boolean)}
+            onChange={(option, checked) => {
+              const fields = {
+                "10th Marksheet": "tenthMarksheet",
+                "12th Marksheet": "twelfthMarksheet",
+              };
+              handleChange(fields[option], checked);
+            }}
           />
         </FnFWrapper>
       </Section>
@@ -1099,7 +1252,7 @@ const CreateEmployeeOffboard = () => {
             onClick={handleCancel}
           />
           <Button
-            text="Next"
+            text={editOffboardId ? "Update" : "Next"}
             bg={theme.colors.primary}
             color={theme.colors.white}
             width="150px"

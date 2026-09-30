@@ -31,13 +31,7 @@ export const EmployeeOffboardDetails = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { setHeaderTitle, setHeaderBackAction } = useOutletContext();
-  const [docFiles, setDocFiles] = useState([
-    { label: "Aadhaar", fileName: "File Name" },
-    { label: "Aadhaar", fileName: "File Name" },
-    { label: "Aadhaar", fileName: "File Name" },
-    { label: "Aadhaar", fileName: "File Name" },
-    { label: "Aadhaar", fileName: "File Name" },
-  ]);
+  const [docFiles, setDocFiles] = useState([]);
   const [offboard, setOffboard] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -49,7 +43,16 @@ export const EmployeeOffboardDetails = () => {
       return;
     }
     getOffboard(id)
-      .then((response) => setOffboard(response?.data || response?.result || response))
+      .then((response) => {
+        const record = response?.data || response?.result || response;
+        setOffboard(record);
+        setDocFiles(
+          (record?.userDocuments || []).map((document, index) => ({
+            label: document?.label || document?.name || `Document ${index + 1}`,
+            fileName: document?.fileName || document?.name || document?.url || "Document",
+          })),
+        );
+      })
       .catch((error) => toast.error(error.response?.data?.message || "Failed to load offboarding details"))
       .finally(() => setLoading(false));
   }, [location.state?.offboardId]);
@@ -72,7 +75,23 @@ export const EmployeeOffboardDetails = () => {
   if (loading) return <PageCard>Loading offboarding details...</PageCard>;
 
   const user = offboard?.userId || offboard?.user || {};
+  const workInformation = user.workInformation || {};
+  const department = workInformation.department || user.department || {};
+  const branch = workInformation.branch || {};
+  const shift = workInformation.shiftId && typeof workInformation.shiftId === "object"
+    ? workInformation.shiftId
+    : {};
+  const team = workInformation.team || user.team || {};
+  const reportingPerson = workInformation.reportingPerson || user.reportingPerson || {};
   const exit = offboard?.exitInformation || offboard || {};
+  const settlement = offboard?.finalSettlemelastMonthSalary || {};
+  const toYesNo = (value) => (value === true ? "Yes" : value === false ? "No" : "N/A");
+  const formatDate = (value) => {
+    if (!value) return "N/A";
+    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString();
+  };
 
   return (
     <PageCard>
@@ -83,7 +102,9 @@ export const EmployeeOffboardDetails = () => {
         </Heading>
         <EditButton
           type="button"
-          onClick={() => navigate("/admin/peopleHub/off-boarding/createEmployeeOffBoard")}
+          onClick={() => navigate("/admin/peopleHub/off-boarding/createEmployeeOffBoard", {
+            state: { offboardId: offboard?._id || offboard?.id },
+          })}
         >
           <img src={EditIcon} alt="" />
           Edit details
@@ -96,12 +117,18 @@ export const EmployeeOffboardDetails = () => {
         items={[
           { label: "Employee ID", value: user.employeeId || "N/A" },
           { label: "Employee", value: user.name || "N/A" },
-          { label: "Date Of Joining", value: user.dateOfJoining || "N/A" },
-          { label: "Department", value: user.department?.name || user.department?.departmentName || "N/A" },
-          { label: "Designation", value: user.designation?.name || user.designation || "N/A" },
-          { label: "Team", value: user.team?.name || user.team || "N/A" },
-          { label: "Reporting Manager", value: user.reportingPerson?.name || "N/A" },
-          { label: "Work Experience", value: user.workExperience || "N/A" },
+          { label: "Email", value: user.email || "N/A" },
+          { label: "Date Of Joining", value: formatDate(workInformation.joinedDate || user.dateOfJoining) },
+          { label: "Department", value: department.departmentName || department.name || "N/A" },
+          { label: "Designation", value: workInformation.designation?.name || workInformation.designation || user.designation || "N/A" },
+          { label: "Team", value: team.teamName || team.name || team.teamCode || (typeof team === "string" ? team : "N/A") },
+          { label: "Reporting Manager", value: reportingPerson.name || "N/A" },
+          { label: "Experience Type", value: workInformation.experienceType || "N/A" },
+          { label: "Total Experience", value: workInformation.totalExperience || "N/A" },
+          { label: "Location", value: workInformation.location || "N/A" },
+          { label: "Branch", value: branch.branchName || "N/A" },
+          { label: "Shift", value: shift.shiftName || "N/A" },
+          { label: "Attendance Type", value: workInformation.AttendanceType || "N/A" },
         ]}
       />
 
@@ -111,41 +138,67 @@ export const EmployeeOffboardDetails = () => {
         items={[
           { label: "Exit Type", value: exit.exitType || "N/A" },
           { label: "Exit Reason", value: exit.exitReason || "N/A" },
-          { label: "Resignation Submitted Date", value: exit.resignationSubmittedDate || exit.resignationDate || "N/A" },
-          { label: "Last Working Date", value: exit.lastWorkingDate || "N/A" },
+          { label: "Resignation Submitted Date", value: formatDate(exit.resignationSubmitionDate || exit.resignationSubmittedDate || exit.resignationDate) },
+          { label: "Last Working Date", value: formatDate(exit.lastWorkingDate) },
           { label: "Notice Period", value: exit.noticePeriod || "N/A" },
-          { label: "Actual Notice Served", value: exit.actualNoticeServed || "N/A" },
-          { label: "Waiver", value: exit.waiver ?? "N/A" },
-          { label: "Exit Approved By", value: exit.exitApprovedBy?.name || exit.exitApprovedBy || "N/A" },
-          { label: "Approval Date", value: exit.approvalDate || "N/A" },
+          { label: "Actual Notice Served", value: exit.actualNoticePeriod || "N/A" },
+          { label: "Waiver", value: toYesNo(exit.waiver) },
+          { label: "Exit Approved By", value: exit.exitApprovedBy?.name || reportingPerson.name || exit.exitApprovedBy || "N/A" },
+          { label: "Approval Date", value: formatDate(exit.approvalDate) },
+          { label: "Status", value: offboard.status || "N/A" },
         ]}
       />
 
       <CardDetails
         title="Asset Management"
         columns={3}
-        items={[
-          { label: "Asset 1", value: "Laptop" },
-          { label: "Condition", value: "Good" },
-          { label: "Return Status", value: "Returned" },
-          { label: "Asset 2", value: "iPad" },
-          { label: "Condition", value: "Bad" },
-          { label: "Return Status", value: "Pending" },
-        ]}
+        items={(offboard?.assetDetails || []).flatMap((asset, index) => [
+          { label: `Asset ${index + 1}`, value: asset.assetName || "N/A" },
+          { label: "Serial Number", value: asset.assetSerialNumber || "N/A" },
+          { label: "Asset Status", value: asset.assetStatus || "N/A" },
+          { label: "Returned", value: toYesNo(asset.isReturned) },
+          { label: "Issued Date", value: formatDate(asset.issuedDate) },
+        ])}
       />
 
       <Section>
         <SectionTitle>Final Settlement (FnF) Details</SectionTitle>
         <TintedPanel>
-          <CheckboxGroup title="Earnings" options={earnings} defaultChecked={["Pending Salary", "Leave Encashment", "Reimbursements"]} />
-          <CheckboxGroup title="Deductions" options={deductions} defaultChecked={deductions} />
+          <CheckboxGroup
+            title="Earnings"
+            options={earnings}
+            defaultChecked={[
+              settlement.lastMonthSalary && "Last Month Salary",
+              settlement.pendingSalary && "Pending Salary",
+              settlement.leaveEncashment && "Leave Encashment",
+              settlement.bonus_incentives && "Bonus / Incentives",
+              settlement.reimbursements && "Reimbursements",
+            ].filter(Boolean)}
+          />
+          <CheckboxGroup
+            title="Deductions"
+            options={deductions}
+            defaultChecked={[
+              settlement.noticePay && "Notice Pay",
+              settlement.assetDamge && "Asset Damage",
+              settlement.loanRecovery && "Loan Recovery",
+              settlement.advanceSalary && "Advance Salary",
+              settlement.taxAdjustments && "Tax Adjustments",
+            ].filter(Boolean)}
+          />
         </TintedPanel>
       </Section>
 
       <Section>
-        <SectionTitle>Final Settlement (FnF) Details</SectionTitle>
+        <SectionTitle>Documents Return (Originals)</SectionTitle>
         <TintedPanel>
-          <CheckboxGroup title="Documents Return (Originals)" options={["10th Marksheet", "12th Marksheet"]} />
+          <CheckboxGroup
+            options={["10th Marksheet", "12th Marksheet"]}
+            defaultChecked={[
+              settlement.tenth_marksheet && "10th Marksheet",
+              settlement.twelevth_marksheet && "12th Marksheet",
+            ].filter(Boolean)}
+          />
         </TintedPanel>
       </Section>
 

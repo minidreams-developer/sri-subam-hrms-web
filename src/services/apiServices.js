@@ -275,6 +275,12 @@ export const getOffboard = (id) => data(api.get(`/v1/off-board/${id}`));
 export const createOffboard = (payload) =>
   data(api.post("/v1/off-board", payload));
 
+export const updateOffboard = (id, payload) =>
+  data(api.patch(`/v1/off-board/${id}`, payload));
+
+export const updateOffboardStatus = (id, payload) =>
+  data(api.patch(`/v1/off-board/${id}/status`, payload));
+
 export const deleteOffboard = (id) => data(api.delete(`/v1/off-board/${id}`));
 
 export const getLeaderboard = (params) => list("/v1/leaderboard", params);

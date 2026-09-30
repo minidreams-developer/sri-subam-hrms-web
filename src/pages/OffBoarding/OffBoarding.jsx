@@ -8,9 +8,14 @@ import TableToolbar from "../../components/TableToolbar";
 import PlusIcon from "../../assets/images/DashboardImages/plus-large_svgrepo.com.svg";
 import TabSwitcher from "../../components/TabSwitcher";
 import ProfileImage from "../../assets/images/employee/sampleProfile.jpg";
-import { deleteOffboard, getDepartments, getOffboards } from "../../services/apiServices";
+import {
+  deleteOffboard,
+  getDepartments,
+  getOffboards,
+  updateOffboardStatus,
+} from "../../services/apiServices";
 import DeleteConfirmationModal from "../../components/DeleteConfirmationModal";
-import { FiEye, FiTrash2 } from "react-icons/fi";
+import { FiCheck, FiX } from "react-icons/fi";
 import { toast } from "react-toastify";
 import Filter from "../../components/filter";
 import {
@@ -29,6 +34,11 @@ const offboardingStats = [
     suffix: "Days",
   },
 ];
+
+const isPendingOffboardingStatus = (status) =>
+  !["approved", "rejected", "completed"].includes(
+    String(status || "").trim().toLowerCase(),
+  );
 
 const OffBoarding = () => {
   const navigate = useNavigate();
@@ -157,6 +167,24 @@ const OffBoarding = () => {
     }
   };
 
+  const handleStatusChange = async (row, status) => {
+    if (!row?.id) return;
+
+    try {
+      const payload = status === "approved"
+        ? { status: "approved" }
+        : { status: "rejected", reason: "Exit request rejected" };
+
+      await updateOffboardStatus(row.id, payload);
+      toast.success(`Offboarding request ${status}`);
+      await fetchOffboardingRecords();
+    } catch (error) {
+      toast.error(
+        error.response?.data?.message || `Failed to ${status} offboarding request`,
+      );
+    }
+  };
+
   const handleNewOffBoarding = () => {
     navigate("/admin/peopleHub/off-boarding/createEmployeeOffBoard");
   };
@@ -198,7 +226,7 @@ const OffBoarding = () => {
 
   // Transform API data to table format
   const transformedEmployeeData = offboardingData.map((record) => ({
-    id: record._id,
+    id: record._id || record.id,
     employee: {
       name:
         record.userId?.name ||
@@ -262,19 +290,38 @@ const OffBoarding = () => {
             ),
           };
         }
-        if (col.accessor === "action") return {
+        if (col.accessor === "approval") return {
           ...col,
-          align: "right",
-          render: (row) => (
-            <ActionGroup>
-              <ActionButton type="button" title="View" onClick={(event) => { event.stopPropagation(); handleRowClick(row); }}><FiEye /></ActionButton>
-              <DeleteAction type="button" title="Delete" onClick={(event) => { event.stopPropagation(); setRecordToDelete(row); }}><FiTrash2 /></DeleteAction>
-            </ActionGroup>
-          ),
+          align: "center",
+          render: (row) => isPendingOffboardingStatus(row.status) ? (
+            <ApprovalGroup>
+              <ApprovalButton
+                type="button"
+                $approve
+                title="Approve"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  handleStatusChange(row, "approved");
+                }}
+              >
+                <FiCheck /> Approve
+              </ApprovalButton>
+              <ApprovalButton
+                type="button"
+                title="Reject"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  handleStatusChange(row, "rejected");
+                }}
+              >
+                <FiX /> Reject
+              </ApprovalButton>
+            </ApprovalGroup>
+          ) : null,
         };
         return col;
       }),
-    [],
+    [handleStatusChange],
   );
 
   const staffColumnsWithRenderer = offboardingStaffColumns.map((col) => {
@@ -295,15 +342,34 @@ const OffBoarding = () => {
         ),
       };
     }
-    if (col.accessor === "action") return {
+    if (col.accessor === "approval") return {
       ...col,
-      align: "right",
-      render: (row) => (
-        <ActionGroup>
-          <ActionButton type="button" title="View" onClick={(event) => { event.stopPropagation(); handleRowClick(row); }}><FiEye /></ActionButton>
-          <DeleteAction type="button" title="Delete" onClick={(event) => { event.stopPropagation(); setRecordToDelete(row); }}><FiTrash2 /></DeleteAction>
-        </ActionGroup>
-      ),
+      align: "center",
+      render: (row) => isPendingOffboardingStatus(row.status) ? (
+        <ApprovalGroup>
+          <ApprovalButton
+            type="button"
+            $approve
+            title="Approve"
+            onClick={(event) => {
+              event.stopPropagation();
+              handleStatusChange(row, "approved");
+            }}
+          >
+            <FiCheck /> Approve
+          </ApprovalButton>
+          <ApprovalButton
+            type="button"
+            title="Reject"
+            onClick={(event) => {
+              event.stopPropagation();
+              handleStatusChange(row, "rejected");
+            }}
+          >
+            <FiX /> Reject
+          </ApprovalButton>
+        </ApprovalGroup>
+      ) : null,
     };
     return col;
   });
@@ -407,6 +473,9 @@ const OffBoarding = () => {
             totalPages={totalPages}
             onPageChange={setCurrentPage}
             onRowClick={handleRowClick}
+            onView={handleRowClick}
+            onDelete={setRecordToDelete}
+            showEditAction={false}
             server={true}
             isLoading={loading}
           />
@@ -440,6 +509,9 @@ const OffBoarding = () => {
             totalPages={totalPages}
             onPageChange={setCurrentPage}
             onRowClick={handleRowClick}
+            onView={handleRowClick}
+            onDelete={setRecordToDelete}
+            showEditAction={false}
             server={true}
             isLoading={loading}
           />
@@ -578,8 +650,29 @@ const EmployeeRole = styled.p`
   line-height: 1.2;
 `;
 
-const ActionGroup = styled.div`display:flex;justify-content:flex-end;gap:6px;`;
-const ActionButton = styled.button`width:32px;height:32px;border:0;border-radius:6px;display:grid;place-items:center;background:#e8f5f6;color:${theme.colors.primary};cursor:pointer;`;
-const DeleteAction = styled(ActionButton)`background:#fee2e2;color:#dc2626;`;
+const ApprovalGroup = styled.div`
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  white-space: nowrap;
+`;
+const ApprovalButton = styled.button`
+  min-width: 78px;
+  height: 32px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 6px;
+  display: grid;
+  place-items: center;
+  background: ${({ $approve }) => ($approve ? "#e8f5e9" : "#fee2e2")};
+  color: ${({ $approve }) => ($approve ? "#16803c" : "#dc2626")};
+  cursor: pointer;
+  font-size: 0.7rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+`;
 
 export default OffBoarding;

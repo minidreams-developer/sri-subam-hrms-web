@@ -186,7 +186,8 @@ export const offboardingEmployeeColumns = [
   { header: "FnF", accessor: "fnf" },
   { header: "Assets", accessor: "assets" },
   { header: "Status", accessor: "status" },
-  { header: "Action", accessor: "action" },
+  { header: "Approval", accessor: "approval" },
+  { header: "Action", key: "actions", accessor: "actions", useDefaultActionMenu: true },
 ];
 
 export const offboardingEmployeeData = [
@@ -256,7 +257,8 @@ export const offboardingStaffColumns = [
   { header: "FnF", accessor: "fnf" },
   { header: "Assets", accessor: "assets" },
   { header: "Status", accessor: "status" },
-  { header: "Action", accessor: "action" },
+  { header: "Approval", accessor: "approval" },
+  { header: "Action", key: "actions", accessor: "actions", useDefaultActionMenu: true },
 ];
 
 export const offboardingStaffData = [

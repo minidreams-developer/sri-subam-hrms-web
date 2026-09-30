@@ -2,7 +2,7 @@ import { useState } from "react";
 import styled from "styled-components";
 import theme from "../theme/theme";
 
-const CheckboxGroup = ({ title, options, defaultChecked = [] }) => {
+const CheckboxGroup = ({ title, options, defaultChecked = [], onChange }) => {
   const [checkedItems, setCheckedItems] = useState(
     options.reduce((acc, option) => {
       acc[option] = defaultChecked.includes(option);
@@ -11,10 +11,9 @@ const CheckboxGroup = ({ title, options, defaultChecked = [] }) => {
   );
 
   const handleCheckboxChange = (option) => {
-    setCheckedItems((prev) => ({
-      ...prev,
-      [option]: !prev[option],
-    }));
+    const checked = !checkedItems[option];
+    setCheckedItems((prev) => ({ ...prev, [option]: checked }));
+    onChange?.(option, checked);
   };
 
   return (
