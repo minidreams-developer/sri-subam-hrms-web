@@ -1,14 +1,17 @@
-import { useState, forwardRef, useImperativeHandle } from "react";
+import { useState, forwardRef, useImperativeHandle, useEffect } from "react";
 import styled from "styled-components";
 import theme from "../../../theme/theme";
 import InputComponent from "../../../components/InputComponent";
 import Select from "react-select";
 import { customSelectStyles } from "../../../theme/reactSelectStyles";
+import { getBranches } from "../../../services/apiServices";
+import { toast } from "react-toastify";
 
 const CommissionDetails = forwardRef((_, ref) => {
   const [formData, setFormData] = useState(() => ({
     commissionPercentage: "10",
     allowance: "5000",
+    branchId: null,
     salaryDisbursementType: { value: "monthly", label: "Monthly" },
     accHolderName: "Test Agent",
     bank: "State Bank of India",
@@ -17,6 +20,8 @@ const CommissionDetails = forwardRef((_, ref) => {
     branch: "Chengalpattu",
     remarks: "Test agent record",
   }));
+  const [branchOptions, setBranchOptions] = useState([]);
+  const [branchesLoading, setBranchesLoading] = useState(false);
 
   useImperativeHandle(ref, () => ({
     formData,
@@ -27,6 +32,39 @@ const CommissionDetails = forwardRef((_, ref) => {
     { value: "weekly", label: "Weekly" },
     { value: "fortnightly", label: "Fortnightly" },
   ];
+
+  useEffect(() => {
+    const fetchBranches = async () => {
+      setBranchesLoading(true);
+      try {
+        const response = await getBranches(
+          { page: 1, limit: 100 },
+          { skipGlobalLoading: true },
+        );
+        const branches = Array.isArray(response)
+          ? response
+          : response?.results || response?.data?.results || response?.data || [];
+        const options = branches.map((branch) => ({
+          value: branch._id || branch.id,
+          label: branch.branchName || branch.name || "Unnamed Branch",
+        }));
+        setBranchOptions(options);
+        if (options.length) {
+          setFormData((previous) => ({
+            ...previous,
+            branchId: previous.branchId || options[0],
+          }));
+        }
+      } catch (error) {
+        console.error("Error fetching branches:", error);
+        toast.error("Failed to fetch branches");
+      } finally {
+        setBranchesLoading(false);
+      }
+    };
+
+    fetchBranches();
+  }, []);
 
   const handleChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -67,6 +105,22 @@ const CommissionDetails = forwardRef((_, ref) => {
                 placeholder="Select Type"
                 styles={customSelectStyles}
                 isSearchable
+              />
+            </SelectWrapper>
+          </Col>
+        </Row>
+        <Row>
+          <Col>
+            <SelectWrapper>
+              <Label>Branch</Label>
+              <Select
+                options={branchOptions}
+                value={formData.branchId}
+                onChange={(value) => handleChange("branchId", value)}
+                placeholder={branchesLoading ? "Loading branches..." : "Select Branch"}
+                styles={customSelectStyles}
+                isSearchable
+                isLoading={branchesLoading}
               />
             </SelectWrapper>
           </Col>

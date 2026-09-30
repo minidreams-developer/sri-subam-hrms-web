@@ -93,6 +93,7 @@ const CreateAgent = () => {
         religion: personalData.religion?.value,
         profilePic: personalData.profilePic || "",
         branch: personalData.branch?.value,
+        branchId: commissionData.branchId?.value,
 
         documentNo: {
           aadharNo:

@@ -176,6 +176,7 @@ const CreateEmployee = () => {
 
         ...(selectedType === "agent"
           ? {
+              branchId: workData.branchId?.value,
               commissionDetails: {
                 commission: Number(workData.commissionPercentage) || 0,
                 allowance: Number(workData.allowance) || 0,
