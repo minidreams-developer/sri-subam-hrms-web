@@ -75,6 +75,9 @@ export const getAgentMembers = (agentId, params, config) =>
 export const getBranches = (params, config) =>
   list("/v1/branches", params, config);
 
+export const getBranch = (id, config) =>
+  data(api.get(`/v1/branches/${id}`, config));
+
 export const getBranchDropdown = (config) =>
   data(api.get("/v1/branches/dropdown", config));
 
@@ -121,6 +124,9 @@ export const deleteTeam = (id) => data(api.delete(`/v1/teams/${id}`));
 
 export const addTeamMember = (teamId, payload) =>
   data(api.post(`/v1/teams/${teamId}/members`, payload));
+
+export const deleteTeamMember = (teamId, userId) =>
+  data(api.delete(`/v1/teams/${teamId}/members/${userId}`));
 
 // Shifts
 export const getShifts = (params, config) => list("/v1/shifts", params, config);

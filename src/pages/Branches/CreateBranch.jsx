@@ -271,7 +271,7 @@ const CreateBranch = () => {
         effectiveFromDate: formData.effectiveFromDate,
         branchHead: formData.branchHead?.value,
         phoneNumber: formData.phoneNumber,
-        emergencyContact: formData.emergencyContact,
+        emergencyContactNumber: formData.emergencyContact,
         email: formData.email,
         address: formData.address,
         city: formData.city,

@@ -5,7 +5,7 @@ import Button from "./Button";
 import InputComponent from "./InputComponent";
 import Select from "react-select";
 import { customSelectStyles } from "../theme/reactSelectStyles";
-import { createDepartment, generateDepartmentId as requestDepartmentId, getDepartment, getUsers, updateDepartment } from "../services/apiServices";
+import { createDepartment, generateDepartmentId as requestDepartmentId, getBranchDropdown, getDepartment, getUsers, updateDepartment } from "../services/apiServices";
 import { toast } from "react-toastify";
 
 const AddDepartmentModal = ({ isOpen, onClose, onSave, isEditMode = false, editingDepartmentId = null }) => {
@@ -14,16 +14,23 @@ const AddDepartmentModal = ({ isOpen, onClose, onSave, isEditMode = false, editi
     departmentName: "",
     departmentDescription: "",
     departmentHead: null,
+    branchId: null,
+    isActive: true,
+    departmentEmployees: [],
+    departmentTeams: [],
   });
   const [isLoading, setIsLoading] = useState(false);
   const [isGeneratingId, setIsGeneratingId] = useState(false);
   const [isFetchingUsers, setIsFetchingUsers] = useState(false);
+  const [isFetchingBranches, setIsFetchingBranches] = useState(false);
   const [departmentHeadOptions, setDepartmentHeadOptions] = useState([]);
+  const [branchOptions, setBranchOptions] = useState([]);
 
   // Generate department ID on modal open (for new departments) or fetch existing data (for edit)
   useEffect(() => {
     if (isOpen) {
       fetchDepartmentHeads();
+      fetchBranches();
       if (isEditMode && editingDepartmentId) {
         fetchDepartmentData(editingDepartmentId);
       } else if (!isEditMode && !formData.departmentCode) {
@@ -34,10 +41,35 @@ const AddDepartmentModal = ({ isOpen, onClose, onSave, isEditMode = false, editi
           departmentName: "",
           departmentDescription: "",
           departmentHead: null,
+          branchId: null,
+          isActive: true,
+          departmentEmployees: [],
+          departmentTeams: [],
         });
       }
     }
   }, [isOpen, isEditMode, editingDepartmentId]);
+
+  const fetchBranches = async () => {
+    setIsFetchingBranches(true);
+    try {
+      const response = await getBranchDropdown({ skipGlobalLoading: true });
+      const branches = Array.isArray(response)
+        ? response
+        : response?.results || response?.data || [];
+
+      setBranchOptions(branches.map((branch) => ({
+        value: branch.id || branch._id,
+        label: branch.branchName || branch.name || branch.branchNumber || "Unnamed branch",
+      })).filter((branch) => branch.value));
+    } catch (error) {
+      console.error("Error fetching branches:", error);
+      toast.error("Failed to fetch branches");
+      setBranchOptions([]);
+    } finally {
+      setIsFetchingBranches(false);
+    }
+  };
 
   // GET /v1/users - Fetch all users for Department Head dropdown
   const fetchDepartmentHeads = async () => {
@@ -104,6 +136,15 @@ const AddDepartmentModal = ({ isOpen, onClose, onSave, isEditMode = false, editi
         departmentName: deptData.departmentName || "",
         departmentDescription: deptData.departmentDescription || "",
         departmentHead: selectedHead,
+        branchId: deptData.branchId
+          ? {
+              value: deptData.branchId.id || deptData.branchId._id || deptData.branchId,
+              label: deptData.branchId.branchName || deptData.branchId.name || String(deptData.branchId),
+            }
+          : null,
+        isActive: deptData.isActive !== false,
+        departmentEmployees: deptData.departmentEmployees || [],
+        departmentTeams: deptData.departmentTeams || [],
       });
 
       toast.success("Department data loaded successfully");
@@ -152,6 +193,10 @@ const AddDepartmentModal = ({ isOpen, onClose, onSave, isEditMode = false, editi
       toast.error("Department code is required");
       return;
     }
+    if (!formData.branchId?.value) {
+      toast.error("Branch is required");
+      return;
+    }
 
     setIsLoading(true);
     try {
@@ -159,7 +204,11 @@ const AddDepartmentModal = ({ isOpen, onClose, onSave, isEditMode = false, editi
         departmentName: formData.departmentName,
         departmentCode: formData.departmentCode,
         departmentDescription: formData.departmentDescription || "",
+        branchId: formData.branchId.value,
+        isActive: formData.isActive,
         departmentHead: formData.departmentHead?.value || null,
+        departmentEmployees: formData.departmentEmployees,
+        departmentTeams: formData.departmentTeams,
       };
 
       console.log(`${isEditMode ? "Updating" : "Creating"} department with payload:`, payload);
@@ -185,6 +234,10 @@ const AddDepartmentModal = ({ isOpen, onClose, onSave, isEditMode = false, editi
         departmentName: "",
         departmentDescription: "",
         departmentHead: null,
+        branchId: null,
+        isActive: true,
+        departmentEmployees: [],
+        departmentTeams: [],
       });
     } catch (error) {
       const errorMessage =
@@ -247,6 +300,21 @@ const AddDepartmentModal = ({ isOpen, onClose, onSave, isEditMode = false, editi
           />
 
           <SelectWrapper>
+            <Label>Branch</Label>
+            <Select
+              options={branchOptions}
+              value={formData.branchId}
+              onChange={(value) => handleChange("branchId", value)}
+              placeholder={isFetchingBranches ? "Loading branches..." : "Select Branch"}
+              styles={customSelectStyles}
+              isSearchable
+              isClearable
+              isLoading={isFetchingBranches}
+              isDisabled={isFetchingBranches}
+            />
+          </SelectWrapper>
+
+          <SelectWrapper>
             <Label>Department Head</Label>
             <Select
               options={departmentHeadOptions}
@@ -287,7 +355,7 @@ const AddDepartmentModal = ({ isOpen, onClose, onSave, isEditMode = false, editi
             fontFamily="Inter-SemiBold"
             onClick={handleSave}
             loading={isLoading}
-            disabled={isLoading || isGeneratingId || isFetchingUsers}
+            disabled={isLoading || isGeneratingId || isFetchingUsers || isFetchingBranches}
           />
         </ModalFooter>
       </ModalContainer>

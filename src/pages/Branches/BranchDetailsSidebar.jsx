@@ -6,12 +6,25 @@ import CardDetails from "../../components/CardDetails";
 import EditIcon from "../../assets/images/employee/editIcon.svg";
 import Switch from "react-switch";
 
-const BranchDetailsSidebar = ({ open, onClose, data, onEdit }) => {
+const BranchDetailsSidebar = ({ open, onClose, data, onEdit, onStatusChange }) => {
   const [isPrimary, setIsPrimary] = React.useState(data?.isPrimary || false);
+  const [isStatusUpdating, setIsStatusUpdating] = React.useState(false);
 
   React.useEffect(() => {
     setIsPrimary(Boolean(data?.isPrimary));
   }, [data]);
+
+  const branchStatus = String(data?.branchStatus || data?.status || "inactive").toLowerCase();
+  const isActive = branchStatus === "active";
+
+  const handleStatusChange = async (nextValue) => {
+    setIsStatusUpdating(true);
+    try {
+      await onStatusChange?.(data, nextValue);
+    } finally {
+      setIsStatusUpdating(false);
+    }
+  };
 
   return (
     <>
@@ -30,6 +43,22 @@ const BranchDetailsSidebar = ({ open, onClose, data, onEdit }) => {
             <Switch
               checked={isPrimary}
               onChange={setIsPrimary}
+              onColor={theme.colors.primary}
+              offColor="#ccc"
+              height={22}
+              width={40}
+              handleDiameter={18}
+              uncheckedIcon={false}
+              checkedIcon={false}
+            />
+          </PrimarySection>
+
+          <PrimarySection>
+            <PrimaryLabel>Branch Status</PrimaryLabel>
+            <Switch
+              checked={isActive}
+              onChange={handleStatusChange}
+              disabled={isStatusUpdating || !data}
               onColor={theme.colors.primary}
               offColor="#ccc"
               height={22}

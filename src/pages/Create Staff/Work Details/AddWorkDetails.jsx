@@ -5,7 +5,7 @@ import CalenderInput from "../../../components/CalenderInput";
 import InputComponent from "../../../components/InputComponent";
 import Select from "react-select";
 import { customSelectStyles } from "../../../theme/reactSelectStyles";
-import { getBranches, getDepartments, getShifts, getTeams, getUsers } from "../../../services/apiServices";
+import { getBranchDropdown, getDepartments, getShifts, getTeams, getUsers } from "../../../services/apiServices";
 import { toast } from "react-toastify";
 
 const createPrefilledWorkData = () => {
@@ -68,7 +68,6 @@ const AddWorkDetails = forwardRef(({ onNext, onBack }, ref) => {
 
   // Fetch data on component mount
   useEffect(() => {
-    fetchDepartments();
     fetchShifts();
     fetchUsers();
     fetchTeams();
@@ -100,10 +99,13 @@ const AddWorkDetails = forwardRef(({ onNext, onBack }, ref) => {
     }
   };
 
-  const fetchDepartments = async () => {
+  const fetchDepartments = async (branchId) => {
     setDepartmentsLoading(true);
     try {
-      const response = await getDepartments({ page: 1, limit: 100 }, { skipGlobalLoading: true });
+      const response = await getDepartments(
+        { branchId, page: 1, limit: 100 },
+        { skipGlobalLoading: true },
+      );
       let departments = [];
       if (Array.isArray(response)) {
         departments = response;
@@ -111,6 +113,8 @@ const AddWorkDetails = forwardRef(({ onNext, onBack }, ref) => {
         departments = response.results;
       } else if (response?.data && Array.isArray(response.data)) {
         departments = response.data;
+      } else if (response?.data?.results && Array.isArray(response.data.results)) {
+        departments = response.data.results;
       }
       
       const options = departments.map((dept) => ({
@@ -211,7 +215,7 @@ const AddWorkDetails = forwardRef(({ onNext, onBack }, ref) => {
   const fetchBranches = async () => {
     setBranchesLoading(true);
     try {
-      const response = await getBranches({ page: 1, limit: 100 }, { skipGlobalLoading: true });
+      const response = await getBranchDropdown({ skipGlobalLoading: true });
       let branches = [];
       if (Array.isArray(response)) {
         branches = response;
@@ -219,6 +223,8 @@ const AddWorkDetails = forwardRef(({ onNext, onBack }, ref) => {
         branches = response.results;
       } else if (response?.data && Array.isArray(response.data)) {
         branches = response.data;
+      } else if (response?.data?.results && Array.isArray(response.data.results)) {
+        branches = response.data.results;
       }
       
       const options = branches.map((branch) => ({
@@ -226,7 +232,12 @@ const AddWorkDetails = forwardRef(({ onNext, onBack }, ref) => {
         label: branch.branchName || branch.name || "Unknown",
       }));
       setBranchOptions(options);
-      if (options.length) setFormData((previous) => ({ ...previous, branch: previous.branch || options[0] }));
+      if (options.length) {
+        setFormData((previous) => ({ ...previous, branch: previous.branch || options[0] }));
+        if (!formData.branch?.value) {
+          fetchDepartments(options[0].value);
+        }
+      }
     } catch (error) {
       console.error("Error fetching branches:", error);
     } finally {
@@ -241,6 +252,19 @@ const AddWorkDetails = forwardRef(({ onNext, onBack }, ref) => {
 
   const handleChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleBranchChange = (branch) => {
+    setFormData((previous) => ({
+      ...previous,
+      branch,
+      department: null,
+    }));
+    setDepartmentOptions([]);
+
+    if (branch?.value) {
+      fetchDepartments(branch.value);
+    }
   };
 
   const experienceTypeOptions = [
@@ -347,7 +371,7 @@ const AddWorkDetails = forwardRef(({ onNext, onBack }, ref) => {
               <Select
                 options={branchOptions}
                 value={formData.branch}
-                onChange={(value) => handleChange("branch", value)}
+                onChange={handleBranchChange}
                 placeholder="Select Branch"
                 styles={customSelectStyles}
                 isSearchable

@@ -7,7 +7,7 @@ import { toast } from "react-toastify";
 import AddTeamMemberModal from "../../components/AddTeamMemberModal";
 import ReusableTable from "../../components/ReusableTable";
 import SearchInputComponent from "../../components/SearchInputComponent";
-import { addTeamMember, getTeam, updateUser } from "../../services/apiServices";
+import { addTeamMember, deleteTeamMember, getTeam } from "../../services/apiServices";
 import theme from "../../theme/theme";
 
 const valueOf = (value, keys) => typeof value === "string" ? value : keys.map((key) => value?.[key]).find(Boolean) || "N/A";
@@ -36,7 +36,7 @@ const TeamDetails = () => {
     id: user.id || user._id, employeeId: user.employeeId || user.agentId || "N/A", name: user.name || "N/A",
     designation: valueOf(user.workInformation?.designation || user.designation, ["designationName", "name"]),
     dept: valueOf(user.workInformation?.department || user.department, ["departmentName", "name"]),
-    shift: valueOf(user.workInformation?.shift || user.shift, ["shiftName", "name"]),
+    shift: valueOf(user.workInformation?.shiftId || user.workInformation?.shift || user.shiftId || user.shift, ["shiftName", "name"]),
     joinedDate: formatDate(user.workInformation?.dateOfJoining || user.workInformation?.joinedDate),
     status: user.isActive === false ? "In-Active" : user.status || "Active", actions: "", raw: user,
   })).filter((row) => !search || Object.values(row).some((value) => typeof value !== "object" && String(value).toLowerCase().includes(search.toLowerCase()))), [members, search]);
@@ -52,12 +52,12 @@ const TeamDetails = () => {
   };
   const removeMember = async (row) => {
     if (!window.confirm(`Remove ${row.name} from this team?`)) return;
-    try { await updateUser(row.id, { workInformation: { ...(row.raw.workInformation || {}), team: null }, team: null }); toast.success("Member removed successfully"); await load(); }
+    try { await deleteTeamMember(teamId, row.id); toast.success("Member removed successfully"); await load(); }
     catch (error) { toast.error(error.response?.data?.message || "Failed to remove member"); }
   };
 
   const info = { code: team?.teamCode || team?.teamId || "N/A", name: team?.teamName || team?.name || "N/A", department: valueOf(team?.department, ["departmentName", "name"]), lead: valueOf(team?.teamLead || team?.lead, ["name", "fullName", "email"]) };
-  const columns = [{ key:"employeeId",header:"Employee ID"},{ key:"name",header:"Name"},{ key:"designation",header:"Designation"},{ key:"dept",header:"Dept."},{ key:"shift",header:"Shift"},{ key:"joinedDate",header:"Joined Date"},{ key:"status",header:"Status"},{ key:"actions",header:"Action",align:"right"}];
+  const columns = [{ key:"employeeId",header:"Employee ID"},{ key:"name",header:"Name"},{ key:"dept",header:"Dept."},{ key:"shift",header:"Shift"},{ key:"joinedDate",header:"Joined Date"},{ key:"status",header:"Status"},{ key:"actions",header:"Action",align:"right"}];
 
   return <><Back type="button" onClick={() => navigate("/admin/peopleHub/teams")}><FiArrowLeft />Team Details</Back><Card><Toolbar><Heading><Icon><FaUsers /></Icon><h1>{info.name}</h1></Heading><Controls><SearchInputComponent placeholder="Search Employee" value={search} onSearchChange={setSearch} width="356px" height="40px"/><AddButton type="button" onClick={() => setModalOpen(true)}><FiPlus />Add New</AddButton><Menu type="button"><FiMoreHorizontal /></Menu></Controls></Toolbar><Summary><Column><Line><Label>Team ID</Label><b>:</b><span>{info.code}</span></Line><Line><Label>Name</Label><b>:</b><span>{info.name}</span></Line><Line><Label>Department</Label><b>:</b><span>{info.department}</span></Line></Column><Column><Line><Label>Team Lead</Label><b>:</b><span>{info.lead}</span></Line><Line><Label>Total Members</Label><b>:</b><span>{team?.totalUsers ?? rows.length}</span></Line></Column></Summary><ReusableTable columns={columns} data={rows} rowsPerPage={10} totalResults={rows.length} isLoading={loading} onDelete={removeMember} showEditAction={false}/><AddTeamMemberModal isOpen={modalOpen} onClose={() => !saving && setModalOpen(false)} onSave={addMember} isLoading={saving} teamId={teamId}/></Card></>;
 };

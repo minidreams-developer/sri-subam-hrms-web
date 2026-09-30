@@ -6,7 +6,7 @@ import ReusableTable from "../../components/ReusableTable";
 import PlusIcon from "../../assets/images/DashboardImages/plus-large_svgrepo.com.svg";
 import TableToolbar from "../../components/TableToolbar";
 import BranchDetailsSidebar from "./BranchDetailsSidebar";
-import { deleteBranch, getBranches } from "../../services/apiServices";
+import { deleteBranch, getBranches, updateBranch } from "../../services/apiServices";
 import { toast } from "react-toastify";
 import PageLoader from "../../components/PageLoader";
 import { HiBuildingOffice2 } from "react-icons/hi2";
@@ -161,6 +161,31 @@ const Branches = () => {
     }
   };
 
+  const handleBranchStatusChange = async (branch, isActive) => {
+    const branchId = branch?.id || branch?._id || branch?.originalData?.id || branch?.originalData?._id;
+
+    if (!branchId) {
+      toast.error("Branch ID is unavailable");
+      return false;
+    }
+
+    try {
+      await updateBranch(branchId, { branchStatus: isActive ? "active" : "inactive" });
+      toast.success(`Branch ${isActive ? "activated" : "deactivated"} successfully`);
+      setSelectedBranch((current) => current ? {
+        ...current,
+        branchStatus: isActive ? "active" : "inactive",
+        status: isActive ? "active" : "inactive",
+      } : current);
+      await fetchBranches(currentPage, pageSize, sortBy);
+      return true;
+    } catch (error) {
+      toast.error(error.response?.data?.message || error.message || "Failed to update branch status");
+      console.error("Update branch status error:", error);
+      return false;
+    }
+  };
+
   if (isLoading) {
     return <PageLoader />;
   }
@@ -203,6 +228,7 @@ const Branches = () => {
         onClose={() => setIsSidebarOpen(false)}
         data={selectedBranch}
         onEdit={handleEditBranch}
+        onStatusChange={handleBranchStatusChange}
       />
     </Container>
   );
