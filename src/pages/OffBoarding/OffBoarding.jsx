@@ -87,6 +87,7 @@ const OffBoarding = () => {
       const deptOptions = deptList.map((dept) => ({
         value: dept.departmentName || dept.name || "N/A",
         label: dept.departmentName || dept.name || "N/A",
+        id: dept._id || dept.id || dept.departmentId,
       }));
 
       setDepartmentOptions(deptOptions);
@@ -104,7 +105,7 @@ const OffBoarding = () => {
     fetchOffboardingSummary();
     // Both fetch functions are intentionally re-run only when pagination changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentPage, pageSize]);
+  }, [currentPage, pageSize, selectedRange, activeTab, employeeDept, staffRole]);
 
   const fetchOffboardingRecords = async () => {
     setLoading(true);
@@ -112,6 +113,15 @@ const OffBoarding = () => {
       const response = await getOffboards({
         page: currentPage,
         limit: pageSize,
+        role: activeTab === "Employee" ? "employee" : "staff",
+        departmentId:
+          activeTab === "Employee" && employeeDept !== "All Department"
+            ? departmentOptions.find((department) => department.value === employeeDept)?.id
+            : undefined,
+        staffRole:
+          activeTab === "Staffs" && staffRole !== "All Roles"
+            ? staffRole
+            : undefined,
       });
       console.log("Offboarding records fetched:", response);
 
@@ -161,7 +171,14 @@ const OffBoarding = () => {
   const fetchOffboardingSummary = async () => {
     setSummaryLoading(true);
     try {
-      const response = await getOffboardSummary();
+      const rangeDays = {
+        "Last 7 days": 7,
+        "Last 30 days": 30,
+        "Last 90 days": 90,
+      };
+      const response = await getOffboardSummary({
+        range: rangeDays[selectedRange],
+      });
       const summary = response?.data || response || {};
       const value = (...keys) => {
         const key = keys.find((item) => summary[item] !== undefined && summary[item] !== null);
@@ -394,18 +411,15 @@ const OffBoarding = () => {
       <Top>
         <TopTitle>Quick Stats</TopTitle>
         <Controls>
-          <FilterSelect>
+          {/* <FilterSelect>
             <select
               className="form-select"
               value={selectedDepartment}
               onChange={(e) => setSelectedDepartment(e.target.value)}
             >
               <option>All</option>
-              <option>Pending</option>
-              <option>Approved</option>
-              <option>Relieved</option>
             </select>
-          </FilterSelect>
+          </FilterSelect> */}
           <FilterSelect>
             <select
               className="form-select"

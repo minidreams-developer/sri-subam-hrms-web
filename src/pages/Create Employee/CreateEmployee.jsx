@@ -92,7 +92,7 @@ const CreateEmployee = () => {
         email: personalData.email,
         password: personalData.password,
         phone: Number(personalData.contact),
-        role: selectedType,
+        role: selectedType === "staff" ? workData.role?.value || "staff" : selectedType,
         ...(selectedType === "agent" ? { agentId: personalData.employeeId } : {}),
         ...(selectedType === "staff" ? { employeeId: personalData.employeeId } : {}),
         gender: personalData.gender?.value,

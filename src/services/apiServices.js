@@ -108,6 +108,18 @@ export const updateDepartment = (id, payload) =>
 export const deleteDepartment = (id) =>
   data(api.delete(`/v1/departments/${id}`));
 
+// Designations
+export const getDesignations = (params, config) =>
+  list("/v1/designations", params, config);
+export const getDesignation = (id, config) =>
+  data(api.get(`/v1/designations/${id}`, config));
+export const createDesignation = (payload) =>
+  data(api.post("/v1/designations", payload));
+export const updateDesignation = (id, payload) =>
+  data(api.patch(`/v1/designations/${id}`, payload));
+export const deleteDesignation = (id) =>
+  data(api.delete(`/v1/designations/${id}`));
+
 // Teams
 export const getTeams = (params, config) => list("/v1/teams", params, config);
 
@@ -269,7 +281,8 @@ export const createAdjustment = (payload) =>
 
 // Offboarding, leaderboard, dashboard, and settings
 export const getOffboards = (params) => list("/v1/off-board", params);
-export const getOffboardSummary = () => data(api.get("/v1/off-board/summary"));
+export const getOffboardSummary = (params) =>
+  list("/v1/off-board/summary", params);
 
 export const getOffboard = (id) => data(api.get(`/v1/off-board/${id}`));
 

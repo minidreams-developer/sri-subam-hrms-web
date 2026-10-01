@@ -198,6 +198,10 @@ const SidebarItems = [
         path: "/admin/settings/departments",
       },
       {
+        name: "Designations",
+        path: "/admin/settings/designations",
+      },
+      {
         name: "Roles",
         path: "/admin/settings/roles",
       },

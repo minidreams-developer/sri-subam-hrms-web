@@ -12,6 +12,7 @@ const AddWorkDetails = forwardRef(({ onNext, onBack, showContractAgent = false }
   const [formData, setFormData] = useState({
     dateOfJoining: new Date(),
     experienceType: { value: "experienced", label: "Experienced" },
+    role: null,
     department: null,
     designation: { value: "developer", label: "Developer" },
     team: null,
@@ -54,6 +55,7 @@ const AddWorkDetails = forwardRef(({ onNext, onBack, showContractAgent = false }
   const [teamsLoading, setTeamsLoading] = useState(false);
   const [branchesLoading, setBranchesLoading] = useState(false);
   const [contractAgentsLoading, setContractAgentsLoading] = useState(false);
+  const [rolesLoading, setRolesLoading] = useState(false);
 
   // Options states
   const [departmentOptions, setDepartmentOptions] = useState([]);
@@ -62,6 +64,7 @@ const AddWorkDetails = forwardRef(({ onNext, onBack, showContractAgent = false }
   const [teamOptions, setTeamOptions] = useState([]);
   const [branchOptions, setBranchOptions] = useState([]);
   const [contractAgentOptions, setContractAgentOptions] = useState([]);
+  const [roleOptions, setRoleOptions] = useState([]);
 
   // Fetch data on component mount
   useEffect(() => {
@@ -71,7 +74,30 @@ const AddWorkDetails = forwardRef(({ onNext, onBack, showContractAgent = false }
     fetchTeams();
     fetchBranches();
     fetchContractAgents();
+    if (!showContractAgent) fetchRoles();
   }, []);
+
+  const fetchRoles = async () => {
+    setRolesLoading(true);
+    try {
+      const response = await getUsers({ distinct: "role" }, { skipGlobalLoading: true });
+      const roles = Array.isArray(response)
+        ? response
+        : response?.roles || response?.results || response?.data?.roles || response?.data?.results || response?.data || [];
+      const options = (Array.isArray(roles) ? roles : [])
+        .map((role) => {
+          const value = typeof role === "string" ? role : role?.role || role?.value || role?.name;
+          return value ? { value, label: typeof role === "string" ? role : role?.label || role?.name || value } : null;
+        })
+        .filter(Boolean);
+      setRoleOptions(options);
+    } catch (error) {
+      console.error("Error fetching roles:", error);
+      toast.error("Failed to fetch roles");
+    } finally {
+      setRolesLoading(false);
+    }
+  };
 
   const fetchContractAgents = async () => {
     setContractAgentsLoading(true);
@@ -309,6 +335,24 @@ const AddWorkDetails = forwardRef(({ onNext, onBack, showContractAgent = false }
             </SelectWrapper>
           </Col>
         </Row>
+        {!showContractAgent && (
+          <Row>
+            <Col>
+              <SelectWrapper>
+                <Label>Role</Label>
+                <Select
+                  options={roleOptions}
+                  value={formData.role}
+                  onChange={(value) => handleChange("role", value)}
+                  placeholder="Select Role"
+                  styles={customSelectStyles}
+                  isSearchable
+                  isLoading={rolesLoading}
+                />
+              </SelectWrapper>
+            </Col>
+          </Row>
+        )}
         <Row>
           <Col>
             <SelectWrapper>

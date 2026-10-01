@@ -70,6 +70,7 @@ const getModuleKeyFromMenuItem = (menuName, isSubmenu = false, submenuName = nul
     "Day Settings": "daySettings",
     "Series Configuration": "seriesConfiguration",
     Departments: "departments",
+    Designations: "manageAttendance",
     Roles: "roles",
   };
 

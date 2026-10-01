@@ -36,6 +36,7 @@ import AddAdjustment from "../pages/Addition/AddAdjustment";
 import GeneralSettings from "../pages/Settings/GeneralSettings/GeneralSettings";
 import OrganizationDetails from "../pages/Settings/OrganizationDetails";
 import Departments from "../pages/Settings/Departments/Departments";
+import Designations from "../pages/Settings/Designations/Designations";
 import Roles from "../pages/Settings/Roles/Roles";
 import RolesConfig from "../pages/Settings/Roles/RolesConfig";
 import DaySettings from "../pages/Settings/DaySettings/DaySettings";
@@ -240,6 +241,10 @@ const privateRoutes = [
       {
         path: "settings/departments",
         element: <Departments />,
+      },
+      {
+        path: "settings/designations",
+        element: <Designations />,
       },
       {
         path: "settings/roles",
