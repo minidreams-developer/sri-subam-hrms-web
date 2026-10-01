@@ -14,10 +14,11 @@ const CalenderInput = ({ onDateSelect, initialDate, label = "Date", labelMargin 
       const date = new Date(initialDate);
       if (!isNaN(date.getTime())) {
         setSelectedDate(date);
-        onDateSelect(date);
       }
+    } else {
+      setSelectedDate(null);
     }
-  }, []);
+  }, [initialDate]);
 
   const handleIconClick = () => {
     if (datePickerRef.current) {

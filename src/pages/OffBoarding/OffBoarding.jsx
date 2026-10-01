@@ -401,8 +401,9 @@ const OffBoarding = () => {
               onChange={(e) => setSelectedDepartment(e.target.value)}
             >
               <option>All</option>
-              <option>Active</option>
-              <option>In-Active</option>
+              <option>Pending</option>
+              <option>Approved</option>
+              <option>Relieved</option>
             </select>
           </FilterSelect>
           <FilterSelect>

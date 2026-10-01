@@ -290,6 +290,7 @@ const CreateEmployeeOffboard = () => {
         const reportingPerson = work.reportingPerson || employee.reportingPerson;
         const joinedDate = work.joinedDate || employee.dateOfJoining || employee.joinedDate;
         const employmentType = work.experienceType || employee.employmentType;
+        const employeeAssets = Array.isArray(employee.assets) ? employee.assets : [];
         // Extract employee name
         const employeeName =
           employee.firstName && employee.lastName
@@ -348,6 +349,34 @@ const CreateEmployeeOffboard = () => {
               }
             : null,
         }));
+
+        setAssets(
+          employeeAssets.length
+            ? employeeAssets.map((item) => ({
+                asset: {
+                  value: item._id || item.id || item.assetName,
+                  label: item.assetName || item.assetType || "Asset",
+                  assetSerialNumber: item.assetSerialNumber || "",
+                },
+                condition: (item.assetContition || item.assetCondition)
+                  ? {
+                      value: item.assetContition || item.assetCondition,
+                      label: String(item.assetContition || item.assetCondition)
+                        .replaceAll("_", " ")
+                        .replace(/\b\w/g, (letter) => letter.toUpperCase()),
+                    }
+                  : null,
+                returnStatus: item.assetStatus
+                  ? {
+                      value: item.assetStatus,
+                      label: String(item.assetStatus)
+                        .replaceAll("_", " ")
+                        .replace(/\b\w/g, (letter) => letter.toUpperCase()),
+                    }
+                  : null,
+              }))
+            : [{ asset: null, condition: null, returnStatus: null }],
+        );
 
         toast.success("Employee found successfully");
       } else {
@@ -585,6 +614,7 @@ const CreateEmployeeOffboard = () => {
     { value: "returned", label: "Returned" },
     { value: "pending", label: "Pending" },
     { value: "not_applicable", label: "Not Applicable" },
+    { value: "currently_using", label: "Currently Using" },
   ];
 
   const handleChange = (field, value) => {
@@ -1032,7 +1062,12 @@ const CreateEmployeeOffboard = () => {
                 <SelectWrapper>
                   <Label>Asset {index + 1}</Label>
                   <Select
-                    options={assetOptions}
+                    options={[
+                      ...assetOptions,
+                      ...(asset.asset && !assetOptions.some((option) => option.value === asset.asset.value)
+                        ? [asset.asset]
+                        : []),
+                    ]}
                     value={asset.asset}
                     onChange={(value) =>
                       handleAssetChange(index, "asset", value)
