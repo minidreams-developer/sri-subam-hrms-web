@@ -10,12 +10,13 @@ import TabSwitcher from "../../components/TabSwitcher";
 import ProfileImage from "../../assets/images/employee/sampleProfile.jpg";
 import {
   deleteOffboard,
+  finalizeOffboard,
   getDepartments,
   getOffboards,
-  updateOffboardStatus,
+  getOffboardSummary,
 } from "../../services/apiServices";
 import DeleteConfirmationModal from "../../components/DeleteConfirmationModal";
-import { FiCheck, FiX } from "react-icons/fi";
+import { FiCheck } from "react-icons/fi";
 import { toast } from "react-toastify";
 import Filter from "../../components/filter";
 import {
@@ -23,26 +24,28 @@ import {
   offboardingStaffColumns,
 } from "../../utils/data";
 
-const offboardingStats = [
-  { title: "In Progress", value: "24" },
-  { title: "Pending Clearance", value: "8" },
-  { title: "FnF Pending", value: "5" },
-  { title: "Completed", value: "40" },
-  {
-    title: "Avg Exit Time",
-    value: "18",
-    suffix: "Days",
-  },
-];
+const isApprovedOffboardingStatus = (status) =>
+  String(status || "").trim().toLowerCase() === "approved";
 
-const isPendingOffboardingStatus = (status) =>
-  !["approved", "rejected", "completed"].includes(
-    String(status || "").trim().toLowerCase(),
-  );
+const toLocalDateKey = (value) => {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value).slice(0, 10);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+const isLastWorkingDateDue = (lastWorkingDate) => {
+  const today = new Date();
+  const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+  const lastWorkingDateKey = toLocalDateKey(lastWorkingDate);
+  return Boolean(lastWorkingDateKey) && lastWorkingDateKey <= todayKey;
+};
 
 const OffBoarding = () => {
   const navigate = useNavigate();
-  const stats = offboardingStats;
 
   const [selectedDepartment, setSelectedDepartment] = useState("All");
   const [selectedRange, setSelectedRange] = useState("Last 7 days");
@@ -63,6 +66,8 @@ const OffBoarding = () => {
   const [departmentOptions, setDepartmentOptions] = useState([]);
   const [recordToDelete, setRecordToDelete] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [offboardingStats, setOffboardingStats] = useState([]);
+  const [summaryLoading, setSummaryLoading] = useState(true);
 
   const handleFilterApply = (filters) => {
     setShowFilter(false);
@@ -96,6 +101,7 @@ const OffBoarding = () => {
   useEffect(() => {
     fetchOffboardingRecords();
     fetchDepartments();
+    fetchOffboardingSummary();
     // Both fetch functions are intentionally re-run only when pagination changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPage, pageSize]);
@@ -152,6 +158,31 @@ const OffBoarding = () => {
     });
   };
 
+  const fetchOffboardingSummary = async () => {
+    setSummaryLoading(true);
+    try {
+      const response = await getOffboardSummary();
+      const summary = response?.data || response || {};
+      const value = (...keys) => {
+        const key = keys.find((item) => summary[item] !== undefined && summary[item] !== null);
+        return key ? summary[key] : "—";
+      };
+      setOffboardingStats([
+        { title: "In Progress", value: value("inProgress", "in_progress") },
+        { title: "Pending Clearance", value: value("pendingClearance", "pending_clearance") },
+        { title: "FnF Pending", value: value("fnfPending", "fnf_pending", "pendingFnF") },
+        { title: "Completed", value: value("completed", "totalCompleted") },
+        { title: "Avg Exit Time", value: value("avgExitTime", "averageExitTime", "average_exit_time"), suffix: "Days" },
+      ]);
+    } catch (error) {
+      console.error("Error fetching offboarding summary:", error);
+      setOffboardingStats([]);
+      toast.error("Failed to fetch offboarding quick stats");
+    } finally {
+      setSummaryLoading(false);
+    }
+  };
+
   const handleDelete = async () => {
     if (!recordToDelete?.id) return;
     setIsDeleting(true);
@@ -167,20 +198,16 @@ const OffBoarding = () => {
     }
   };
 
-  const handleStatusChange = async (row, status) => {
+  const handleFinalize = async (row) => {
     if (!row?.id) return;
 
     try {
-      const payload = status === "approved"
-        ? { status: "approved" }
-        : { status: "rejected", reason: "Exit request rejected" };
-
-      await updateOffboardStatus(row.id, payload);
-      toast.success(`Offboarding request ${status}`);
+      await finalizeOffboard(row.id);
+      toast.success("Employee relieved successfully");
       await fetchOffboardingRecords();
     } catch (error) {
       toast.error(
-        error.response?.data?.message || `Failed to ${status} offboarding request`,
+        error.response?.data?.message || "Failed to relieve employee",
       );
     }
   };
@@ -293,35 +320,25 @@ const OffBoarding = () => {
         if (col.accessor === "approval") return {
           ...col,
           align: "center",
-          render: (row) => isPendingOffboardingStatus(row.status) ? (
+          render: (row) => isApprovedOffboardingStatus(row.status) && isLastWorkingDateDue(row.lwd) ? (
             <ApprovalGroup>
               <ApprovalButton
                 type="button"
                 $approve
-                title="Approve"
+                title="Relieve"
                 onClick={(event) => {
                   event.stopPropagation();
-                  handleStatusChange(row, "approved");
+                  handleFinalize(row);
                 }}
               >
-                <FiCheck /> Approve
-              </ApprovalButton>
-              <ApprovalButton
-                type="button"
-                title="Reject"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  handleStatusChange(row, "rejected");
-                }}
-              >
-                <FiX /> Reject
+                <FiCheck /> Relieve
               </ApprovalButton>
             </ApprovalGroup>
           ) : null,
         };
         return col;
       }),
-    [handleStatusChange],
+    [handleFinalize],
   );
 
   const staffColumnsWithRenderer = offboardingStaffColumns.map((col) => {
@@ -345,28 +362,18 @@ const OffBoarding = () => {
     if (col.accessor === "approval") return {
       ...col,
       align: "center",
-      render: (row) => isPendingOffboardingStatus(row.status) ? (
+      render: (row) => isApprovedOffboardingStatus(row.status) && isLastWorkingDateDue(row.lwd) ? (
         <ApprovalGroup>
           <ApprovalButton
             type="button"
             $approve
-            title="Approve"
+            title="Relieve"
             onClick={(event) => {
               event.stopPropagation();
-              handleStatusChange(row, "approved");
+              handleFinalize(row);
             }}
           >
-            <FiCheck /> Approve
-          </ApprovalButton>
-          <ApprovalButton
-            type="button"
-            title="Reject"
-            onClick={(event) => {
-              event.stopPropagation();
-              handleStatusChange(row, "rejected");
-            }}
-          >
-            <FiX /> Reject
+            <FiCheck /> Relieve
           </ApprovalButton>
         </ApprovalGroup>
       ) : null,
@@ -422,7 +429,7 @@ const OffBoarding = () => {
       </Top>
       {/* QUICK STATS */}
       <StatsGrid>
-        {stats.map((item, index) => (
+        {summaryLoading ? <StatsMessage>Loading quick stats...</StatsMessage> : offboardingStats.length ? offboardingStats.map((item, index) => (
           <StatCard key={index}>
             <CardTitle>{item.title}</CardTitle>
 
@@ -434,7 +441,7 @@ const OffBoarding = () => {
 
             </CardFooter>
           </StatCard>
-        ))}
+        )) : <StatsMessage>No quick stats available</StatsMessage>}
       </StatsGrid>
 
       <TabSwitcher
@@ -545,6 +552,12 @@ const StatsGrid = styled.div`
   @media (max-width: 760px) {
     grid-template-columns: 1fr;
   }
+`;
+
+const StatsMessage = styled.div`
+  grid-column: 1 / -1;
+  color: ${theme.colors.textColor};
+  padding: 1rem 0;
 `;
 
 const StatCard = styled.div`

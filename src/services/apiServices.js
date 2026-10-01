@@ -269,6 +269,7 @@ export const createAdjustment = (payload) =>
 
 // Offboarding, leaderboard, dashboard, and settings
 export const getOffboards = (params) => list("/v1/off-board", params);
+export const getOffboardSummary = () => data(api.get("/v1/off-board/summary"));
 
 export const getOffboard = (id) => data(api.get(`/v1/off-board/${id}`));
 
@@ -280,6 +281,9 @@ export const updateOffboard = (id, payload) =>
 
 export const updateOffboardStatus = (id, payload) =>
   data(api.patch(`/v1/off-board/${id}/status`, payload));
+
+export const finalizeOffboard = (id) =>
+  data(api.post(`/v1/off-board/${id}/finalize`));
 
 export const deleteOffboard = (id) => data(api.delete(`/v1/off-board/${id}`));
 
