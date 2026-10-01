@@ -109,10 +109,14 @@ export const deleteDepartment = (id) =>
   data(api.delete(`/v1/departments/${id}`));
 
 // Designations
+export const getDesignationDropdown = (config) =>
+  data(api.get("/v1/designations/dropdown", config));
 export const getDesignations = (params, config) =>
   list("/v1/designations", params, config);
 export const getDesignation = (id, config) =>
   data(api.get(`/v1/designations/${id}`, config));
+export const generateDesignationId = (config) =>
+  data(api.get("/v1/designations/generate-id", config));
 export const createDesignation = (payload) =>
   data(api.post("/v1/designations", payload));
 export const updateDesignation = (id, payload) =>

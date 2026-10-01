@@ -291,7 +291,12 @@ const Employees = () => {
           email: item.email || "N/A",
           phone: item.phone || "N/A",
           department: departmentName,
-          designation: item.workInformation?.designation || item.designation || "N/A",
+          designation: (() => {
+            const value = item.workInformation?.designation || item.designation;
+            return typeof value === "object"
+              ? value?.designationName || value?.name || "N/A"
+              : value || "N/A";
+          })(),
           shift: shiftName,
           status: typeof item.isActive === "string"
             ? item.isActive

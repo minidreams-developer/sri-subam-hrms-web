@@ -5,7 +5,7 @@ import CalenderInput from "../../../components/CalenderInput";
 import InputComponent from "../../../components/InputComponent";
 import Select from "react-select";
 import { customSelectStyles } from "../../../theme/reactSelectStyles";
-import { getBranches, getDepartments, getShifts, getTeams, getUserDropdown, getUsers } from "../../../services/apiServices";
+import { getBranches, getDepartments, getDesignationDropdown, getShifts, getTeams, getUserDropdown, getUsers } from "../../../services/apiServices";
 import { toast } from "react-toastify";
 
 const AddWorkDetails = forwardRef(({ onNext, onBack, showContractAgent = false }, ref) => {
@@ -14,7 +14,7 @@ const AddWorkDetails = forwardRef(({ onNext, onBack, showContractAgent = false }
     experienceType: { value: "experienced", label: "Experienced" },
     role: null,
     department: null,
-    designation: { value: "developer", label: "Developer" },
+    designation: null,
     team: null,
     branch: null,
     contractAgent: null,
@@ -55,7 +55,7 @@ const AddWorkDetails = forwardRef(({ onNext, onBack, showContractAgent = false }
   const [teamsLoading, setTeamsLoading] = useState(false);
   const [branchesLoading, setBranchesLoading] = useState(false);
   const [contractAgentsLoading, setContractAgentsLoading] = useState(false);
-  const [rolesLoading, setRolesLoading] = useState(false);
+  const [designationsLoading, setDesignationsLoading] = useState(false);
 
   // Options states
   const [departmentOptions, setDepartmentOptions] = useState([]);
@@ -64,7 +64,7 @@ const AddWorkDetails = forwardRef(({ onNext, onBack, showContractAgent = false }
   const [teamOptions, setTeamOptions] = useState([]);
   const [branchOptions, setBranchOptions] = useState([]);
   const [contractAgentOptions, setContractAgentOptions] = useState([]);
-  const [roleOptions, setRoleOptions] = useState([]);
+  const [designationOptions, setDesignationOptions] = useState([]);
 
   // Fetch data on component mount
   useEffect(() => {
@@ -74,28 +74,39 @@ const AddWorkDetails = forwardRef(({ onNext, onBack, showContractAgent = false }
     fetchTeams();
     fetchBranches();
     fetchContractAgents();
-    if (!showContractAgent) fetchRoles();
+    fetchDesignations();
+    
   }, []);
 
-  const fetchRoles = async () => {
-    setRolesLoading(true);
+  const fetchDesignations = async () => {
+    setDesignationsLoading(true);
     try {
-      const response = await getUsers({ distinct: "role" }, { skipGlobalLoading: true });
-      const roles = Array.isArray(response)
+      const response = await getDesignationDropdown({ skipGlobalLoading: true });
+      const designations = Array.isArray(response)
         ? response
-        : response?.roles || response?.results || response?.data?.roles || response?.data?.results || response?.data || [];
-      const options = (Array.isArray(roles) ? roles : [])
-        .map((role) => {
-          const value = typeof role === "string" ? role : role?.role || role?.value || role?.name;
-          return value ? { value, label: typeof role === "string" ? role : role?.label || role?.name || value } : null;
-        })
-        .filter(Boolean);
-      setRoleOptions(options);
+        : response?.designations ||
+          response?.results ||
+          response?.data?.designations ||
+          response?.data?.results ||
+          response?.data?.data ||
+          response?.data ||
+          response?.result ||
+          [];
+      const options = (Array.isArray(designations) ? designations : [])
+        .map((designation) => ({
+          value: designation._id,
+          label: designation.designationName || designation.name,
+        }))
+        .filter((option) => option.value && option.label);
+      setDesignationOptions(options);
+      if (options.length) {
+        setFormData((prev) => ({ ...prev, designation: prev.designation || options[0] }));
+      }
     } catch (error) {
-      console.error("Error fetching roles:", error);
-      toast.error("Failed to fetch roles");
+      console.error("Error fetching designations:", error);
+      toast.error("Failed to fetch designations");
     } finally {
-      setRolesLoading(false);
+      setDesignationsLoading(false);
     }
   };
 
@@ -273,12 +284,6 @@ const AddWorkDetails = forwardRef(({ onNext, onBack, showContractAgent = false }
     { value: "experienced", label: "Experienced" },
   ];
 
-  const designationOptions = [
-    { value: "manager", label: "Manager" },
-    { value: "developer", label: "Developer" },
-    { value: "designer", label: "Designer" },
-  ];
-
   const attendanceTypeOptions = [
     { value: "bio_metric", label: "Bio Metric" },
     { value: "manual", label: "Manual" },
@@ -335,24 +340,6 @@ const AddWorkDetails = forwardRef(({ onNext, onBack, showContractAgent = false }
             </SelectWrapper>
           </Col>
         </Row>
-        {!showContractAgent && (
-          <Row>
-            <Col>
-              <SelectWrapper>
-                <Label>Role</Label>
-                <Select
-                  options={roleOptions}
-                  value={formData.role}
-                  onChange={(value) => handleChange("role", value)}
-                  placeholder="Select Role"
-                  styles={customSelectStyles}
-                  isSearchable
-                  isLoading={rolesLoading}
-                />
-              </SelectWrapper>
-            </Col>
-          </Row>
-        )}
         <Row>
           <Col>
             <SelectWrapper>
@@ -378,6 +365,7 @@ const AddWorkDetails = forwardRef(({ onNext, onBack, showContractAgent = false }
                 placeholder="Select Designation"
                 styles={customSelectStyles}
                 isSearchable
+                isLoading={designationsLoading}
               />
             </SelectWrapper>
           </Col>

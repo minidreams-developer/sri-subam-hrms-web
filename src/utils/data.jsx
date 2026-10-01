@@ -77,6 +77,7 @@ export const staffTableColumns = [
   { header: "Staff ID", accessor: "employeeId" },
   { header: "Name", accessor: "name" },
   { header: "Role", accessor: "role" },
+  { header: "Designation", accessor: "designation" },
   { header: "Dept.", accessor: "department" },
   { header: "Shift", accessor: "shift" },
   { header: "Joined Date", accessor: "joinedDate" },
