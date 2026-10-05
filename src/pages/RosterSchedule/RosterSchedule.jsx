@@ -44,12 +44,13 @@ const monday = (d) => {
 
 export default function RosterSchedule() {
   const [date, setDate] = useState(new Date()),
-    [view, setView] = useState("week"),
+    [view, setView] = useState("month"),
     [rosters, setRosters] = useState([]),
     [users, setUsers] = useState([]),
     [shifts, setShifts] = useState([]),
     [loading, setLoading] = useState(true),
     [modal, setModal] = useState(null),
+    [detailsDate, setDetailsDate] = useState(null),
     [saving, setSaving] = useState(false);
   const week = useMemo(() => {
     const s = monday(date);
@@ -242,8 +243,9 @@ export default function RosterSchedule() {
           <Month
             date={date}
             employees={employees}
-            record={record}
+            rosters={rosters}
             open={open}
+            onViewDay={setDetailsDate}
           />
         ) : (
           <Week
@@ -322,6 +324,29 @@ export default function RosterSchedule() {
           </Modal>
         </Overlay>
       )}
+      {detailsDate && (
+        <Overlay className="drawer-overlay" onClick={() => setDetailsDate(null)}>
+          <DetailsModal onClick={(e) => e.stopPropagation()}>
+            <DetailsHeader>
+              <div>
+                <h2>{detailsDate.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}</h2>
+                <p>{rosters.filter((r) => String(r.date || "").slice(0, 10) === iso(detailsDate)).length} employees • {new Set(rosters.filter((r) => String(r.date || "").slice(0, 10) === iso(detailsDate)).map(shiftName)).size} shifts active</p>
+              </div>
+              <button type="button" onClick={() => setDetailsDate(null)}>×</button>
+            </DetailsHeader>
+            {[...new Map(rosters.filter((r) => String(r.date || "").slice(0, 10) === iso(detailsDate)).map((r) => [shiftName(r), []])).keys()].map((name, shiftIndex) => {
+              const rows = rosters.filter((r) => String(r.date || "").slice(0, 10) === iso(detailsDate) && shiftName(r) === name);
+              const shiftData = rows[0]?.shiftId || {};
+              const timing = (shiftData.timings || []).find((t) => t.day === detailsDate.toLocaleDateString("en-US", { weekday: "long" }));
+              return <ShiftCard className={`shift-card-${shiftIndex % 4}`} key={name}>
+                <ShiftTitle><strong>{name}</strong><span>{timing?.startTime || "--:--"} - {timing?.endTime || "--:--"}<b>{rows.length}</b></span></ShiftTitle>
+                {rows.map((r) => <DetailRow key={id(r)}><div><strong>{employeeName(employee(r))}</strong><small>{employee(r)?.workInformation?.designation || "Employee"}</small></div><small>{employee(r)?.employeeId || "—"}</small><button type="button" onClick={() => { setDetailsDate(null); open(r, employee(r), detailsDate); }}><FiEdit2 /></button></DetailRow>)}
+              </ShiftCard>;
+            })}
+            {!rosters.some((r) => String(r.date || "").slice(0, 10) === iso(detailsDate)) && <Empty>No roster scheduled for this day.</Empty>}
+          </DetailsModal>
+        </Overlay>
+      )}
     </Page>
   );
 }
@@ -370,7 +395,7 @@ const Week = ({ days, employees, record, open, color }) => (
     </Grid>
   </WeekWrap>
 );
-const Month = ({ date, employees, record, open }) => {
+const Month = ({ date, employees, rosters, open, onViewDay }) => {
   const first = new Date(date.getFullYear(), date.getMonth(), 1),
     offset = (first.getDay() + 6) % 7;
   const days = Array.from(
@@ -382,25 +407,27 @@ const Month = ({ date, employees, record, open }) => {
       {["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"].map((x) => (
         <DayHead key={x}>{x}</DayHead>
       ))}
-      {days.map((d) => (
+      {days.map((d) => {
+        const dayRosters = rosters.filter(
+          (r) => String(r.date || "").slice(0, 10) === iso(d),
+        );
+        const counts = dayRosters.reduce((result, r) => {
+          const name = shiftName(r);
+          const key = name.trim().charAt(0).toUpperCase() || "?";
+          result[key] = (result[key] || 0) + 1;
+          return result;
+        }, {});
+        return (
         <Day
           key={iso(d)}
           className={d.getMonth() !== date.getMonth() ? "muted" : ""}
-          onClick={() => open(null, employees[0], d)}
+          onClick={() => onViewDay(d)}
         >
-          <b>{d.getDate()}</b>
-          {employees.slice(0, 3).map((e) => {
-            const r = record(e, d);
-            return (
-              r && (
-                <Mini key={id(e)}>
-                  {shiftName(r).slice(0, 1)} <i>1</i>
-                </Mini>
-              )
-            );
-          })}
+          <DayNumber>{d.getDate()}</DayNumber>
+          {dayRosters.length ? <DayEntries>{Object.entries(counts).map(([key, count], index) => <Count className={`shift-${index % 3}`} key={key} title={`${key} shift: ${count} employee${count === 1 ? "" : "s"}`}><span>{key}</span><b>{count}</b></Count>)}</DayEntries> : <Off>Day<br />Off</Off>}
         </Day>
-      ))}
+        );
+      })}
     </Calendar>
   );
 };
@@ -714,7 +741,7 @@ const DayHead = styled.div`
   padding: 8px;
 `;
 const Day = styled.div`
-  height: 105px;
+  min-height: 105px;
   border: 1px solid #d7e1e3;
   border-radius: 14px;
   background: #fff;
@@ -725,14 +752,54 @@ const Day = styled.div`
     background: #f3f5f5;
   }
 `;
-const Mini = styled.div`
+const DayNumber = styled.b`
+  display: block;
+  margin-bottom: 6px;
+`;
+const DayEntries = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 76px;
+  overflow-y: auto;
+`;
+const Count = styled.div`
   display: flex;
   justify-content: space-between;
+  padding: 4px 7px;
+  border-radius: 3px;
+  font-size: 10px;
+  &.shift-0 { background: #fff0bd; color: #705c1b; }
+  &.shift-1 { background: #dff7e9; color: #287654; }
+  &.shift-2 { background: #f1e5fb; color: #633c7d; }
+`;
+const Off = styled.div`
+  text-align: center;
+  color: #879194;
+  font-size: 11px;
+  line-height: 18px;
+  margin-top: 18px;
+`;
+const Mini = styled.div`
+  display: flex;
+  flex-direction: column;
   background: #fff0bd;
   border-radius: 4px;
-  padding: 5px;
-  margin-top: 8px;
+  padding: 4px 5px;
   font-size: 10px;
+  cursor: pointer;
+  span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  i {
+    color: #a26b1d;
+    font-style: normal;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 `;
 const DatabaseBox = styled.section`
   margin: 25px 24px;
@@ -799,6 +866,7 @@ const Overlay = styled.div`
   display: grid;
   place-items: center;
   z-index: 20;
+  &.drawer-overlay { justify-items: end; }
 `;
 const Modal = styled.form`
   background: #fff;
@@ -836,6 +904,58 @@ const Footer = styled.div`
   justify-content: flex-end;
   gap: 10px;
   margin-top: 5px;
+`;
+const DetailsModal = styled.div`
+  background: #fff;
+  border-left: 1px solid #dce5e7;
+  padding: 22px 14px;
+  width: min(390px, calc(100vw - 18px));
+  height: 100vh;
+  box-sizing: border-box;
+  overflow: auto;
+`;
+const ShiftCard = styled.section`
+  border: 1px solid #e2e8e9;
+  border-radius: 12px;
+  overflow: hidden;
+  margin: 16px 0;
+`;
+const ShiftTitle = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  background: #fff5d9;
+  color: #8a6515;
+  font-size: 12px;
+  span { display: flex; align-items: center; gap: 10px; font-size: 10px; }
+  b { background: #f1aa0b; color: #fff; border-radius: 20px; padding: 3px 7px; }
+  ${ShiftCard}.shift-card-1 & { background: #e4faed; color: #24734c; b { background: #43bd78; } }
+  ${ShiftCard}.shift-card-2 & { background: #f3eafa; color: #7135a0; b { background: #a368d5; } }
+  ${ShiftCard}.shift-card-3 & { background: #e8f1ff; color: #2c5d99; b { background: #5d91d1; } }
+`;
+const DetailsHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  border-bottom: 1px solid #edf0f1;
+  padding-bottom: 14px;
+  margin-bottom: 5px;
+  h2 { margin: 0 0 5px; font-size: 18px; }
+  p { margin: 0; color: #778386; font-size: 12px; }
+  button { border: 0; background: transparent; font-size: 24px; color: #778386; cursor: pointer; }
+`;
+const DetailRow = styled.div`
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 14px;
+  padding: 13px 2px;
+  border-bottom: 1px solid #edf0f1;
+  strong, small { display: block; }
+  strong { font-size: 13px; }
+  small { color: #778386; font-size: 11px; margin-top: 3px; }
+  > button { border: 0; background: transparent; color: #087783; cursor: pointer; }
 `;
 const Empty = styled.div`
   padding: 100px;

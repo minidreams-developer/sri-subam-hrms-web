@@ -362,7 +362,10 @@ const AddShift = () => {
       // Build the payload matching API structure
       const normalizedMinimumWorkingHours = normalizeWorkingHours(minimumWorkingHours);
       const normalizedHalfDayWorkingHours = normalizeWorkingHours(halfDayWorkingHours || "0");
-      if (!normalizedMinimumWorkingHours || !normalizedHalfDayWorkingHours) {
+      if (
+        shiftType?.value === "fixed" &&
+        (!normalizedMinimumWorkingHours || !normalizedHalfDayWorkingHours)
+      ) {
         toast.error("Working hours must be between 0 and 24 hours (for example, 7.5h or 3:30)");
         setIsLoading(false);
         return;
@@ -371,11 +374,13 @@ const AddShift = () => {
       const payload = {
         shiftCode,
         shiftName,
-        shiftType: shiftType?.label || "Fixed",
+        // The UI calls this mode Rotational, but the API contract accepts
+        // only Fixed or Flexible. Rotational schedules are sent as Flexible.
+        shiftType: shiftType?.value === "rotational" ? "Flexible" : "Fixed",
         sameTimingForAllDays: sameTiming?.value === "yes",
         totalShiftDuration: normalizeWorkingHours(totalShiftDuration) || "0h",
-        minWorkingHours: normalizedMinimumWorkingHours,
-        halfDayWorkingHours: normalizedHalfDayWorkingHours,
+        minWorkingHours: normalizedMinimumWorkingHours || "0h",
+        halfDayWorkingHours: normalizedHalfDayWorkingHours || "0h",
         overtimeAfterHours: Number(overtimeAfterHours) || 0,
         timings: timingsArray,
         breakManagement: {
