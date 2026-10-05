@@ -208,6 +208,9 @@ export default function RosterSchedule() {
         <Actions>
           <button>⇩ Download</button>
           <Primary>✣ Auto - Assign</Primary>
+          <Primary type="button" onClick={() => open()}>
+            <FiPlus /> Add roster
+          </Primary>
           <User>
             ◉ <b>Manoj Kumar</b>
             <small>Admin</small>
