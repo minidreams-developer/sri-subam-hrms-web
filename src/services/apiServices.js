@@ -240,14 +240,17 @@ export const updateHoliday = (id, payload) =>
 
 export const deleteHoliday = (id) => data(api.delete(`/v1/holidays/${id}`));
 
-export const getRosters = (params) => list("/v1/rosters", params);
+export const getRosters = (params) => list("/v1/roster", params);
+export const getRosterDay = (date, params) => list(`/v1/roster/day/${encodeURIComponent(date)}`, params);
+export const getEmployeeRoster = (employeeId, params) => list(`/v1/roster/employee/${encodeURIComponent(employeeId)}`, params);
 
-export const createRoster = (payload) => data(api.post("/v1/rosters", payload));
+export const createRoster = (payload) => data(api.post("/v1/roster", payload));
+export const createBulkRoster = (payload) => data(api.post("/v1/roster/bulk", payload));
 
 export const updateRoster = (id, payload) =>
-  data(api.patch(`/v1/rosters/${id}`, payload));
+  data(api.patch(`/v1/roster/${id}`, payload));
 
-export const deleteRoster = (id) => data(api.delete(`/v1/rosters/${id}`));
+export const deleteRoster = (id) => data(api.delete(`/v1/roster/${id}`));
 
 // Payroll, paysheets, and adjustments
 export const getPayroll = (params) => list("/v1/payroll", params);

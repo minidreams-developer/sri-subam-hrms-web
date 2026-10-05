@@ -142,7 +142,7 @@ const CreateEmployee = () => {
         })),
 
         workInformation: {
-          designation: workData.designation?.value,
+          designationId: workData.designation?.value,
           joinedDate: workData.dateOfJoining,
           experienceType: workData.experienceType?.value,
           totalExperience: workData.totalYearsOfExperience,

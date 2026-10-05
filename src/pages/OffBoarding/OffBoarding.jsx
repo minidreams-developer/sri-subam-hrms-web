@@ -12,6 +12,7 @@ import {
   deleteOffboard,
   finalizeOffboard,
   getDepartments,
+  getDesignationDropdown,
   getOffboards,
   getOffboardSummary,
 } from "../../services/apiServices";
@@ -64,6 +65,7 @@ const OffBoarding = () => {
   const [totalResults, setTotalResults] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [departmentOptions, setDepartmentOptions] = useState([]);
+  const [designationOptions, setDesignationOptions] = useState([]);
   const [recordToDelete, setRecordToDelete] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [offboardingStats, setOffboardingStats] = useState([]);
@@ -98,10 +100,28 @@ const OffBoarding = () => {
     }
   };
 
+  const fetchDesignations = async () => {
+    try {
+      const response = await getDesignationDropdown({ skipGlobalLoading: true });
+      const list = response?.results || response?.data?.results || response?.data || response || [];
+      const options = (Array.isArray(list) ? list : [])
+        .map((designation) => ({
+          value: designation._id || designation.id,
+          label: designation.designationName || designation.name || "N/A",
+        }))
+        .filter((option) => option.value);
+      setDesignationOptions(options);
+    } catch (error) {
+      console.error("Error fetching designations:", error);
+      toast.error("Failed to load designations");
+    }
+  };
+
   // Fetch offboarding records on component mount
   useEffect(() => {
     fetchOffboardingRecords();
     fetchDepartments();
+    fetchDesignations();
     fetchOffboardingSummary();
     // Both fetch functions are intentionally re-run only when pagination changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -509,11 +529,8 @@ const OffBoarding = () => {
             searchValue={staffSearch}
             onSearchChange={setStaffSearch}
             select1Options={[
-              "All Roles",
-              "Office Admin",
-              "Receptionist",
-              "Facilities",
-              "Security",
+              { value: "All Roles", label: "All Designations" },
+              ...designationOptions,
             ]}
             select1Value={staffRole}
             onSelect1Change={setStaffRole}

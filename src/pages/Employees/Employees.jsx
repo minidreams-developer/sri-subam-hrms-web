@@ -9,7 +9,7 @@ import TableToolbar from "../../components/TableToolbar";
 import PlusIcon from "../../assets/images/DashboardImages/plus-large_svgrepo.com.svg";
 import TabSwitcher from "../../components/TabSwitcher";
 import Filter from "../../components/filter";
-import { deleteUser, getDepartments, getShifts, getUserCount, getUsers } from "../../services/apiServices";
+import { deleteUser, getDepartments, getDesignationDropdown, getShifts, getUserCount, getUsers } from "../../services/apiServices";
 import { toast } from "react-toastify";
 import DeleteConfirmationModal from "../../components/DeleteConfirmationModal";
 import { employeeTableColumns, staffTableColumns } from "../../utils/data";
@@ -51,6 +51,7 @@ const Employees = () => {
   const [sortBy, setSortBy] = useState("createdAt:desc");
   const [departmentOptions, setDepartmentOptions] = useState([]);
   const [shiftOptions, setShiftOptions] = useState([]);
+  const [designationOptions, setDesignationOptions] = useState([]);
   const [loadingDepts, setLoadingDepts] = useState(false);
   const [loadingShifts, setLoadingShifts] = useState(false);
   const [employeeToDelete, setEmployeeToDelete] = useState(null);
@@ -188,6 +189,22 @@ const Employees = () => {
     } finally {
       setLoadingShifts(false);
     }
+
+    // Fetch designations for the Staff filter
+    try {
+      const designationResponse = await getDesignationDropdown({ skipGlobalLoading: true });
+      const designationList = designationResponse?.results || designationResponse?.data?.results || designationResponse?.data || designationResponse || [];
+      const designationOpts = (Array.isArray(designationList) ? designationList : [])
+        .map((designation) => ({
+          value: designation._id || designation.id,
+          label: designation.designationName || designation.name || "N/A",
+        }))
+        .filter((option) => option.value);
+      setDesignationOptions(designationOpts);
+    } catch (error) {
+      console.error("Error fetching designations:", error);
+      toast.error("Failed to load designations");
+    }
   };
 
   const fetchEmployeeData = async (page = 1, limit = 10, sort = "createdAt:desc") => {
@@ -225,7 +242,7 @@ const Employees = () => {
         sortBy: sort,
       });
       if (staffSearch.trim()) query.set("search", staffSearch.trim());
-      if (staffRole !== "All Roles") query.set("designation", staffRole);
+      if (staffRole !== "All Roles") query.set("designationId", staffRole);
       if (staffShift !== "All Shifts") query.set("shiftId", staffShift);
       const response = await getUsers(Object.fromEntries(query));
       console.log("Staff API Response:", response);
@@ -292,10 +309,20 @@ const Employees = () => {
           phone: item.phone || "N/A",
           department: departmentName,
           designation: (() => {
-            const value = item.workInformation?.designation || item.designation;
-            return typeof value === "object"
-              ? value?.designationName || value?.name || "N/A"
-              : value || "N/A";
+            const values = [
+              item.workInformation?.designationId,
+              item.designationId,
+              item.workInformation?.designation,
+              item.designation,
+            ];
+            const designationObject = values.find(
+              (value) => value && typeof value === "object",
+            );
+            return (
+              designationObject?.designationName ||
+              designationObject?.name ||
+              "N/A"
+            );
           })(),
           shift: shiftName,
           status: typeof item.isActive === "string"
@@ -593,11 +620,8 @@ const Employees = () => {
               setCurrentPage(1);
             }}
             select1Options={[
-              "All Roles",
-              "Office Admin",
-              "Receptionist",
-              "Facilities",
-              "Security",
+              { value: "All Roles", label: "All Designations" },
+              ...designationOptions,
             ]}
             select1Value={staffRole}
             onSelect1Change={(value) => {

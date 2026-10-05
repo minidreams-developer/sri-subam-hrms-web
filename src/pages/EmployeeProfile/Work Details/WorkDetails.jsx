@@ -4,7 +4,7 @@ import theme from "../../../theme/theme";
 import DocIcon from "../../../assets/images/employee/document.svg";
 import EditIcon from "../../../assets/images/employee/editIcon.svg";
 import CardDetails from "../../../components/CardDetails";
-import { getDepartments, getShifts, getTeams, getUsers, updateUser } from "../../../services/apiServices";
+import { getDepartments, getDesignationDropdown, getShifts, getTeams, getUsers, updateUser } from "../../../services/apiServices";
 import { toast } from "react-toastify";
 
 const fields = [
@@ -21,11 +21,6 @@ const fields = [
 ];
 
 const staticDropdownOptions = {
-  designation: [
-    { value: "manager", label: "Manager" },
-    { value: "developer", label: "Developer" },
-    { value: "designer", label: "Designer" },
-  ],
   experienceType: [
     { value: "fresher", label: "Fresher" },
     { value: "experienced", label: "Experienced" },
@@ -63,7 +58,10 @@ const makeDetails = (employee) => {
   const bank = employee?.bankDetails?.[0] || work.bankDetails?.[0] || {};
   const esiAndPf = bank.esiAndPf || {};
   return {
-    designation: valueOf(work.designation || employee?.designation, ["name", "designationName"]),
+    designation: valueOf(
+      work.designationId || employee?.designationId || work.designation || employee?.designation,
+      ["designationName", "name"],
+    ),
     team: valueOf(work.team || employee?.team, ["teamName", "name"]),
     department: valueOf(work.department || employee?.department, ["departmentName", "name"]),
     dateOfJoining: dateOf(work.joinedDate || work.dateOfJoining || employee?.dateOfJoining),
@@ -105,7 +103,7 @@ export const WorkDetails = ({ employee, onEmployeeUpdated }) => {
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [dropdownOptions, setDropdownOptions] = useState({
-    department: [], team: [], shift: [], reportingPerson: [],
+    designation: [], department: [], team: [], shift: [], reportingPerson: [],
   });
 
   useEffect(() => {
@@ -117,13 +115,18 @@ export const WorkDetails = ({ employee, onEmployeeUpdated }) => {
   useEffect(() => {
     const loadDropdownOptions = async () => {
       try {
-        const [departments, teams, shifts, users] = await Promise.all([
+        const [designations, departments, teams, shifts, users] = await Promise.all([
+          getDesignationDropdown({ skipGlobalLoading: true }),
           getDepartments({ page: 1, limit: 100 }),
           getTeams({ page: 1, limit: 100 }),
           getShifts({ page: 1, limit: 100 }),
           getUsers({ page: 1, limit: 100 }),
         ]);
         setDropdownOptions({
+          designation: listFromResponse(designations).map((item) => ({
+            value: item._id || item.id,
+            label: item.designationName || item.name || "Unknown",
+          })),
           department: listFromResponse(departments).map((item) => ({
             value: item.id || item._id,
             label: item.departmentName || item.name || "Unknown",
@@ -175,7 +178,11 @@ export const WorkDetails = ({ employee, onEmployeeUpdated }) => {
     const currentEsiAndPf = esiAndPfEntry && typeof esiAndPfEntry === "object" ? esiAndPfEntry : {};
     const workInformation = {
       ...workWithoutBankDetails,
-      designation: apiValue(draft.designation),
+      designationId: objectIdOrValue(
+        draft.designation,
+        work.designationId || employee?.designationId || work.designation || employee?.designation,
+        ["designationName", "name"],
+      ),
       team: objectIdOrValue(draft.team, work.team || employee?.team, ["teamName", "name"]),
       department: objectIdOrValue(draft.department, work.department || employee?.department, ["departmentName", "name"]),
       joinedDate: apiDate(draft.dateOfJoining), experienceType: apiValue(draft.experienceType),
