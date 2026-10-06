@@ -34,7 +34,28 @@ const shiftName = (r) =>
   typeof shift(r) === "object"
     ? shift(r).shiftName || shift(r).name || "Assigned"
     : "Assigned";
+const formatTime = (value) => {
+  if (!value) return "";
+  if (/^\d{1,2}:\d{2}$/.test(value)) return value;
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return String(value).slice(0, 5);
+  return new Intl.DateTimeFormat("en-IN", {
+    timeZone: "Asia/Kolkata",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(parsed);
+};
 const shiftId = (r) => id(shift(r));
+const shiftTiming = (s) => {
+  const timings = Array.isArray(s?.timings)
+    ? s.timings
+    : Object.values(s?.dayTimings || {});
+  const timing = timings.find((item) => item && !item.off && (item.startTime || item.endTime));
+  return timing?.startTime && timing?.endTime
+    ? `${formatTime(timing.startTime)}-${formatTime(timing.endTime)}`
+    : "";
+};
 const monday = (d) => {
   const x = new Date(d);
   x.setHours(0, 0, 0, 0);
@@ -77,7 +98,8 @@ export default function RosterSchedule() {
           limit: 50,
         }),
         getUsers({ page: 1, limit: 50 }),
-        getShifts({ page: 1, limit: 50 }),
+        // Load the full shift catalog for the roster form dropdown.
+        getShifts({ page: 1, limit: 100 }),
       ]);
       setRosters(list(r));
       setUsers(list(u));
@@ -206,24 +228,26 @@ export default function RosterSchedule() {
           </button>
         </MonthNav>
         <Actions>
-          <button>⇩ Download</button>
-          <Primary>✣ Auto - Assign</Primary>
+          {/* <button>⇩ Download</button>
+          <Primary>✣ Auto - Assign</Primary> */}
           <Primary type="button" onClick={() => open()}>
             <FiPlus /> Add roster
           </Primary>
-          <User>
+          {/* <User>
             ◉ <b>Manoj Kumar</b>
             <small>Admin</small>
-          </User>
+          </User> */}
         </Actions>
       </Header>
       <Legend>
         <b>LEGEND</b>
-        <span className="morning">● Morning 07:00–15:00</span>
-        <span className="evening">● Evening 15:00–23:00</span>
-        <span className="night">● Night 23:00–07:00</span>
+        {shifts.map((s, index) => (
+          <span className={`shift-legend-${index % 3}`} key={id(s)}>
+            ● {s.shiftName || s.name || "Shift"}{shiftTiming(s) ? ` ${shiftTiming(s)}` : ""}
+          </span>
+        ))}
         <span className="off">● Day Off</span>
-        <Auto>✣ Auto-assign every Wednesday</Auto>
+        {/* <Auto>✣ Auto-assign every Wednesday</Auto> */}
       </Legend>
       <Content>
         <Toggle>
@@ -342,7 +366,7 @@ export default function RosterSchedule() {
               const shiftData = rows[0]?.shiftId || {};
               const timing = (shiftData.timings || []).find((t) => t.day === detailsDate.toLocaleDateString("en-US", { weekday: "long" }));
               return <ShiftCard className={`shift-card-${shiftIndex % 4}`} key={name}>
-                <ShiftTitle><strong>{name}</strong><span>{timing?.startTime || "--:--"} - {timing?.endTime || "--:--"}<b>{rows.length}</b></span></ShiftTitle>
+                <ShiftTitle><strong>{name}</strong><span>{formatTime(timing?.startTime) || "--:--"} - {formatTime(timing?.endTime) || "--:--"}<b>{rows.length}</b></span></ShiftTitle>
                 {rows.map((r) => <DetailRow key={id(r)}><div><strong>{employeeName(employee(r))}</strong><small>{employee(r)?.workInformation?.designation || "Employee"}</small></div><small>{employee(r)?.employeeId || "—"}</small><button type="button" onClick={() => { setDetailsDate(null); open(r, employee(r), detailsDate); }}><FiEdit2 /></button></DetailRow>)}
               </ShiftCard>;
             })}
@@ -438,7 +462,9 @@ const Database = ({ employees, rosters, open, cancel }) => (
   <DatabaseBox>
     <h2>Employee Database</h2>
     <p>Assign names, roles and shift preferences for each person</p>
-    <Add onClick={() => open()}>♙ Add Employee</Add>
+    <Add type="button" onClick={() => open()}>
+      <FiPlus /> Add roster
+    </Add>
     <table>
       <thead>
         <tr>
@@ -592,14 +618,20 @@ const User = styled.div`
   }
 `;
 const Legend = styled.div`
-  height: 58px;
+  min-height: 58px;
   background: #fff;
   border-bottom: 1px solid #e4eaec;
   display: flex;
   align-items: center;
-  gap: 28px;
+  gap: 30px;
   padding: 0 34px;
   font-size: 13px;
+  flex-wrap: wrap;
+  overflow: hidden;
+  span {
+    white-space: nowrap;
+    line-height: 1.4;
+  }
   .morning {
     color: #e9a100;
   }
@@ -607,6 +639,15 @@ const Legend = styled.div`
     color: #16804b;
   }
   .night {
+    color: #7d32be;
+  }
+  .shift-legend-0 {
+    color: #e9a100;
+  }
+  .shift-legend-1 {
+    color: #16804b;
+  }
+  .shift-legend-2 {
     color: #7d32be;
   }
   .off {
@@ -765,6 +806,11 @@ const DayEntries = styled.div`
   gap: 4px;
   max-height: 76px;
   overflow-y: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
 `;
 const Count = styled.div`
   display: flex;

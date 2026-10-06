@@ -140,7 +140,7 @@ const ShiftManagement = () => {
   };
 
   const handleDeleteShift = async (e, shiftId) => {
-    e.stopPropagation();
+    e?.stopPropagation?.();
     // Confirmation dialog before delete
     if (window.confirm("Are you sure you want to delete this shift?")) {
       try {
@@ -253,6 +253,7 @@ const ShiftManagement = () => {
           alwaysShowPagination
           actionType="default"
           onRowClick={handleRowClick}
+          onDelete={(row) => handleDeleteShift(null, row.id)}
         />
       )}
       <DetailsSidebar

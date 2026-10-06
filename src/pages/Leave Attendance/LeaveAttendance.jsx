@@ -7,17 +7,44 @@ import TabSwitcher from "../../components/TabSwitcher";
 import EmployeeLeaves from "./Employee Leaves/EmployeeLeaves";
 import StaffLeaves from "./Staff Leaves/StaffLeaves";
 import Permissions from "./Permissions/Permissions";
+import { getLeaveRequestsQuickStats } from "../../services/apiServices";
 
 const LeaveAttendance = () => {
   const { setHeaderTitle } = useOutletContext() || {};
   const location = useLocation();
   const [activeTab, setActiveTab] = React.useState(location.state?.activeTab || "Staffs Leaves");
+  const [statsPeriod, setStatsPeriod] = React.useState("today");
+
+  const [quickStats, setQuickStats] = React.useState(null);
+
+  React.useEffect(() => {
+    let mounted = true;
+    const today = new Date();
+    const toDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+    const from = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    from.setDate(from.getDate() - ({ today: 0, last7days: 6, last30days: 29, last90days: 89 }[statsPeriod]));
+    const fromDate = `${from.getFullYear()}-${String(from.getMonth() + 1).padStart(2, "0")}-${String(from.getDate()).padStart(2, "0")}`;
+
+    const loadQuickStats = async () => {
+      try {
+        const response = await getLeaveRequestsQuickStats({ fromDate, toDate });
+        if (mounted) setQuickStats(response?.quickStats || response?.data || response || {});
+      } catch {
+        if (mounted) setQuickStats({});
+      }
+    };
+
+    loadQuickStats();
+    return () => {
+      mounted = false;
+    };
+  }, [statsPeriod]);
 
   const stats = [
-    { title: "Leaves Today", value: "286" },
-    { title: "Pending Request", value: "286" },
-    { title: "Approved Request", value: "36" },
-    { title: "Rejected Request", value: "200" },
+    { title: "Leaves Today", value: quickStats?.leavesToday ?? quickStats?.today ?? 0 },
+    { title: "Pending Request", value: quickStats?.pendingRequests ?? quickStats?.pending ?? 0 },
+    { title: "Approved Request", value: quickStats?.approvedRequests ?? quickStats?.approved ?? 0 },
+    { title: "Rejected Request", value: quickStats?.rejectedRequests ?? quickStats?.rejected ?? 0 },
   ];
 
   React.useEffect(() => {
@@ -31,11 +58,11 @@ const LeaveAttendance = () => {
         <TopTitle>Quick Stats</TopTitle>
         <Controls>
           <FilterSelect>
-            <select className="form-select" defaultValue="Today" aria-label="Statistics period">
-              <option>Today</option>
-              <option>Last 7 days</option>
-              <option>Last 30 days</option>
-              <option>Last 90 days</option>
+            <select className="form-select" value={statsPeriod} onChange={(event) => setStatsPeriod(event.target.value)} aria-label="Statistics period">
+              <option value="today">Today</option>
+              <option value="last7days">Last 7 days</option>
+              <option value="last30days">Last 30 days</option>
+              <option value="last90days">Last 90 days</option>
             </select>
           </FilterSelect>
           <Button

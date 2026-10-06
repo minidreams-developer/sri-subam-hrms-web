@@ -47,7 +47,12 @@ const EmployeeLeaves = () => {
     const fetchLeaveRequests = async () => {
       try {
         setLoading(true);
-        const response = await getLeaveRequests({ page: currentPage, limit: pageSize, role: "employee" });
+        const response = await getLeaveRequests({
+          page: currentPage,
+          limit: pageSize,
+          role: "employee",
+          ...(leaveType !== "All Types" ? { leaveType } : {}),
+        });
 
         const results = response.results || response.data || [];
         const transformedData = results.map((leave) => ({
@@ -79,7 +84,12 @@ const EmployeeLeaves = () => {
     };
 
     fetchLeaveRequests();
-  }, [currentPage, pageSize]);
+  }, [currentPage, pageSize, leaveType]);
+
+  const handleLeaveTypeChange = (value) => {
+    setLeaveType(value);
+    setCurrentPage(1);
+  };
 
   const handleAddLeave = () => {
     navigate("/admin/time-hub/leaveAttendance/add-LeaveOrPermissions");
@@ -96,15 +106,12 @@ const EmployeeLeaves = () => {
   };
 
   const filtered = leaveData.filter((row) => {
-    const m1 =
-      leaveType === "All Types" ||
-      String(row.type).toLowerCase() === String(leaveType).toLowerCase();
     const m2 =
       !search ||
       String(row.name).toLowerCase().includes(search.toLowerCase()) ||
       String(row.employeeId).toLowerCase().includes(search.toLowerCase()) ||
       String(row.department).toLowerCase().includes(search.toLowerCase());
-    return m1 && m2;
+    return m2;
   });
 
   return (
@@ -123,7 +130,7 @@ const EmployeeLeaves = () => {
           "Permission",
         ]}
         select1Value={leaveType}
-        onSelect1Change={setLeaveType}
+        onSelect1Change={handleLeaveTypeChange}
         showFilter={false}
         filterText="Filter"
         actionText="Add Leaves"

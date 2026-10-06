@@ -13,12 +13,23 @@ const Pending = ({ onStatusChange, onApproveAll, refreshKey = 0 }) => {
 
   useEffect(() => {
     fetchOvertimeData();
-  }, [refreshKey]);
+  }, [refreshKey, dateFilter]);
+
+  const getDateRange = () => {
+    const today = new Date();
+    const toDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+    const from = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    from.setDate(from.getDate() - ({ Today: 0, "Last 7 days": 6, "Last 30 days": 29, "Last 90 days": 89 }[dateFilter]));
+    return {
+      fromDate: `${from.getFullYear()}-${String(from.getMonth() + 1).padStart(2, "0")}-${String(from.getDate()).padStart(2, "0")}`,
+      toDate,
+    };
+  };
 
   const fetchOvertimeData = async () => {
     try {
       setLoading(true);
-      const response = await getOvertimeRecords({ status: "pending", limit: 100 });
+      const response = await getOvertimeRecords({ status: "pending", page: 1, limit: 100, ...getDateRange() });
       
       const records = response.results || response.data || [];
       
@@ -139,7 +150,7 @@ const Pending = ({ onStatusChange, onApproveAll, refreshKey = 0 }) => {
         searchPlaceholder="Search Agents"
         searchValue={search}
         onSearchChange={handleSearchChange}
-        select1Options={["Today"]}
+        select1Options={["Today", "Last 7 days", "Last 30 days", "Last 90 days"]}
         select1Value={dateFilter}
         onSelect1Change={setDateFilter}
         showFilter={false}

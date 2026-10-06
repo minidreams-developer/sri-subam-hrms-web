@@ -12,7 +12,13 @@ import { FaTimes } from "react-icons/fa";
 import deleteIcon from "../../assets/images/shift/delete.svg";
 import Switch from "react-switch";
 import CalenderInput from "../../components/CalenderInput";
-import { createShift, generateShiftId as requestShiftId, getShift, updateShift } from "../../services/apiServices";
+import {
+  createShift,
+  generateShiftId as requestShiftId,
+  getShift,
+  getShifts,
+  updateShift,
+} from "../../services/apiServices";
 import { toast } from "react-toastify";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
@@ -26,16 +32,18 @@ const AddShift = () => {
   const [effectiveStartDate, setEffectiveStartDate] = useState(null);
   const [breaks, setBreaks] = useState([{ id: 1 }]);
   const [breakManagementEnabled, setBreakManagementEnabled] = useState(false);
-  // New shifts show an individual timing row for each weekday by default,
-  // matching the Shift Management form design. Existing shifts are populated
-  // from the API in fetchShiftDetails.
-  const [sameTiming, setSameTiming] = useState({ value: "no", label: "No" });
+  // New shifts use one timing for all working days by default. Existing shifts
+  // are populated from the API in fetchShiftDetails.
+  const [sameTiming, setSameTiming] = useState({ value: "yes", label: "Yes" });
   const [shiftType, setShiftType] = useState({
     value: "fixed",
     label: "Fixed",
   });
   const [selectedShifts, setSelectedShifts] = useState([]);
   const [rotationOrder, setRotationOrder] = useState([]);
+  const [rotationType, setRotationType] = useState({ value: "Weekly", label: "Weekly" });
+  const [rotationDuration, setRotationDuration] = useState("7");
+  const [shiftListOptions, setShiftListOptions] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isGeneratingId, setIsGeneratingId] = useState(false);
 
@@ -58,6 +66,22 @@ const AddShift = () => {
       generateShiftId();
     }
   }, [isEditMode, shiftId]);
+
+  useEffect(() => {
+    getShifts({ page: 1, limit: 100 })
+      .then((response) => {
+        const shifts = response?.results || response?.data || response || [];
+        setShiftListOptions(
+          shifts
+            .filter((shift) => shift?._id || shift?.id)
+            .map((shift) => ({
+              value: shift._id || shift.id,
+              label: shift.shiftName || shift.name || shift.shiftCode,
+            })),
+        );
+      })
+      .catch((error) => console.error("Error loading shifts for rotation:", error));
+  }, []);
 
   // GET /v1/shifts/generate-id - Fetch unique shift code
   const generateShiftId = async () => {
@@ -99,29 +123,41 @@ const AddShift = () => {
           const normalizedShiftType = response.shiftType.toLowerCase();
           setShiftType({
             value: normalizedShiftType,
-            label: normalizedShiftType.charAt(0).toUpperCase() + normalizedShiftType.slice(1),
+            label:
+              normalizedShiftType.charAt(0).toUpperCase() +
+              normalizedShiftType.slice(1),
           });
         }
 
         // Same timing for all days
         if (response.sameTimingForAllDays !== undefined) {
-          setSameTiming({ value: response.sameTimingForAllDays ? "yes" : "no", label: response.sameTimingForAllDays ? "Yes" : "No" });
+          setSameTiming({
+            value: response.sameTimingForAllDays ? "yes" : "no",
+            label: response.sameTimingForAllDays ? "Yes" : "No",
+          });
         }
 
         // Shift Timing
         if (response.timings && response.timings.length > 0) {
-          const firstWorkingTiming = response.timings.find((timing) => !timing.off);
+          const firstWorkingTiming = response.timings.find(
+            (timing) => !timing.off,
+          );
           if (firstWorkingTiming) {
             setStartTime(firstWorkingTiming.startTime || "");
             setEndTime(firstWorkingTiming.endTime || "");
           }
-          setDayTimings(response.timings.reduce((result, timing) => ({
-            ...result,
-            [timing.day]: {
-              startTime: timing.startTime || "",
-              endTime: timing.endTime || "",
-            },
-          }), {}));
+          setDayTimings(
+            response.timings.reduce(
+              (result, timing) => ({
+                ...result,
+                [timing.day]: {
+                  startTime: timing.startTime || "",
+                  endTime: timing.endTime || "",
+                },
+              }),
+              {},
+            ),
+          );
         }
 
         setTotalShiftDuration(response.totalShiftDuration || "");
@@ -131,10 +167,18 @@ const AddShift = () => {
 
         // Grace Periods
         if (response.gracePeriod) {
-          setGracePeriodEarlyCheckin(response.gracePeriod.earlyCheckIn?.toString() || "");
-          setGracePeriodLateCheckin(response.gracePeriod.lateCheckIn?.toString() || "");
-          setGracePeriodEarlyCheckout(response.gracePeriod.earlyCheckOut?.toString() || "");
-          setGracePeriodLateCheckout(response.gracePeriod.lateCheckOut?.toString() || "");
+          setGracePeriodEarlyCheckin(
+            response.gracePeriod.earlyCheckIn?.toString() || "",
+          );
+          setGracePeriodLateCheckin(
+            response.gracePeriod.lateCheckIn?.toString() || "",
+          );
+          setGracePeriodEarlyCheckout(
+            response.gracePeriod.earlyCheckOut?.toString() || "",
+          );
+          setGracePeriodLateCheckout(
+            response.gracePeriod.lateCheckOut?.toString() || "",
+          );
         }
 
         // Break Management
@@ -143,14 +187,19 @@ const AddShift = () => {
           setMultipleBreaks(
             response.breakManagement.multipleBreaksSupport
               ? { value: "yes", label: "Yes" }
-              : { value: "no", label: "No" }
+              : { value: "no", label: "No" },
           );
 
           // Populate break details
-          if (response.breakManagement.breaks && response.breakManagement.breaks.length > 0) {
-            const breaksArray = response.breakManagement.breaks.map((b, index) => ({
-              id: index + 1,
-            }));
+          if (
+            response.breakManagement.breaks &&
+            response.breakManagement.breaks.length > 0
+          ) {
+            const breaksArray = response.breakManagement.breaks.map(
+              (b, index) => ({
+                id: index + 1,
+              }),
+            );
             setBreaks(breaksArray);
 
             const breakDetailsMap = {};
@@ -168,24 +217,36 @@ const AddShift = () => {
 
         // Attendance Rules
         if (response.attendanceRules) {
-          setLateMarkAfter(response.attendanceRules.lateMarkAfter?.toString() || "");
-          setAutoHalfDayAfter(response.attendanceRules.autoHalfDayAfterLate?.toString() || "");
-          setAutoAbsentIfWorkingHours(response.attendanceRules.autoAbsentIfWorkingHours?.toString() || "");
+          setLateMarkAfter(
+            response.attendanceRules.lateMarkAfter?.toString() || "",
+          );
+          setAutoHalfDayAfter(
+            response.attendanceRules.autoHalfDayAfterLate?.toString() || "",
+          );
+          setAutoAbsentIfWorkingHours(
+            response.attendanceRules.autoAbsentIfWorkingHours?.toString() || "",
+          );
           setOvertimeEligibility(
             response.attendanceRules.overtimeEligibility
               ? { value: "yes", label: "Yes" }
-              : { value: "no", label: "No" }
+              : { value: "no", label: "No" },
           );
         }
 
         // Weekly Pattern
         if (response.weekOff) {
-          const offDays = response.weekOff.map((day) => ({ value: day, label: day }));
+          const offDays = response.weekOff.map((day) => ({
+            value: day,
+            label: day,
+          }));
           setFixedDays(offDays.length > 0 ? offDays : null);
         }
 
         if (response.compOff && response.compOff.length > 0) {
-          setCompOff({ value: response.compOff[0], label: response.compOff[0] === "yes" ? "Yes" : "No" });
+          setCompOff({
+            value: response.compOff[0],
+            label: response.compOff[0] === "yes" ? "Yes" : "No",
+          });
         }
 
         // Set effective start date if available
@@ -195,7 +256,7 @@ const AddShift = () => {
 
         // Handle selected shifts for rotational shifts
         if (response.shiftType === "rotational" && response.selectedShifts) {
-          const shiftsArray = response.selectedShifts.map(shift => ({
+          const shiftsArray = response.selectedShifts.map((shift) => ({
             value: shift.toLowerCase(),
             label: shift.charAt(0).toUpperCase() + shift.slice(1),
           }));
@@ -245,7 +306,9 @@ const AddShift = () => {
   const [compOff, setCompOff] = useState(null);
 
   const normalizeWorkingHours = (value) => {
-    const input = String(value ?? "").trim().toLowerCase();
+    const input = String(value ?? "")
+      .trim()
+      .toLowerCase();
     if (!input) return "";
     const clockMatch = input.match(/^(\d{1,2})(?::(\d{1,2}))?$/);
     if (clockMatch) {
@@ -256,13 +319,15 @@ const AddShift = () => {
       }
     }
     const hoursMatch = input.match(/^(\d+(?:\.\d+)?)\s*(?:h|hrs?|hours?)?$/);
-    if (hoursMatch && Number(hoursMatch[1]) <= 24) return `${Number(hoursMatch[1])}h`;
+    if (hoursMatch && Number(hoursMatch[1]) <= 24)
+      return `${Number(hoursMatch[1])}h`;
     return null;
   };
 
   const formatTimeForPayload = (value) => {
     if (!value) return "";
-    if (typeof value === "string" && /^([01]\d|2[0-3]):[0-5]\d$/.test(value)) return value;
+    if (typeof value === "string" && /^([01]\d|2[0-3]):[0-5]\d$/.test(value))
+      return value;
     const date = value instanceof Date ? value : new Date(value);
     if (Number.isNaN(date.getTime())) return "";
     return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
@@ -279,9 +344,10 @@ const AddShift = () => {
 
     const startMinutes = start.getHours() * 60 + start.getMinutes();
     const endMinutes = end.getHours() * 60 + end.getMinutes();
-    const durationMinutes = endMinutes > startMinutes
-      ? endMinutes - startMinutes
-      : endMinutes + 24 * 60 - startMinutes;
+    const durationMinutes =
+      endMinutes > startMinutes
+        ? endMinutes - startMinutes
+        : endMinutes + 24 * 60 - startMinutes;
     const durationHours = durationMinutes / 60;
 
     setTotalShiftDuration(`${durationHours.toFixed(2)} Hrs`);
@@ -336,7 +402,9 @@ const AddShift = () => {
         if (sameTiming?.value === "yes") {
           // Same timing for all days
           timingsArray = weekDays.map((day) => {
-            const isWeekOff = fixedDays?.some((fixedDay) => fixedDay.value === day);
+            const isWeekOff = fixedDays?.some(
+              (fixedDay) => fixedDay.value === day,
+            );
             return {
               day,
               startTime: isWeekOff ? "" : formatTimeForPayload(startTime),
@@ -347,11 +415,15 @@ const AddShift = () => {
         } else {
           // Different timing per day: use each weekday's own values.
           timingsArray = weekDays.map((day) => {
-            const isWeekOff = fixedDays?.some((fixedDay) => fixedDay.value === day);
+            const isWeekOff = fixedDays?.some(
+              (fixedDay) => fixedDay.value === day,
+            );
             const timing = dayTimings[day] || {};
             return {
               day,
-              startTime: isWeekOff ? "" : formatTimeForPayload(timing.startTime),
+              startTime: isWeekOff
+                ? ""
+                : formatTimeForPayload(timing.startTime),
               endTime: isWeekOff ? "" : formatTimeForPayload(timing.endTime),
               off: isWeekOff,
             };
@@ -360,13 +432,18 @@ const AddShift = () => {
       }
 
       // Build the payload matching API structure
-      const normalizedMinimumWorkingHours = normalizeWorkingHours(minimumWorkingHours);
-      const normalizedHalfDayWorkingHours = normalizeWorkingHours(halfDayWorkingHours || "0");
+      const normalizedMinimumWorkingHours =
+        normalizeWorkingHours(minimumWorkingHours);
+      const normalizedHalfDayWorkingHours = normalizeWorkingHours(
+        halfDayWorkingHours || "0",
+      );
       if (
         shiftType?.value === "fixed" &&
         (!normalizedMinimumWorkingHours || !normalizedHalfDayWorkingHours)
       ) {
-        toast.error("Working hours must be between 0 and 24 hours (for example, 7.5h or 3:30)");
+        toast.error(
+          "Working hours must be between 0 and 24 hours (for example, 7.5h or 3:30)",
+        );
         setIsLoading(false);
         return;
       }
@@ -376,19 +453,29 @@ const AddShift = () => {
         shiftName,
         // The UI calls this mode Rotational, but the API contract accepts
         // only Fixed or Flexible. Rotational schedules are sent as Flexible.
-        shiftType: shiftType?.value === "rotational" ? "Flexible" : "Fixed",
+        shiftType: shiftType?.value === "rotational" ? "Rotational" : "Fixed",
         sameTimingForAllDays: sameTiming?.value === "yes",
         totalShiftDuration: normalizeWorkingHours(totalShiftDuration) || "0h",
         minWorkingHours: normalizedMinimumWorkingHours || "0h",
         halfDayWorkingHours: normalizedHalfDayWorkingHours || "0h",
         overtimeAfterHours: Number(overtimeAfterHours) || 0,
-        timings: timingsArray,
+        ...(shiftType?.value === "fixed" && { timings: timingsArray }),
+        ...(shiftType?.value === "rotational" && {
+          rotation: {
+            shiftIds: selectedShifts.map((shift) => shift.value),
+            rotationType: rotationType?.value || "Weekly",
+            rotationDuration: Number(rotationDuration) || 7,
+            effectiveStartDate: effectiveStartDate
+              ? `${effectiveStartDate.getFullYear()}-${String(effectiveStartDate.getMonth() + 1).padStart(2, "0")}-${String(effectiveStartDate.getDate()).padStart(2, "0")}`
+              : "",
+          },
+        }),
         breakManagement: {
           enabled: breakManagementEnabled,
           multipleBreaksSupport: multipleBreaks?.value === "yes",
           breaks: breakManagementEnabled
             ? breaks.map((b) => ({
-                name: breakDetails[b.id]?.name || "",
+                breakName: breakDetails[b.id]?.name || "",
                 duration: breakDetails[b.id]?.duration || "0",
                 startTime: breakDetails[b.id]?.startTime || "",
                 endTime: breakDetails[b.id]?.endTime || "",
@@ -405,9 +492,7 @@ const AddShift = () => {
           lateMarkAfter: parseInt(lateMarkAfter) || 0,
           autoHalfDayAfterLate: parseInt(autoHalfDayAfter) || 0,
         },
-        weekOff: fixedDays
-          ? fixedDays.map((d) => d.value)
-          : [],
+        weekOff: fixedDays ? fixedDays.map((d) => d.value) : [],
         compOff: [compOff?.value || "no"],
         isShiftActive: true,
       };
@@ -449,12 +534,6 @@ const AddShift = () => {
   const options = [
     { value: "fixed", label: "Fixed" },
     { value: "rotational", label: "Rotational" },
-  ];
-
-  const shiftListOptions = [
-    { value: "morning", label: "Morning" },
-    { value: "afternoon", label: "Afternoon" },
-    { value: "night", label: "Night" },
   ];
 
   const weekDays = [
@@ -628,7 +707,9 @@ const AddShift = () => {
                 </Label>
                 <Select
                   id="rotationType"
-                  options={[{ value: "weekly", label: "Weekly" }]}
+                  options={[{ value: "Weekly", label: "Weekly" }]}
+                  value={rotationType}
+                  onChange={setRotationType}
                   placeholder="Select"
                   styles={customSelectStyles}
                   isSearchable
@@ -708,6 +789,8 @@ const AddShift = () => {
                 <Select
                   id="rotationDuration"
                   options={[{ value: "7days", label: "7 days" }]}
+                  value={{ value: `${rotationDuration}days`, label: `${rotationDuration} days` }}
+                  onChange={(option) => setRotationDuration(option.value.replace("days", ""))}
                   placeholder="Select"
                   styles={customSelectStyles}
                   isSearchable
@@ -740,10 +823,12 @@ const AddShift = () => {
                     <TimeInputComponent
                       label="Start Time"
                       placeholder="Start Time"
-                      onTimeSelect={(time) => setDayTimings((current) => ({
-                        ...current,
-                        [day]: { ...current[day], startTime: time },
-                      }))}
+                      onTimeSelect={(time) =>
+                        setDayTimings((current) => ({
+                          ...current,
+                          [day]: { ...current[day], startTime: time },
+                        }))
+                      }
                       initialTime={dayTimings[day]?.startTime || ""}
                     />
                   </Col>
@@ -751,10 +836,12 @@ const AddShift = () => {
                     <TimeInputComponent
                       label="End Time"
                       placeholder="End Time"
-                      onTimeSelect={(time) => setDayTimings((current) => ({
-                        ...current,
-                        [day]: { ...current[day], endTime: time },
-                      }))}
+                      onTimeSelect={(time) =>
+                        setDayTimings((current) => ({
+                          ...current,
+                          [day]: { ...current[day], endTime: time },
+                        }))
+                      }
                       initialTime={dayTimings[day]?.endTime || ""}
                     />
                   </Col>

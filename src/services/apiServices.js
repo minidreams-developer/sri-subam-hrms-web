@@ -210,6 +210,8 @@ export const createAttendance = (payload) =>
   data(api.post("/v1/attendance", payload));
 
 export const getLeaveRequests = (params) => list("/v1/leave-requests", params);
+export const getLeaveRequestsQuickStats = (params) =>
+  list("/v1/leave-requests/quick-stats", params);
 
 export const createLeaveRequest = (payload) =>
   data(api.post("/v1/leave-requests", payload));
@@ -223,6 +225,8 @@ export const updateLeaveRequestStatus = (id, status) =>
 export const deleteLeaveRequest = (id) =>
   data(api.delete(`/v1/leave-requests/${id}`));
 export const getOvertimeRecords = (params) => list("/v1/overtime", params);
+export const getOvertimeQuickStats = (params) =>
+  list("/v1/overtime/quick-stats", params);
 
 export const createOvertime = (payload) =>
   data(api.post("/v1/overtime", payload));

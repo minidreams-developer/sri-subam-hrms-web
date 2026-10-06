@@ -2,7 +2,7 @@ import React from "react";
 import styled from "styled-components";
 import theme from "../../theme/theme";
 import Button from "../../components/Button";
-import { overTimeStats } from "../../utils/data";
+import { getOvertimeQuickStats } from "../../services/apiServices";
 import TabSwitcher from "../../components/TabSwitcher";
 import PlusIcon from "../../assets/images/DashboardImages/plus-large_svgrepo.com.svg";
 import actionIcon from "../../assets/images/Overtime/actionDot.svg";
@@ -11,11 +11,38 @@ import Approved from "./Approved/Approved";
 import AddOvertimeModal from "./AddOvertimeModal";
 
 const OverTimeManage = () => {
-  const stats = overTimeStats;
+  const [statsPeriod, setStatsPeriod] = React.useState("last7days");
+  const [quickStats, setQuickStats] = React.useState(null);
   const [activeTab, setActiveTab] = React.useState("Pending");
   const [movedRequests, setMovedRequests] = React.useState([]);
   const [isAddOpen, setIsAddOpen] = React.useState(false);
   const [refreshKey, setRefreshKey] = React.useState(0);
+
+  React.useEffect(() => {
+    let mounted = true;
+    const today = new Date();
+    const toDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+    const from = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    from.setDate(from.getDate() - ({ today: 0, last7days: 6, last30days: 29, last90days: 89 }[statsPeriod]));
+    const fromDate = `${from.getFullYear()}-${String(from.getMonth() + 1).padStart(2, "0")}-${String(from.getDate()).padStart(2, "0")}`;
+
+    getOvertimeQuickStats({ fromDate, toDate })
+      .then((response) => {
+        if (mounted) setQuickStats(response?.quickStats || response?.data || response || {});
+      })
+      .catch(() => {
+        if (mounted) setQuickStats({});
+      });
+
+    return () => { mounted = false; };
+  }, [statsPeriod]);
+
+  const stats = [
+    { title: "Requested", value: quickStats?.requested ?? quickStats?.total ?? 0 },
+    { title: "Approved", value: quickStats?.approved ?? 0 },
+    { title: "Rejected", value: quickStats?.rejected ?? 0 },
+    { title: "Pending", value: quickStats?.pending ?? 0 },
+  ];
 
   const moveRequest = (request, status) => {
     setMovedRequests((current) => [
@@ -46,10 +73,11 @@ const OverTimeManage = () => {
         <TopTitle>Quick Stats</TopTitle>
         <Controls>
           <FilterSelect>
-            <select className="form-select" defaultValue="Last 7 days">
-              <option>Today</option>
-              <option>Last 30 days</option>
-              <option>Last 90 days</option>
+            <select className="form-select" value={statsPeriod} onChange={(event) => setStatsPeriod(event.target.value)}>
+              <option value="today">Today</option>
+              <option value="last7days">Last 7 days</option>
+              <option value="last30days">Last 30 days</option>
+              <option value="last90days">Last 90 days</option>
             </select>
           </FilterSelect>
           <Button
