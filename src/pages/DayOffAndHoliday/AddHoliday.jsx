@@ -23,7 +23,7 @@ const AddHoliday = () => {
     nextWorkingDay: editHoliday?.nextWorkingDay || "",
     Remarks: editHoliday?.Remarks || editHoliday?.remarks || "",
     status: editHoliday?.status ?? true,
-    holidayImage: editHoliday?.holidayImage || "",
+    holidayImage: editHoliday?.image_url || editHoliday?.holidayImage || "",
   });
   const [loading, setLoading] = useState(false);
 
@@ -79,9 +79,13 @@ const AddHoliday = () => {
         date: dateObj.toISOString(),
         nextWorkingDay: nextWorkingDayObj ? nextWorkingDayObj.toISOString() : null,
         status: formData.status,
-        holidayImage: formData.holidayImage,
         Remarks: formData.Remarks,
       };
+
+      const imageUrl = formData.holidayImage.trim();
+      if (imageUrl) {
+        payload.image_url = imageUrl;
+      }
 
       // Submit to API
       const holidayId = editHoliday?.id || editHoliday?._id;

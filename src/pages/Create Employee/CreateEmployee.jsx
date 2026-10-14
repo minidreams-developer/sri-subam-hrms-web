@@ -148,7 +148,6 @@ const CreateEmployee = () => {
           totalExperience: workData.totalYearsOfExperience,
           lastCompanyName: workData.lastCompanyName,
           lastCompanyExperience: workData.experience,
-          location: workData.location,
           department: workData.department?.value,
           team: workData.team?.value,
           branch: workData.branch?.value,

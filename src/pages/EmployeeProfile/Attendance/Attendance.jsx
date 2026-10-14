@@ -10,8 +10,11 @@ import PlusIcon from "../../../assets/images/DashboardImages/plus-large_svgrepo.
 import TabSwitcher from "../../../components/TabSwitcher";
 import ListView from "../../../components/ListView";
 import CalendarView from "../../../components/CalendarView";
-import { getEmployeeAttendance, getEmployeeAttendanceCalendar, getEmployeeAttendanceSummary, getHolidays, getShifts, updateUser } from "../../../services/apiServices";
+import { createLeaveBalance, getEmployeeAttendance, getEmployeeAttendanceCalendar, getEmployeeAttendanceSummary, getEmployeeLeaveBalances, getHolidays, getShifts, updateUser } from "../../../services/apiServices";
 import { toast } from "react-toastify";
+
+const leaveTypes = ["Casual Leave", "Sick Leave", "Earned Leave", "Privilege Leave", "Unpaid Leave", "Maternity Leave", "Paternity Leave", "Comp-Off", "Permission"];
+const normalizeLeaveType = (value) => String(value || "").trim().toLowerCase();
 
 export const Attendance = ({ employee, onEmployeeUpdated }) => {
   const navigate = useNavigate();
@@ -26,6 +29,14 @@ export const Attendance = ({ employee, onEmployeeUpdated }) => {
   const [selectedShift, setSelectedShift] = useState(null);
   const [shiftsLoading, setShiftsLoading] = useState(false);
   const [savingShift, setSavingShift] = useState(false);
+  const [leaveConfigOpen, setLeaveConfigOpen] = useState(false);
+  const [savingLeaveConfig, setSavingLeaveConfig] = useState(false);
+  const [loadingLeaveConfig, setLoadingLeaveConfig] = useState(false);
+  const [leaveBalances, setLeaveBalances] = useState({});
+  const [leaveConfig, setLeaveConfig] = useState({
+    year: new Date().getFullYear(),
+    allocations: Object.fromEntries(leaveTypes.map((type) => [type, ""])),
+  });
   const monthRange = useMemo(() => {
     const now = new Date();
     const pad = (value) => String(value).padStart(2, "0");
@@ -63,6 +74,17 @@ export const Attendance = ({ employee, onEmployeeUpdated }) => {
       .finally(() => !cancelled && setAttendanceLoading(false));
     return () => { cancelled = true; };
   }, [employee, monthRange]);
+
+  useEffect(() => {
+    const employeeId = employee?._id || employee?.id || employee?.userId;
+    if (!employeeId) return;
+    getEmployeeLeaveBalances(employeeId, { year: new Date().getFullYear() })
+      .then((response) => {
+        const records = Array.isArray(response) ? response : response?.results || response?.data || [];
+        setLeaveBalances(Object.fromEntries(records.map((record) => [normalizeLeaveType(record.leaveType), record])));
+      })
+      .catch((error) => toast.error(error.response?.data?.message || "Failed to load leave balances"));
+  }, [employee]);
   const leaveDates = employee?.leaveDates || employee?.leaves?.map((leave) => leave.date || leave.leaveDate).filter(Boolean) || [];
   const leaveDateText = Array.isArray(leaveDates)
     ? leaveDates.join(", ") || "N/A"
@@ -142,6 +164,57 @@ export const Attendance = ({ employee, onEmployeeUpdated }) => {
     }
   };
 
+  const saveLeaveConfig = async (event) => {
+    event.preventDefault();
+    const employeeId = employee?._id || employee?.id || employee?.userId;
+    if (!employeeId) return toast.error("Employee ID is missing");
+    setSavingLeaveConfig(true);
+    try {
+      const payloads = leaveTypes
+        .filter((leaveType) => leaveConfig.allocations[leaveType] !== "")
+        .map((leaveType) => ({
+          employeeId,
+          leaveType,
+          year: Number(leaveConfig.year),
+          allocated: Number(leaveConfig.allocations[leaveType]),
+          isPaid: leaveType !== "Unpaid Leave",
+          requiresBalance: !["Unpaid Leave", "Permission"].includes(leaveType),
+        }));
+      if (!payloads.length) return toast.error("Enter allocation for at least one leave type");
+      await Promise.all(payloads.map((payload) => createLeaveBalance(payload)));
+      const refreshed = await getEmployeeLeaveBalances(employeeId, { year: leaveConfig.year });
+      const refreshedRecords = Array.isArray(refreshed) ? refreshed : refreshed?.results || refreshed?.data || [];
+      setLeaveBalances(Object.fromEntries(refreshedRecords.map((record) => [normalizeLeaveType(record.leaveType), record])));
+      toast.success("Leave balance configured successfully");
+      setLeaveConfigOpen(false);
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to configure leave balance");
+    } finally {
+      setSavingLeaveConfig(false);
+    }
+  };
+
+  const openLeaveConfig = async () => {
+    setLeaveConfigOpen(true);
+    const employeeId = employee?._id || employee?.id || employee?.userId;
+    if (!employeeId) return;
+    setLoadingLeaveConfig(true);
+    try {
+      const response = await getEmployeeLeaveBalances(employeeId, { year: leaveConfig.year });
+      const records = Array.isArray(response) ? response : response?.results || response?.data || [];
+      const balanceMap = Object.fromEntries(records.map((record) => [normalizeLeaveType(record.leaveType), record]));
+      setLeaveBalances(balanceMap);
+      setLeaveConfig((current) => ({
+        ...current,
+        allocations: Object.fromEntries(leaveTypes.map((type) => [type, balanceMap[normalizeLeaveType(type)]?.allocated ?? ""])),
+      }));
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to load leave balances");
+    } finally {
+      setLoadingLeaveConfig(false);
+    }
+  };
+
   const openLeaveForm = (mode) => {
     const path = mode === "edit"
       ? "/admin/time-hub/leaveAttendance/edit-Leave"
@@ -196,6 +269,28 @@ export const Attendance = ({ employee, onEmployeeUpdated }) => {
           </Modal>
         </ModalBackdrop>
       )}
+      {leaveConfigOpen && (
+        <ModalBackdrop onMouseDown={() => !savingLeaveConfig && setLeaveConfigOpen(false)}>
+          <Modal role="dialog" aria-modal="true" onMouseDown={(event) => event.stopPropagation()}>
+            <ModalHeader><ModalTitle>Configure Leave Balance</ModalTitle><CloseButton type="button" onClick={() => setLeaveConfigOpen(false)}>×</CloseButton></ModalHeader>
+            <ShiftForm onSubmit={saveLeaveConfig}>
+              <FieldLabel>Year</FieldLabel>
+              <FormInput type="number" value={leaveConfig.year} onChange={(event) => setLeaveConfig({ ...leaveConfig, year: event.target.value })} required />
+              {loadingLeaveConfig && <FieldLabel>Loading existing leave balances...</FieldLabel>}
+              {leaveTypes.map((leaveType) => (
+                <LeaveAllocationRow key={leaveType}>
+                  <FieldLabel>{leaveType}</FieldLabel>
+                  <LeaveInputGroup>
+                    <FormInput type="number" min="0" placeholder="Allocated days" value={leaveConfig.allocations[leaveType]} onChange={(event) => setLeaveConfig({ ...leaveConfig, allocations: { ...leaveConfig.allocations, [leaveType]: event.target.value } })} />
+                    {leaveBalances[leaveType] && <BalanceHint>Used {leaveBalances[leaveType].used ?? 0} · Remaining {leaveBalances[leaveType].remaining ?? 0}</BalanceHint>}
+                  </LeaveInputGroup>
+                </LeaveAllocationRow>
+              ))}
+              <ModalActions><CancelButton type="button" onClick={() => setLeaveConfigOpen(false)}>Cancel</CancelButton><SaveButton type="submit" disabled={savingLeaveConfig}>{savingLeaveConfig ? "Saving..." : "Save Configuration"}</SaveButton></ModalActions>
+            </ShiftForm>
+          </Modal>
+        </ModalBackdrop>
+      )}
       <CardDetails
         title="Shift Details"
         columns={3}
@@ -241,6 +336,8 @@ export const Attendance = ({ employee, onEmployeeUpdated }) => {
         uploadIcon={PlusIcon}
         addText="Add Leaves"
         onAdd={() => openLeaveForm("add")}
+        extraActionText="Leave Config"
+        onExtraAction={openLeaveConfig}
         items={[
           {
             label: "Total Working Day",
@@ -275,6 +372,19 @@ export const Attendance = ({ employee, onEmployeeUpdated }) => {
             value: summary?.leaves ?? leaveDateText,
           },
         ]}
+      />
+      <CardDetails
+        title="Leave Details"
+        columns={3}
+        items={leaveTypes.map((leaveType) => {
+          const balance = leaveBalances[normalizeLeaveType(leaveType)];
+          return {
+            label: leaveType,
+            value: balance
+              ? `Allocated: ${balance.allocated ?? 0} | Used: ${balance.used ?? 0} | Remaining: ${balance.remaining ?? 0}`
+              : "N/A",
+          };
+        })}
       />
       <TabSwitcher
         tabs={[
@@ -437,4 +547,40 @@ const SaveButton = styled.button`
     cursor: not-allowed;
     opacity: 0.6;
   }
+`;
+
+const FormInput = styled.input`
+  width: 100%;
+  height: 40px;
+  padding: 0 0.75rem;
+  border: 1px solid ${theme.colors.border};
+  border-radius: 8px;
+  color: ${theme.colors.textColor};
+  font: 400 0.875rem/1.5 "Inter-Regular", sans-serif;
+`;
+
+const CheckboxLabel = styled.label`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: ${theme.colors.textColor};
+  font: 400 0.875rem/1.5 "Inter-Regular", sans-serif;
+`;
+
+const LeaveAllocationRow = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 150px;
+  align-items: center;
+  gap: 0.75rem;
+`;
+
+const LeaveInputGroup = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+`;
+
+const BalanceHint = styled.span`
+  color: ${theme.colors.secondaryTextColor};
+  font-size: 0.7rem;
 `;

@@ -15,6 +15,8 @@ const CardDetails = ({
   addText = "Add",
   uploadIcon,
   onAdd,
+  extraActionText = "",
+  onExtraAction,
 }) => {
 
   return (
@@ -26,6 +28,9 @@ const CardDetails = ({
             {title && <TitleLine>{title}</TitleLine>}
           </TitleWrapper>
           <ButtonsRight>
+            {extraActionText && (
+              <EditBtn type="button" onClick={onExtraAction}>{extraActionText}</EditBtn>
+            )}
             {showEdit && (
               <EditBtn type="button" onClick={onEdit}>
                 {editIcon && (

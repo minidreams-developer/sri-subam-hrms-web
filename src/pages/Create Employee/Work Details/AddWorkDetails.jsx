@@ -5,7 +5,7 @@ import CalenderInput from "../../../components/CalenderInput";
 import InputComponent from "../../../components/InputComponent";
 import Select from "react-select";
 import { customSelectStyles } from "../../../theme/reactSelectStyles";
-import { getBranches, getDepartments, getDesignationDropdown, getShifts, getTeams, getUserDropdown, getUsers } from "../../../services/apiServices";
+import { getBranches, getDepartments, getDesignationDropdown, getShifts, getTeam, getTeams, getUserDropdown } from "../../../services/apiServices";
 import { toast } from "react-toastify";
 
 const AddWorkDetails = forwardRef(({ onNext, onBack, showContractAgent = false }, ref) => {
@@ -23,7 +23,6 @@ const AddWorkDetails = forwardRef(({ onNext, onBack, showContractAgent = false }
     totalYearsOfExperience: "4",
     lastCompanyName: "Test Technologies Pvt Ltd",
     experience: "Frontend application development",
-    location: "Chennai",
     shift: null,
     attendancePermission: { value: "auto", label: "Auto" },
     esiNumber: "310012345600",
@@ -66,17 +65,40 @@ const AddWorkDetails = forwardRef(({ onNext, onBack, showContractAgent = false }
   const [contractAgentOptions, setContractAgentOptions] = useState([]);
   const [designationOptions, setDesignationOptions] = useState([]);
 
-  // Fetch data on component mount
+  // Branch is the root of the work-information hierarchy. Departments and
+  // teams are loaded only after their parent selection is available.
   useEffect(() => {
-    fetchDepartments();
     fetchShifts();
-    fetchUsers();
-    fetchTeams();
     fetchBranches();
     fetchContractAgents();
     fetchDesignations();
-    
   }, []);
+
+  useEffect(() => {
+    const branchId = formData.branch?.value;
+    setFormData((prev) => ({
+      ...prev,
+      department: null,
+      team: null,
+    }));
+    setDepartmentOptions([]);
+    setTeamOptions([]);
+    if (branchId) fetchDepartments(branchId);
+  }, [formData.branch?.value]);
+
+  useEffect(() => {
+    const departmentId = formData.department?.value;
+    setFormData((prev) => ({ ...prev, team: null }));
+    setTeamOptions([]);
+    setReportingPersonOptions([]);
+    if (departmentId) fetchTeams(departmentId);
+  }, [formData.department?.value]);
+
+  useEffect(() => {
+    const teamId = formData.team?.value;
+    setReportingPersonOptions([]);
+    if (teamId) fetchTeamMembers(teamId);
+  }, [formData.team?.value]);
 
   const fetchDesignations = async () => {
     setDesignationsLoading(true);
@@ -134,25 +156,19 @@ const AddWorkDetails = forwardRef(({ onNext, onBack, showContractAgent = false }
     }
   };
 
-  const fetchDepartments = async () => {
+  const fetchDepartments = async (branchId) => {
     setDepartmentsLoading(true);
     try {
-      const response = await getDepartments({ page: 1, limit: 100 }, { skipGlobalLoading: true });
-      let departments = [];
-      if (Array.isArray(response)) {
-        departments = response;
-      } else if (response?.results && Array.isArray(response.results)) {
-        departments = response.results;
-      } else if (response?.data && Array.isArray(response.data)) {
-        departments = response.data;
-      }
+      const response = await getDepartments({ branchId, page: 1, limit: 100 }, { skipGlobalLoading: true });
+      const departments = Array.isArray(response)
+        ? response
+        : response?.results || response?.data?.results || response?.data || response?.departments || [];
       
       const options = departments.map((dept) => ({
         value: dept.id || dept._id,
         label: dept.departmentName || dept.name || "Unknown",
       }));
       setDepartmentOptions(options);
-      if (options.length) setFormData((prev) => ({ ...prev, department: prev.department || options[0] }));
     } catch (error) {
       console.error("Error fetching departments:", error);
       toast.error("Failed to fetch departments");
@@ -188,61 +204,45 @@ const AddWorkDetails = forwardRef(({ onNext, onBack, showContractAgent = false }
     }
   };
 
-  const fetchUsers = async () => {
-    setUsersLoading(true);
-    try {
-      const response = await getUsers({ page: 1, limit: 100 }, { skipGlobalLoading: true });
-      let users = [];
-      if (Array.isArray(response)) {
-        users = response;
-      } else if (response?.results && Array.isArray(response.results)) {
-        users = response.results;
-      } else if (response?.data && Array.isArray(response.data)) {
-        users = response.data;
-      } else if (response?.users && Array.isArray(response.users)) {
-        users = response.users;
-      }
-      
-      const options = users.map((user) => ({
-        value: user.id || user._id,
-        label: user.firstName && user.lastName 
-          ? `${user.firstName} ${user.lastName}` 
-          : user.name || user.email || "Unknown",
-      }));
-      setReportingPersonOptions(options);
-      if (options.length) setFormData((prev) => ({ ...prev, reportingPerson: prev.reportingPerson || options[0] }));
-    } catch (error) {
-      console.error("Error fetching users:", error);
-      toast.error("Failed to fetch users");
-    } finally {
-      setUsersLoading(false);
-    }
-  };
-
-  const fetchTeams = async () => {
+  const fetchTeams = async (departmentId) => {
     setTeamsLoading(true);
     try {
-      const response = await getTeams({ page: 1, limit: 100 }, { skipGlobalLoading: true });
-      let teams = [];
-      if (Array.isArray(response)) {
-        teams = response;
-      } else if (response?.results && Array.isArray(response.results)) {
-        teams = response.results;
-      } else if (response?.data && Array.isArray(response.data)) {
-        teams = response.data;
-      }
+      const response = await getTeams({ departmentId, page: 1, limit: 100 }, { skipGlobalLoading: true });
+      const teams = Array.isArray(response)
+        ? response
+        : response?.results || response?.data?.results || response?.data || response?.teams || [];
       
       const options = teams.map((team) => ({
         value: team.id || team._id,
         label: team.teamName || team.name || "Unknown",
       }));
       setTeamOptions(options);
-      if (options.length) setFormData((prev) => ({ ...prev, team: prev.team || options[0] }));
     } catch (error) {
       console.error("Error fetching teams:", error);
       toast.error("Failed to fetch teams");
     } finally {
       setTeamsLoading(false);
+    }
+  };
+
+  const fetchTeamMembers = async (teamId) => {
+    setUsersLoading(true);
+    try {
+      const response = await getTeam(teamId);
+      const team = response?.data?.team || response?.data || response?.team || response;
+      const members = Array.isArray(team?.members)
+        ? team.members
+        : Array.isArray(response?.members) ? response.members : [];
+      const options = members.map((member) => ({
+        value: member.id || member._id || member.userId,
+        label: member.name || member.employeeName || member.email || member.employeeId || "Unknown",
+      })).filter((option) => option.value);
+      setReportingPersonOptions(options);
+    } catch (error) {
+      console.error("Error fetching team members:", error);
+      toast.error("Failed to fetch team members");
+    } finally {
+      setUsersLoading(false);
     }
   };
 
@@ -319,28 +319,19 @@ const AddWorkDetails = forwardRef(({ onNext, onBack, showContractAgent = false }
         <SectionTitle>Work Information</SectionTitle>
         <Row>
           <Col>
-            <CalenderInput
-              label="Date Of Joining"
-              onDateSelect={(date) => handleChange("dateOfJoining", date)}
-              initialDate={formData.dateOfJoining}
-              labelMargin="0 0 0.625rem 0"
-            />
-          </Col>
-          <Col>
             <SelectWrapper>
-              <Label>Experience Type</Label>
+              <Label>Branch</Label>
               <Select
-                options={experienceTypeOptions}
-                value={formData.experienceType}
-                onChange={(value) => handleChange("experienceType", value)}
-                placeholder="Select Type"
+                options={branchOptions}
+                value={formData.branch}
+                onChange={(value) => handleChange("branch", value)}
+                placeholder="Select Branch"
                 styles={customSelectStyles}
                 isSearchable
+                isLoading={branchesLoading}
               />
             </SelectWrapper>
           </Col>
-        </Row>
-        <Row>
           <Col>
             <SelectWrapper>
               <Label>Department</Label>
@@ -352,20 +343,6 @@ const AddWorkDetails = forwardRef(({ onNext, onBack, showContractAgent = false }
                 styles={customSelectStyles}
                 isSearchable
                 isLoading={departmentsLoading}
-              />
-            </SelectWrapper>
-          </Col>
-          <Col>
-            <SelectWrapper>
-              <Label>Designation</Label>
-              <Select
-                options={designationOptions}
-                value={formData.designation}
-                onChange={(value) => handleChange("designation", value)}
-                placeholder="Select Designation"
-                styles={customSelectStyles}
-                isSearchable
-                isLoading={designationsLoading}
               />
             </SelectWrapper>
           </Col>
@@ -387,15 +364,38 @@ const AddWorkDetails = forwardRef(({ onNext, onBack, showContractAgent = false }
           </Col>
           <Col>
             <SelectWrapper>
-              <Label>Branch</Label>
+              <Label>Designation</Label>
               <Select
-                options={branchOptions}
-                value={formData.branch}
-                onChange={(value) => handleChange("branch", value)}
-                placeholder="Select Branch"
+                options={designationOptions}
+                value={formData.designation}
+                onChange={(value) => handleChange("designation", value)}
+                placeholder="Select Designation"
                 styles={customSelectStyles}
                 isSearchable
-                isLoading={branchesLoading}
+                isLoading={designationsLoading}
+              />
+            </SelectWrapper>
+          </Col>
+        </Row>
+        <Row>
+          <Col>
+            <CalenderInput
+              label="Date Of Joining"
+              onDateSelect={(date) => handleChange("dateOfJoining", date)}
+              initialDate={formData.dateOfJoining}
+              labelMargin="0 0 0.625rem 0"
+            />
+          </Col>
+          <Col>
+            <SelectWrapper>
+              <Label>Experience Type</Label>
+              <Select
+                options={experienceTypeOptions}
+                value={formData.experienceType}
+                onChange={(value) => handleChange("experienceType", value)}
+                placeholder="Select Type"
+                styles={customSelectStyles}
+                isSearchable
               />
             </SelectWrapper>
           </Col>
@@ -478,15 +478,6 @@ const AddWorkDetails = forwardRef(({ onNext, onBack, showContractAgent = false }
               placeholder="Enter experience"
               value={formData.experience}
               onChange={(e) => handleChange("experience", e.target.value)}
-              labelMargin="0 0 0.625rem 0"
-            />
-          </Col>
-          <Col>
-            <InputComponent
-              label="Location"
-              placeholder="Enter Location"
-              value={formData.location}
-              onChange={(e) => handleChange("location", e.target.value)}
               labelMargin="0 0 0.625rem 0"
             />
           </Col>

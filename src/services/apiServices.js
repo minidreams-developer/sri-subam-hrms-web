@@ -160,6 +160,8 @@ export const deleteShift = (id) => data(api.delete(`/v1/shifts/${id}`));
 
 // Attendance, leave, overtime, holidays, and rosters
 export const getAttendance = (params) => list("/v1/attendance", params);
+export const getAttendanceQuickStats = (params, config) =>
+  list("/v1/attendance/quick-stats", params, config);
 export const getTimesheetStats = (params, config) =>
   list("/v1/timesheet/stats", params, config);
 export const getDailyTimesheet = (params, config) =>
@@ -210,11 +212,19 @@ export const createAttendance = (payload) =>
   data(api.post("/v1/attendance", payload));
 
 export const getLeaveRequests = (params) => list("/v1/leave-requests", params);
+export const getLeaveTypes = (params, config) =>
+  list("/v1/leave-types", params, config);
 export const getLeaveRequestsQuickStats = (params) =>
   list("/v1/leave-requests/quick-stats", params);
 
 export const createLeaveRequest = (payload) =>
   data(api.post("/v1/leave-requests", payload));
+
+export const createLeaveBalance = (payload) =>
+  data(api.post("/v1/leave-balances", payload));
+
+export const getEmployeeLeaveBalances = (employeeId, params) =>
+  list(`/v1/leave-balances/employee/${encodeURIComponent(employeeId)}`, params);
 
 export const updateLeaveRequest = (id, payload) =>
   data(api.patch(`/v1/leave-requests/${id}`, payload));

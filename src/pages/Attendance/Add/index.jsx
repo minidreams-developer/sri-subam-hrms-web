@@ -9,7 +9,13 @@ import { Label } from "reactstrap";
 import CalenderInput from "../../../components/CalenderInput";
 import TimeInputComponent from "../../../components/TimeInputComponent";
 import Button from "../../../components/Button";
-import { createAttendance, getDepartments, getShifts, getUsers } from "../../../services/apiServices";
+import {
+  createAttendance,
+  getDepartments,
+  getShifts,
+  getUser,
+  getUserDropdown,
+} from "../../../services/apiServices";
 import { toast } from "react-toastify";
 
 const AddAttendance = () => {
@@ -40,6 +46,7 @@ const AddAttendance = () => {
   const [remarks, setRemarks] = useState("");
   const [loading, setLoading] = useState(false);
   const [fetchingEmployees, setFetchingEmployees] = useState(true);
+  const [fetchingUser, setFetchingUser] = useState(false);
   const [fetchingDepartments, setFetchingDepartments] = useState(true);
   
   const [fetchingShifts, setFetchingShifts] = useState(true);
@@ -49,14 +56,14 @@ const AddAttendance = () => {
     const fetchEmployees = async () => {
       try {
         setFetchingEmployees(true);
-        const response = await getUsers({ page: 1, limit: 100 });
-        const employeeList = response.results || response.data || response.users || [];
+        const response = await getUserDropdown();
+        const employeeList = Array.isArray(response)
+          ? response
+          : response?.results || response?.data?.results || response?.data || response?.users || [];
         const formattedEmployees = employeeList.map((emp) => ({
           value: emp._id || emp.id,
-          label: emp.name || emp.firstName,
-          employeeId: emp.employeeId,
-          department: emp.department?.name || emp.department || "",
-          designation: emp.designation || "",
+          label: emp.name || [emp.firstName, emp.lastName].filter(Boolean).join(" ") || emp.email,
+          employeeId: emp.employeeId || emp.staffId || "",
         }));
         setEmployees(formattedEmployees);
       } catch (error) {
@@ -122,30 +129,49 @@ const AddAttendance = () => {
     fetchShifts();
   }, []);
 
-  // Update employee details when employee is selected
-  useEffect(() => {
-    if (employee) {
-      setEmployeeId(employee.employeeId || "");
-      
-      // Find and set designation from designations list
-      if (employee.designation) {
-        const selectedDesignation = designations.find(
-          (des) => des.label.toLowerCase() === employee.designation.toLowerCase()
-        );
-        setPosition(selectedDesignation || null);
-      }
-      
-      // Find and set department from departments list - match by value or name
-      if (employee.department) {
-        const selectedDept = departments.find(
-          (dept) => 
-            dept.label.toLowerCase() === employee.department.toLowerCase() ||
-            dept.value === employee.department
-        );
-        setDepartment(selectedDept || null);
-      }
+  const getValue = (value) =>
+    value && typeof value === "object" ? value._id || value.id || value.value : value;
+
+  const getLabel = (value, fallback = "") =>
+    value && typeof value === "object"
+      ? value.name || value.departmentName || value.designationName || value.label || fallback
+      : value || fallback;
+
+  const findOption = (options, value, label) => {
+    const valueId = getValue(value);
+    return options.find((option) => option.value === valueId || option.label === getLabel(value, label)) ||
+      (valueId || label ? { value: valueId || label, label: label || getLabel(value) } : null);
+  };
+
+  const handleEmployeeChange = async (selectedEmployee) => {
+    setEmployee(selectedEmployee);
+    setPosition(null);
+    setDepartment(null);
+    if (!selectedEmployee?.value) return;
+
+    try {
+      setFetchingUser(true);
+      const response = await getUser(selectedEmployee.value);
+      const user = response?.data || response?.user || response;
+      const work = user?.workInformation || {};
+      const employeeNumber = user?.employeeId || user?.staffId || selectedEmployee.employeeId || "";
+      const designation = work.designationId || user.designationId || work.designation || user.designation;
+      const departmentValue = work.department || user.department;
+      const shiftId = user?.shiftId || work.shiftId || user?.shift?._id || user?.shift?.id;
+      const shiftName = user?.shiftName || work.shiftName || user?.shift?.name;
+
+      setEmployee((current) => ({ ...current, employeeId: employeeNumber }));
+      setEmployeeId(employeeNumber);
+      setPosition(findOption(designationOptions, designation));
+      setDepartment(findOption(departments, departmentValue));
+      setShift(findOption(shifts, shiftId, shiftName));
+    } catch (error) {
+      console.error("Error fetching selected employee:", error);
+      toast.error(error.response?.data?.message || "Failed to load employee details");
+    } finally {
+      setFetchingUser(false);
     }
-  }, [employee, departments, designations]);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -254,11 +280,11 @@ const AddAttendance = () => {
             id="employeeSelect"
             options={employees}
             value={employee}
-            onChange={setEmployee}
+            onChange={handleEmployeeChange}
             placeholder={fetchingEmployees ? "Loading employees..." : "Select Employee"}
             styles={customSelectStyles}
             isSearchable
-            isLoading={fetchingEmployees}
+            isLoading={fetchingEmployees || fetchingUser}
           />
         </Col>
         <Col>

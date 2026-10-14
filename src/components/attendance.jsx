@@ -8,7 +8,7 @@ import SearchInputComponent from "./SearchInputComponent";
 import DropdownComponent from "./DropdownComponent";
 import FilterIcon from "../assets/images/DashboardImages/filtericon.svg";
 import Filter from "./filter";
-import { getPresentToday, getDepartments, getShifts } from "../services/apiServices";
+import { getAttendance, getAttendanceQuickStats, getDepartments, getShifts } from "../services/apiServices";
 import { toast } from "react-toastify";
 
 const Attendance = () => {
@@ -28,15 +28,19 @@ const Attendance = () => {
   const [shiftOptions, setShiftOptions] = useState([]);
   const [loadingDepts, setLoadingDepts] = useState(false);
   const [loadingShifts, setLoadingShifts] = useState(false);
+  const [fromDate, setFromDate] = useState(getTodayDate());
+  const [toDate, setToDate] = useState(getTodayDate());
+  const [quickStats, setQuickStats] = useState(null);
+  const [statsLoading, setStatsLoading] = useState(false);
   const rowsPerPage = 10;
 
-  const getTodayDate = () => {
+  function getTodayDate() {
     const today = new Date();
     const year = today.getFullYear();
     const month = String(today.getMonth() + 1).padStart(2, "0");
     const day = String(today.getDate()).padStart(2, "0");
     return `${year}-${month}-${day}`;
-  };
+  }
 
   const handleFilterApply = (filters) => {
     setAppliedFilters(filters);
@@ -47,7 +51,11 @@ const Attendance = () => {
   // Fetch attendance data from API
   useEffect(() => {
     fetchAttendanceData();
-  }, [currentPage, activeTab, searchValue, departmentFilter, shiftFilter, appliedFilters]);
+  }, [currentPage, activeTab, searchValue, departmentFilter, shiftFilter, appliedFilters, fromDate, toDate]);
+
+  useEffect(() => {
+    fetchQuickStats();
+  }, [fromDate, toDate]);
 
   useEffect(() => {
     fetchDepartmentsAndShifts();
@@ -57,22 +65,18 @@ const Attendance = () => {
     try {
       setLoading(true);
       const params = {
-        role: activeTab === "Staffs" ? "staff" : "employee",
-        date: getTodayDate(),
         page: currentPage,
-        limit: rowsPerPage,
+        limit: 100,
       };
 
-      if (searchValue.trim()) params.search = searchValue.trim();
+      if (activeTab === "Employees") params.role = "employee";
+      if (activeTab === "Staffs") params.role = "staff";
+      if (fromDate) params.fromDate = fromDate;
+      if (toDate) params.toDate = toDate;
       if (departmentFilter !== "All Department") params.departmentId = departmentFilter;
       if (shiftFilter !== "All Shifts") params.shiftId = shiftFilter;
-      Object.entries(appliedFilters || {}).forEach(([key, value]) => {
-        if (["departmentId", "shiftId"].includes(key) && value !== "" && value !== null && value !== undefined) {
-          params[key] = Array.isArray(value) ? value[0] : value;
-        }
-      });
 
-      const response = await getPresentToday(params);
+      const response = await getAttendance(params);
       
       const records = Array.isArray(response)
         ? response
@@ -146,6 +150,23 @@ const Attendance = () => {
     }
   };
 
+  const fetchQuickStats = async () => {
+    if (!fromDate || !toDate || fromDate > toDate) {
+      setQuickStats(null);
+      return;
+    }
+    try {
+      setStatsLoading(true);
+      const response = await getAttendanceQuickStats({ fromDate, toDate });
+      setQuickStats(response?.data || response?.stats || response || {});
+    } catch (error) {
+      console.error("Error fetching attendance quick stats:", error);
+      setQuickStats(null);
+    } finally {
+      setStatsLoading(false);
+    }
+  };
+
   const columns = [
     { label: "Employee ID", key: "employeeId" },
     { label: "Name", key: "name" },
@@ -161,7 +182,6 @@ const Attendance = () => {
     },
   ];
 
-  // Filter data based on search
   const filteredData = attendanceData;
   const attendanceStats = attendanceData.reduce(
     (stats, row) => {
@@ -259,14 +279,16 @@ const Attendance = () => {
       <Top>
         <TopTitle>Quick Stats</TopTitle>
         <Controls>
-          <FilterSelect>
-            <select className="form-select" defaultValue="Today">
-              <option>Today</option>
-              <option>Last 7 days</option>
-              <option>Last 30 days</option>
-              <option>Last 90 days</option>
-            </select>
-          </FilterSelect>
+          <DateFilter>
+            <DateField>
+              <DateLabel htmlFor="attendance-from-date">From date</DateLabel>
+              <DateInput id="attendance-from-date" type="date" value={fromDate} max={toDate || undefined} onChange={(event) => setFromDate(event.target.value)} />
+            </DateField>
+            <DateField>
+              <DateLabel htmlFor="attendance-to-date">To date</DateLabel>
+              <DateInput id="attendance-to-date" type="date" value={toDate} min={fromDate || undefined} onChange={(event) => setToDate(event.target.value)} />
+            </DateField>
+          </DateFilter>
           <Button
             text="Export Data"
             bg={theme.colors.white}
@@ -282,25 +304,25 @@ const Attendance = () => {
         <StatCard>
           <CardTitle>Total Records</CardTitle>
           <CardFooter>
-            <CardValue>{totalResults}</CardValue>
+            <CardValue>{statsLoading ? "..." : quickStats?.totalRecords ?? quickStats?.total ?? totalResults}</CardValue>
           </CardFooter>
         </StatCard>
         <StatCard>
           <CardTitle>On Time</CardTitle>
           <CardFooter>
-            <CardValue>{attendanceStats["On Time"]}</CardValue>
+            <CardValue>{statsLoading ? "..." : quickStats?.onTime ?? quickStats?.on_time ?? attendanceStats["On Time"]}</CardValue>
           </CardFooter>
         </StatCard>
         <StatCard>
           <CardTitle>Early Out</CardTitle>
           <CardFooter>
-            <CardValue>{attendanceStats["Early Out"]}</CardValue>
+            <CardValue>{statsLoading ? "..." : quickStats?.earlyOut ?? quickStats?.early_out ?? attendanceStats["Early Out"]}</CardValue>
           </CardFooter>
         </StatCard>
         <StatCard>
           <CardTitle>Arrived Late</CardTitle>
           <CardFooter>
-            <CardValue>{attendanceStats["Arrived Late"]}</CardValue>
+            <CardValue>{statsLoading ? "..." : quickStats?.arrivedLate ?? quickStats?.arrived_late ?? quickStats?.late ?? attendanceStats["Arrived Late"]}</CardValue>
           </CardFooter>
         </StatCard>
       </StatsGrid>
@@ -455,6 +477,40 @@ const FilterSelect = styled.div`
       border-color: ${theme.colors.primary};
       box-shadow: 0 0 0 3px rgba(0, 128, 128, 0.1);
     }
+  }
+`;
+
+const DateFilter = styled.div`
+  display: flex;
+  align-items: end;
+  gap: 0.75rem;
+`;
+
+const DateField = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+`;
+
+const DateLabel = styled.label`
+  font-size: 0.6875rem;
+  color: #777;
+  font-family: "Inter-Medium", sans-serif;
+`;
+
+const DateInput = styled.input`
+  width: 8.75rem;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid #e5e5e5;
+  border-radius: 0.375rem;
+  font-size: 0.8125rem;
+  font-family: "Inter-Regular", sans-serif;
+  color: ${theme.colors.textColor};
+  background: white;
+  outline: none;
+
+  &:focus {
+    border-color: ${theme.colors.primary};
   }
 `;
 

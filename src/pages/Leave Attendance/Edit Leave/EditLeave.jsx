@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import theme from "../../../theme/theme";
@@ -9,7 +9,7 @@ import { Label } from "reactstrap";
 import CalenderInput from "../../../components/CalenderInput";
 import TimeInputComponent from "../../../components/TimeInputComponent";
 import Button from "../../../components/Button";
-import { updateLeaveRequest } from "../../../services/apiServices";
+import { getLeaveTypes, updateLeaveRequest } from "../../../services/apiServices";
 import { toast } from "react-toastify";
 
 const EditLeave = () => {
@@ -27,28 +27,71 @@ const EditLeave = () => {
   } : null;
   const options = employeeOption ? [employeeOption] : [];
 
-  const leaveOptions = [
-    { value: "Sick Leave", label: "Sick Leave" },
-    { value: "Casual Leave", label: "Casual Leave" },
-    { value: "Annual Leave", label: "Annual Leave" },
-    { value: "Permission", label: "Permission" },
-  ];
-
   const [employee, setEmployee] = useState(employeeOption);
   const [employeeId, setEmployeeId] = useState(selectedPerson?.employeeId || "");
   const [date, setDate] = useState(leave.singleDate || null);
   const [fromDate, setFromDate] = useState(leave.startDate || null);
   const [toDate, setToDate] = useState(leave.endDate || null);
-  const [leaveType, setLeaveType] = useState(leaveOptions.find((option) => option.value === leave.leaveType) || leaveOptions[0]);
+  const [leaveOptions, setLeaveOptions] = useState([]);
+  const [leaveType, setLeaveType] = useState(
+    leave.leaveType ? { value: leave.leaveType, label: leave.leaveType } : null,
+  );
   const [startTime, setStartTime] = useState(leave.startTime || null);
   const [endTime, setEndTime] = useState(leave.endTime || null);
   const [remarks, setRemarks] = useState(leave.remarks || leave.reason || "");
   const [saving, setSaving] = useState(false);
+  const [fetchingLeaveTypes, setFetchingLeaveTypes] = useState(true);
+
+  useEffect(() => {
+    const fetchLeaveTypes = async () => {
+      try {
+        const response = await getLeaveTypes();
+        const leaveTypeList = Array.isArray(response)
+          ? response
+          : response.results || response.data || response.leaveTypes || [];
+        const formattedLeaveTypes = leaveTypeList
+          .map((type) => {
+            const name = type.name || type.leaveType || type.type || type.label;
+            return name ? { value: name, label: name } : null;
+          })
+          .filter(Boolean);
+        setLeaveOptions(formattedLeaveTypes);
+        setLeaveType((current) =>
+          formattedLeaveTypes.find((option) => option.value === current?.value) || current,
+        );
+      } catch (error) {
+        console.error("Error fetching leave types:", error);
+        toast.error("Failed to fetch leave types");
+      } finally {
+        setFetchingLeaveTypes(false);
+      }
+    };
+
+    fetchLeaveTypes();
+  }, []);
+
   const updateLeave = async () => {
     if (!leaveId) return toast.error("Leave request ID is missing");
     setSaving(true);
     try {
-      await updateLeaveRequest(leaveId, { employeeId: employee?.value || leave.employeeId?.id || leave.employeeId?._id || leave.employeeId, leaveType: leaveType?.value, singleDate: date, startDate: fromDate, endDate: toDate, startTime, endTime, remarks });
+      await updateLeaveRequest(leaveId, {
+        leaveType: leaveType?.value,
+        startDate: fromDate,
+        endDate: toDate,
+        singleDate: null,
+        department:
+          profileEmployee?.department?._id ||
+          profileEmployee?.department?.id ||
+          profileEmployee?.department ||
+          leave.department?._id ||
+          leave.department?.id ||
+          leave.department,
+        designation:
+          profileEmployee?.workInformation?.designation ||
+          profileEmployee?.designation ||
+          leave.designation,
+        reason: remarks,
+      });
       toast.success("Leave request updated successfully");
       navigate(returnTo, { state: { activeTab: location.state?.returnTab } });
     } catch (error) { toast.error(error.response?.data?.message || "Failed to update leave request"); }
@@ -152,13 +195,14 @@ const EditLeave = () => {
             options={leaveOptions}
             value={leaveType}
             onChange={setLeaveType}
-            placeholder="Select Leave Type"
+            placeholder={fetchingLeaveTypes ? "Loading leave types..." : "Select Leave Type"}
             styles={customSelectStyles}
             isSearchable
+            isLoading={fetchingLeaveTypes}
           />
         </Col>
         <Col>
-          {leaveType.value === "Permission" && (
+          {leaveType?.value === "Permission" && (
             <CalenderInput
               label="Date"
               onDateSelect={setDate}
@@ -168,7 +212,7 @@ const EditLeave = () => {
         </Col>
       </Row>
       <Row>
-        {leaveType.value === "Permission" ? (
+        {leaveType?.value === "Permission" ? (
           <>
             <Col>
               <TimeInputComponent

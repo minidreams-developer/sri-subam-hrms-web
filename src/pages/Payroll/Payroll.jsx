@@ -14,8 +14,10 @@ const Payroll = () => {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [department, setDepartment] = useState("All Department");
+  const [departmentId, setDepartmentId] = useState("");
   const [shift, setShift] = useState("All Shifts");
-  const [activeTopTab, setActiveTopTab] = useState("Abstract");
+  const [shiftId, setShiftId] = useState("");
+  const [activeTopTab, setActiveTopTab] = useState("Payroll");
   const [activeInnerTab, setActiveInnerTab] = useState("Employees");
   const [selectedYear, setSelectedYear] = useState("2025");
   const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
@@ -37,13 +39,23 @@ const Payroll = () => {
   // Fetch payroll data on component mount or page change
   useEffect(() => {
     fetchPayrollData();
+  }, [currentPage, pageSize, activeInnerTab, departmentId, shiftId]);
+
+  // Load dropdown data once when Payroll opens.
+  useEffect(() => {
     fetchDepartmentsAndShifts();
-  }, [currentPage, pageSize]);
+  }, []);
 
   const fetchPayrollData = async () => {
     setLoading(true);
     try {
-      const response = await getPayroll({ page: currentPage, limit: pageSize });
+      const response = await getPayroll({
+        page: currentPage,
+        limit: pageSize,
+        role: activeInnerTab === "Staffs" ? "staff" : "employee",
+        ...(departmentId ? { departmentId } : {}),
+        ...(shiftId ? { shiftId } : {}),
+      });
       console.log("Payroll data fetched:", response);
       
       let records = [];
@@ -126,6 +138,7 @@ const Payroll = () => {
     if (queryParams.sortBy) {
       url += (url.includes('?') ? '&' : '?') + `sortBy=${queryParams.sortBy}`;
     }
+    url += (url.includes('?') ? '&' : '?') + `role=${activeInnerTab === "Staffs" ? "staff" : "employee"}`;
     
     // Add pagination
     url += (url.includes('?') ? '&' : '?') + `page=${queryParams.page || 1}&limit=${queryParams.limit || 10}`;
@@ -152,6 +165,7 @@ const Payroll = () => {
       // Transform to dropdown options
       const deptOptions = deptList.map((dept) => ({
         value: dept.departmentName || dept.name || "N/A",
+        id: dept._id || dept.id || dept.departmentId,
         label: dept.departmentName || dept.name || "N/A",
       }));
       
@@ -177,6 +191,7 @@ const Payroll = () => {
       const shiftOpts = shiftList.map((shift) => ({
         value: shift.shiftName || shift.name || "N/A",
         label: shift.shiftName || shift.name || "N/A",
+        id: shift._id || shift.id || shift.shiftId,
       }));
       
       setShiftOptions(shiftOpts);
@@ -187,6 +202,20 @@ const Payroll = () => {
     } finally {
       setLoadingShifts(false);
     }
+  };
+
+  const handleDepartmentChange = (value) => {
+    setDepartment(value);
+    const selected = departmentOptions.find((option) => option.value === value);
+    setDepartmentId(value === "All Department" ? "" : selected?.id || "");
+    setCurrentPage(1);
+  };
+
+  const handleShiftChange = (value) => {
+    setShift(value);
+    const selected = shiftOptions.find((option) => option.value === value);
+    setShiftId(value === "All Shifts" ? "" : selected?.id || "");
+    setCurrentPage(1);
   };
 
   const fetchPayrollDataWithFilters = async (url) => {
@@ -486,10 +515,10 @@ const Payroll = () => {
               onSearchChange={setSearch}
               select1Options={["All Department", ...departmentOptions.map(d => d.value)]}
               select1Value={department}
-              onSelect1Change={setDepartment}
+              onSelect1Change={handleDepartmentChange}
               select2Options={["All Shifts", ...shiftOptions.map(s => s.value)]}
               select2Value={shift}
-              onSelect2Change={setShift}
+              onSelect2Change={handleShiftChange}
               showFilter={true}
               filterText="Filter"
               showDotIcon={true}
@@ -502,7 +531,7 @@ const Payroll = () => {
           <TableContainer>
             <ReusableTable 
               columns={activeTopTab === "Payroll" ? payrollColumns : columns}
-              data={(payrollData.length > 0 ? payrollData : data)
+              data={payrollData
                 .filter((row) => !search || `${row.employeeId} ${row.name}`.toLowerCase().includes(search.toLowerCase()))
                 .map((row, index) => ({ ...row, serialNo: String(index + 1).padStart(2, "0") }))}
               rowsPerPage={pageSize}

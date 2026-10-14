@@ -9,7 +9,12 @@ import { Label } from "reactstrap";
 import CalenderInput from "../../../components/CalenderInput";
 import TimeInputComponent from "../../../components/TimeInputComponent";
 import Button from "../../../components/Button";
-import { createLeaveRequest, getDepartments, getUsers } from "../../../services/apiServices";
+import {
+  createLeaveRequest,
+  getDepartments,
+  getLeaveTypes,
+  getUsers,
+} from "../../../services/apiServices";
 import { toast } from "react-toastify";
 
 const AddLeave = () => {
@@ -18,13 +23,6 @@ const AddLeave = () => {
   const location = useLocation();
   const profileEmployee = location.state?.employee;
   const returnTo = location.state?.returnTo || "/admin/time-hub/leaveAttendance";
-
-  const leaveTypeOptions = [
-    { value: "Sick Leave", label: "Sick Leave" },
-    { value: "Casual Leave", label: "Casual Leave" },
-    { value: "Annual Leave", label: "Annual Leave" },
-    { value: "Permission", label: "Permission" },
-  ];
 
   const designationOptions = [
     { value: "manager", label: "Manager" },
@@ -37,6 +35,7 @@ const AddLeave = () => {
 
   const [employees, setEmployees] = useState([]);
   const [departments, setDepartments] = useState([]);
+  const [leaveTypeOptions, setLeaveTypeOptions] = useState([]);
   const [designations, setDesignations] = useState([]);
   const [employee, setEmployee] = useState(null);
   const [employeeId, setEmployeeId] = useState("");
@@ -45,13 +44,14 @@ const AddLeave = () => {
   const [date, setDate] = useState(null);
   const [fromDate, setFromDate] = useState(null);
   const [toDate, setToDate] = useState(null);
-  const [leaveType, setLeaveType] = useState(leaveTypeOptions[0]);
+  const [leaveType, setLeaveType] = useState(null);
   const [startTime, setStartTime] = useState(null);
   const [endTime, setEndTime] = useState(null);
   const [remarks, setRemarks] = useState("");
   const [loading, setLoading] = useState(false);
   const [fetchingEmployees, setFetchingEmployees] = useState(true);
   const [fetchingDepartments, setFetchingDepartments] = useState(true);
+  const [fetchingLeaveTypes, setFetchingLeaveTypes] = useState(true);
 
   // Fetch employees on component mount
   useEffect(() => {
@@ -115,15 +115,44 @@ const AddLeave = () => {
     fetchDepartments();
   }, []);
 
+  useEffect(() => {
+    const fetchLeaveTypes = async () => {
+      try {
+        setFetchingLeaveTypes(true);
+        const response = await getLeaveTypes();
+        const leaveTypeList = Array.isArray(response)
+          ? response
+          : response.results || response.data || response.leaveTypes || [];
+        const formattedLeaveTypes = leaveTypeList
+          .map((type) => {
+            const name = type.name || type.leaveType || type.type || type.label;
+            return name ? { value: name, label: name } : null;
+          })
+          .filter(Boolean);
+        setLeaveTypeOptions(formattedLeaveTypes);
+      } catch (error) {
+        console.error("Error fetching leave types:", error);
+        toast.error("Failed to fetch leave types");
+      } finally {
+        setFetchingLeaveTypes(false);
+      }
+    };
+
+    fetchLeaveTypes();
+  }, []);
+
   // Set leave type based on query parameter
   useEffect(() => {
+    if (leaveTypeOptions.length === 0) return;
     const type = searchParams.get("type");
     if (type === "permission") {
-      setLeaveType(leaveTypeOptions[3]); // Permission
+      setLeaveType(
+        leaveTypeOptions.find((option) => option.value.toLowerCase() === "permission") || null,
+      );
     } else {
-      setLeaveType(leaveTypeOptions[0]); // Sick Leave (default)
+      setLeaveType(leaveTypeOptions[0] || null);
     }
-  }, [searchParams]);
+  }, [searchParams, leaveTypeOptions]);
 
   // Update employee details when employee is selected
   useEffect(() => {
@@ -164,7 +193,7 @@ const AddLeave = () => {
     }
 
     // Validate dates based on leave type
-    if (leaveType.value === "Permission") {
+    if (leaveType?.value === "Permission") {
       if (!date) {
         toast.error("Please select a date for permission");
         return;
@@ -187,7 +216,12 @@ const AddLeave = () => {
       const formatDateToString = (dateObj) => {
         if (!dateObj) return null;
         if (typeof dateObj === "string") return dateObj;
-        return dateObj.toISOString().split("T")[0];
+        // DatePicker returns a local Date. Using toISOString() converts it to
+        // UTC and can shift a selected date to the previous day in India.
+        const year = dateObj.getFullYear();
+        const month = String(dateObj.getMonth() + 1).padStart(2, "0");
+        const day = String(dateObj.getDate()).padStart(2, "0");
+        return `${year}-${month}-${day}`;
       };
 
       // Prepare payload based on leave type
@@ -327,13 +361,14 @@ const AddLeave = () => {
             options={leaveTypeOptions}
             value={leaveType}
             onChange={setLeaveType}
-            placeholder="Select Leave Type"
+            placeholder={fetchingLeaveTypes ? "Loading leave types..." : "Select Leave Type"}
             styles={customSelectStyles}
             isSearchable
+            isLoading={fetchingLeaveTypes}
           />
         </Col>
         <Col>
-          {leaveType.value === "Permission" && (
+          {leaveType?.value === "Permission" && (
             <CalenderInput
               label="Date"
               onDateSelect={setDate}
@@ -343,7 +378,7 @@ const AddLeave = () => {
         </Col>
       </Row>
       <Row>
-        {leaveType.value === "Permission" ? (
+        {leaveType?.value === "Permission" ? (
           <>
             <Col>
               <TimeInputComponent
