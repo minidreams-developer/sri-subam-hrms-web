@@ -7,7 +7,7 @@ import TableToolbar from "../../components/TableToolbar";
 import DotIcon from "../../assets/images/Overtime/actionDot.svg";
 import Button from "../../components/Button";
 import Filter from "../../components/filter";
-import { getDepartments, getPayroll, getShifts } from "../../services/apiServices";
+import { getDepartments, getFinalizedPayrollPeriods, getPayroll, getPayrollPeriods, getShifts } from "../../services/apiServices";
 import { toast } from "react-toastify";
 
 const Payroll = () => {
@@ -19,7 +19,12 @@ const Payroll = () => {
   const [shiftId, setShiftId] = useState("");
   const [activeTopTab, setActiveTopTab] = useState("Payroll");
   const [activeInnerTab, setActiveInnerTab] = useState("Employees");
-  const [selectedYear, setSelectedYear] = useState("2025");
+  const [selectedYear, setSelectedYear] = useState("2026");
+  const [selectedPeriod, setSelectedPeriod] = useState(null);
+  const [payrollPeriods, setPayrollPeriods] = useState([]);
+  const [periodsLoading, setPeriodsLoading] = useState(false);
+  const [finalizedPeriods, setFinalizedPeriods] = useState([]);
+  const [finalizedLoading, setFinalizedLoading] = useState(false);
   const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("All, Staff, Employee");
   const [selectedEmployee, setSelectedEmployee] = useState("");
@@ -38,8 +43,33 @@ const Payroll = () => {
 
   // Fetch payroll data on component mount or page change
   useEffect(() => {
-    fetchPayrollData();
-  }, [currentPage, pageSize, activeInnerTab, departmentId, shiftId]);
+    if (activeTopTab === "Abstract" && !selectedPeriod) return;
+    if (activeTopTab === "Payroll" || selectedPeriod) fetchPayrollData();
+  }, [currentPage, pageSize, activeInnerTab, departmentId, shiftId, selectedPeriod, activeTopTab]);
+
+  useEffect(() => {
+    if (activeTopTab !== "Abstract") return;
+    setPeriodsLoading(true);
+    getPayrollPeriods({ year: 2026 })
+      .then((response) => setPayrollPeriods(Array.isArray(response) ? response : response?.data || []))
+      .catch(() => {
+        setPayrollPeriods([]);
+        toast.error("Failed to fetch payroll periods");
+      })
+      .finally(() => setPeriodsLoading(false));
+  }, [activeTopTab]);
+
+  useEffect(() => {
+    if (activeTopTab !== "Finalized Payroll") return;
+    setFinalizedLoading(true);
+    getFinalizedPayrollPeriods({ year: selectedYear })
+      .then((response) => setFinalizedPeriods(Array.isArray(response) ? response : response?.data || []))
+      .catch(() => {
+        setFinalizedPeriods([]);
+        toast.error("Failed to fetch finalized payroll periods");
+      })
+      .finally(() => setFinalizedLoading(false));
+  }, [activeTopTab, selectedYear]);
 
   // Load dropdown data once when Payroll opens.
   useEffect(() => {
@@ -49,12 +79,20 @@ const Payroll = () => {
   const fetchPayrollData = async () => {
     setLoading(true);
     try {
+      const roleByTab = {
+        Employees: "employee",
+        Staff: "staff",
+        Staffs: "staff",
+        Contractors: "contractor",
+        Agents: "agent",
+      };
       const response = await getPayroll({
         page: currentPage,
         limit: pageSize,
-        role: activeInnerTab === "Staffs" ? "staff" : "employee",
+        role: roleByTab[activeInnerTab] || "employee",
         ...(departmentId ? { departmentId } : {}),
         ...(shiftId ? { shiftId } : {}),
+        ...(selectedPeriod ? { month: selectedPeriod.month, year: selectedPeriod.year } : {}),
       });
       console.log("Payroll data fetched:", response);
       
@@ -138,7 +176,8 @@ const Payroll = () => {
     if (queryParams.sortBy) {
       url += (url.includes('?') ? '&' : '?') + `sortBy=${queryParams.sortBy}`;
     }
-    url += (url.includes('?') ? '&' : '?') + `role=${activeInnerTab === "Staffs" ? "staff" : "employee"}`;
+    const roleByTab = { Employees: "employee", Staff: "staff", Staffs: "staff", Contractors: "contractor", Agents: "agent" };
+    url += (url.includes('?') ? '&' : '?') + `role=${roleByTab[activeInnerTab] || "employee"}`;
     
     // Add pagination
     url += (url.includes('?') ? '&' : '?') + `page=${queryParams.page || 1}&limit=${queryParams.limit || 10}`;
@@ -498,10 +537,37 @@ const Payroll = () => {
   ];
 
   const renderTopTabContent = () => {
+    if (activeTopTab === "Abstract" && !selectedPeriod) {
+      return (
+        <PeriodsContainer>
+          <PeriodsHeader>
+            <div>
+              <HeaderTitle>Payroll Periods</HeaderTitle>
+              <PeriodsSubtitle>Track live and pending payroll cycles by month.</PeriodsSubtitle>
+            </div>
+            <YearPill>2026 Payroll Timeline</YearPill>
+          </PeriodsHeader>
+          <PeriodsPanel>
+            <PeriodsPanelHeader>
+              <div><PanelTitle>Monthly Payroll Periods</PanelTitle><PeriodsSubtitle>Open a period to review payroll figures before finalisation.</PeriodsSubtitle></div>
+              <PeriodsCount>{payrollPeriods.length} payroll periods</PeriodsCount>
+            </PeriodsPanelHeader>
+            {periodsLoading ? <PlaceholderContent>Loading payroll periods...</PlaceholderContent> : payrollPeriods.map((period) => (
+              <PeriodCard key={`${period.year}-${period.month}`} onClick={() => { setSelectedPeriod(period); setCurrentPage(1); }}>
+                <PeriodIcon>{period.status === "finalized" ? "✓" : "◷"}</PeriodIcon>
+                <div><PeriodTitle>{new Date(period.year, period.month - 1).toLocaleString("en-IN", { month: "long", year: "numeric" })} <PeriodStatus $finalized={period.status === "finalized"}>{period.status === "finalized" ? "Finalized" : "Payroll Not finalised"}</PeriodStatus></PeriodTitle><PeriodDescription>Review payroll figures before sending this month to abstract and finalisation.</PeriodDescription></div>
+                <PeriodPayout><PayoutLabel>{period.payoutType === "final" ? "Final payout" : "Draft payout"}</PayoutLabel><strong>₹{Number(period.payout || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}</strong></PeriodPayout>
+              </PeriodCard>
+            ))}
+          </PeriodsPanel>
+        </PeriodsContainer>
+      );
+    }
     if (activeTopTab === "Abstract" || activeTopTab === "Payroll") {
       return (
         <>
           <PayrollControls>
+            {activeTopTab === "Abstract" && <BackToPeriods type="button" onClick={() => setSelectedPeriod(null)}>← Back to payroll periods</BackToPeriods>}
             <RoleTabs>
               {(activeTopTab === "Payroll" ? ["Employees", "Staffs"] : ["Employees", "Staff", "Contractors", "Agents"]).map((tab) => (
                 <RoleTab key={tab} $active={activeInnerTab === tab} onClick={() => setActiveInnerTab(tab)}>
@@ -544,7 +610,7 @@ const Payroll = () => {
             />
           </TableContainer>
           {activeTopTab === "Abstract" && (
-            <FinalizeRow>
+              <FinalizeRow>
               <FinalizeButton type="button">Finalize Payroll</FinalizeButton>
             </FinalizeRow>
           )}
@@ -560,6 +626,7 @@ const Payroll = () => {
                 value={selectedYear} 
                 onChange={(e) => setSelectedYear(e.target.value)}
               >
+                <option value="2026">2026</option>
                 <option value="2025">2025</option>
                 <option value="2024">2024</option>
                 <option value="2023">2023</option>
@@ -572,42 +639,48 @@ const Payroll = () => {
               />
             </HeaderControls>
           </FinalizedPayrollHeader>
-          {finalizedPayrollData.map((item, index) => (
+          {finalizedLoading ? <PlaceholderContent>Loading finalized payroll...</PlaceholderContent> : finalizedPeriods.length === 0 ? (
+            <EmptyPayrollState>No finalized payroll available for {selectedYear}.</EmptyPayrollState>
+          ) : finalizedPeriods.map((item, index) => {
+            const monthLabel = new Date(item.year, item.month - 1).toLocaleString("en-IN", { month: "long", year: "numeric" });
+            const breakdown = item.breakdown || {};
+            const formatAmount = (value) => `₹${Number(value || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
+            return (
             <PayrollCard key={index}>
               <CardTop>
                 <CardLeft>
-                  <MonthTitle>{item.month}</MonthTitle>
-                  <StatusBadge $status={item.status}>{item.status}</StatusBadge>
+                  <MonthTitle>{monthLabel}</MonthTitle>
+                  <StatusBadge $status="Completed">Completed</StatusBadge>
                 </CardLeft>
                 <CardRight>
-                  <ProcessedText>{item.processedDate}</ProcessedText>
-                  <NetPayoutText>Total Payout {item.netPayout}</NetPayoutText>
+                  <ProcessedText>Finalized on {new Date(item.finalizedAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</ProcessedText>
+                  <NetPayoutText>Total Payout {formatAmount(item.totalPayout)}</NetPayoutText>
                 </CardRight>
               </CardTop>
               <StatsRow>
                 <StatCard $highlight>
                   <StatLabel>Net Payout</StatLabel>
-                  <StatValue>{item.netPayout}</StatValue>
+                  <StatValue>{formatAmount(item.netPayout)}</StatValue>
                 </StatCard>
                 <StatCard>
-                  <StatLabel>Staffs</StatLabel>
-                  <StatValue>{item.staffs.amount}</StatValue>
-                  <StatCount>{item.staffs.count}</StatCount>
+                  <StatLabel>Staff</StatLabel>
+                  <StatValue>{formatAmount(breakdown.staff?.amount)}</StatValue>
+                  <StatCount>{breakdown.staff?.count || 0} people</StatCount>
                 </StatCard>
                 <StatCard>
                   <StatLabel>Employees</StatLabel>
-                  <StatValue>{item.employees.amount}</StatValue>
-                  <StatCount>{item.employees.count}</StatCount>
+                  <StatValue>{formatAmount(breakdown.employees?.amount)}</StatValue>
+                  <StatCount>{breakdown.employees?.count || 0} people</StatCount>
                 </StatCard>
                 <StatCard>
                   <StatLabel>Agents</StatLabel>
-                  <StatValue>{item.agents.amount}</StatValue>
-                  <StatCount>{item.agents.count}</StatCount>
+                  <StatValue>{formatAmount(breakdown.agents?.amount)}</StatValue>
+                  <StatCount>{breakdown.agents?.count || 0} people</StatCount>
                 </StatCard>
                 <StatCard>
                   <StatLabel>Contractors</StatLabel>
-                  <StatValue>{item.contractors.amount}</StatValue>
-                  <StatCount>{item.contractors.count}</StatCount>
+                  <StatValue>{formatAmount(breakdown.contractors?.amount)}</StatValue>
+                  <StatCount>{breakdown.contractors?.count || 0} people</StatCount>
                 </StatCard>
               </StatsRow>
               <CardBottom>
@@ -622,10 +695,12 @@ const Payroll = () => {
                   text="View Abstract" 
                   bg={theme.colors.primary}
                   color={theme.colors.white}
+                  onClick={() => { setSelectedPeriod({ month: item.month, year: item.year }); setActiveTopTab("Abstract"); }}
                 />
               </CardBottom>
             </PayrollCard>
-          ))}
+            );
+          })}
         </FinalizedPayrollContainer>
       );
     }
@@ -642,7 +717,7 @@ const Payroll = () => {
         </TopTab>
         <TopTab 
           $active={activeTopTab === "Abstract"}
-          onClick={() => setActiveTopTab("Abstract")}
+          onClick={() => { setActiveTopTab("Abstract"); setSelectedPeriod(null); }}
         >
           Abstract
         </TopTab>
@@ -916,6 +991,134 @@ const PlaceholderContent = styled.div`
 
 const FinalizedPayrollContainer = styled.div`
   width: 100%;
+`;
+
+const EmptyPayrollState = styled.div`
+  background: ${theme.colors.white};
+  border: 1px solid ${theme.colors.border};
+  border-radius: 12px;
+  padding: 3rem 1rem;
+  text-align: center;
+  color: ${theme.colors.secondaryText};
+  font-size: 0.875rem;
+`;
+
+const PeriodsContainer = styled.div`
+  background: ${theme.colors.white};
+  border-radius: 12px;
+  padding: 2rem;
+  min-height: 520px;
+`;
+
+const PeriodsHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+`;
+
+const PeriodsSubtitle = styled.p`
+  margin: 0.25rem 0 0;
+  color: ${theme.colors.secondaryText};
+  font-size: 0.8125rem;
+`;
+
+const YearPill = styled.div`
+  border: 1px solid ${theme.colors.border};
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  color: ${theme.colors.secondaryText};
+  font-size: 0.8125rem;
+`;
+
+const PeriodsPanel = styled.div`
+  border: 1px solid ${theme.colors.border};
+  border-radius: 10px;
+  padding: 1rem;
+`;
+
+const PeriodsPanelHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  padding: 0 0.25rem 1rem;
+  border-bottom: 1px solid ${theme.colors.border};
+`;
+
+const PanelTitle = styled.h3`
+  margin: 0;
+  font-size: 0.875rem;
+`;
+
+const PeriodsCount = styled.span`
+  color: ${theme.colors.secondaryText};
+  font-size: 0.8125rem;
+`;
+
+const PeriodCard = styled.button`
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  text-align: left;
+  margin-top: 0.75rem;
+  padding: 1rem;
+  border: 1px solid ${theme.colors.border};
+  border-radius: 10px;
+  background: ${theme.colors.white};
+  cursor: pointer;
+  &:hover { border-color: ${theme.colors.primary}; background: #f4fbfc; }
+`;
+
+const PeriodIcon = styled.span`
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  background: #f1f3f4;
+  color: ${theme.colors.primary};
+  font-size: 1.1rem;
+`;
+
+const PeriodTitle = styled.div`
+  font-weight: 600;
+  font-size: 0.875rem;
+`;
+
+const PeriodStatus = styled.span`
+  margin-left: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 5px;
+  font-size: 0.6875rem;
+  color: ${theme.colors.white};
+  background: ${(props) => props.$finalized ? "#16808b" : "#16808b"};
+`;
+
+const PeriodDescription = styled.p`
+  margin: 0.3rem 0 0;
+  color: ${theme.colors.secondaryText};
+  font-size: 0.75rem;
+`;
+
+const PeriodPayout = styled.div`
+  margin-left: auto;
+  text-align: right;
+  min-width: 130px;
+  strong { display: block; font-size: 0.875rem; }
+`;
+
+const PayoutLabel = styled.span`
+  color: ${theme.colors.secondaryText};
+  font-size: 0.75rem;
+`;
+
+const BackToPeriods = styled.button`
+  align-self: flex-start;
+  border: 0;
+  background: transparent;
+  color: ${theme.colors.primary};
+  font-weight: 600;
+  cursor: pointer;
 `;
 
 const FinalizedPayrollHeader = styled.div`

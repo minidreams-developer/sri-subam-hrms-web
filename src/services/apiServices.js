@@ -268,6 +268,8 @@ export const deleteRoster = (id) => data(api.delete(`/v1/roster/${id}`));
 
 // Payroll, paysheets, and adjustments
 export const getPayroll = (params) => list("/v1/payroll", params);
+export const getPayrollPeriods = (params) => list("/v1/payroll/periods", params);
+export const getFinalizedPayrollPeriods = (params) => list("/v1/payroll/periods/finalized", params);
 
 export const createPayroll = (payload) =>
   data(api.post("/v1/payroll", payload));
