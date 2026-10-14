@@ -268,6 +268,14 @@ export const deleteRoster = (id) => data(api.delete(`/v1/roster/${id}`));
 
 // Payroll, paysheets, and adjustments
 export const getPayroll = (params) => list("/v1/payroll", params);
+export const getPayrollPayslipOptions = (params) =>
+  list("/v1/payroll/payslips/options", params);
+export const getPayrollPayslip = (payrollId) =>
+  data(api.get(`/v1/payroll/${encodeURIComponent(payrollId)}/payslip`));
+export const downloadPayrollPayslip = (payrollId, format) =>
+  data(api.get(`/v1/payroll/${encodeURIComponent(payrollId)}/payslip/${format}`, {
+    responseType: "blob",
+  }));
 export const getPayrollPeriods = (params) => list("/v1/payroll/periods", params);
 export const getFinalizedPayrollPeriods = (params) => list("/v1/payroll/periods/finalized", params);
 
@@ -275,10 +283,16 @@ export const createPayroll = (payload) =>
   data(api.post("/v1/payroll", payload));
 
 export const getStoppedPayroll = (params) =>
-  list("/v1/payroll/stopped", params);
+  list("/v1/payroll/stop/list", params);
+
+export const getStoppedPayrollQuickStats = (params) =>
+  list("/v1/payroll/stop/quick-stats", params);
 
 export const stopPayroll = (employeeId, payload) =>
   data(api.post(`/v1/payroll/${employeeId}/stop`, payload));
+
+export const getPaysheetDashboard = (params) =>
+  list("/v1/paysheets/dashboard", params);
 
 export const getPaysheetQuickStats = (params) =>
   list("/v1/paysheets/quick-stats", params);
@@ -289,7 +303,16 @@ export const getPaysheetOverview = (params) =>
 export const getPaysheetBreakdown = (params) =>
   list("/v1/paysheets/payroll-breakdown", params);
 
+export const getPaysheetAttendanceOverview = (params) =>
+  list("/v1/paysheets/attendance-overview", params);
+
 export const getPaysheets = (params) => list("/v1/paysheets/list", params);
+
+export const getPaysheetDetail = (payrollId) =>
+  data(api.get(`/v1/paysheets/${payrollId}/detail`));
+
+export const updatePaysheetStatus = (payrollId, payload) =>
+  data(api.patch(`/v1/paysheets/${payrollId}/status`, payload));
 
 export const getAdjustments = (params) => list("/v1/adjustments", params);
 

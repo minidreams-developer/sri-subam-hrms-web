@@ -2,15 +2,19 @@ import { useState, useRef, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import styled from "styled-components";
 import theme from "../../theme/theme";
+import { downloadPayrollPayslip, getPayrollPayslip } from "../../services/apiServices";
 
 const Payslip = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [showDropdown, setShowDropdown] = useState(false);
+  const [apiPayslipData, setApiPayslipData] = useState(null);
+  const [loading, setLoading] = useState(Boolean(location.state?.payrollId));
+  const [loadError, setLoadError] = useState("");
   const dropdownRef = useRef(null);
   
   // Get data from location state (or use default sample data)
-  const payslipData = location.state || {
+  const fallbackPayslipData = {
     employeeName: "Sangeetha",
     employeeId: "EMP001",
     department: "IT",
@@ -40,6 +44,74 @@ const Payslip = () => {
     ],
   };
 
+  useEffect(() => {
+    const payrollId = location.state?.payrollId;
+    if (!payrollId) return;
+
+    setLoading(true);
+    getPayrollPayslip(payrollId)
+      .then((response) => setApiPayslipData(response?.data || response?.result || response))
+      .catch(() => setLoadError("Failed to load payslip details."))
+      .finally(() => setLoading(false));
+  }, [location.state?.payrollId]);
+
+  const apiData = apiPayslipData || {};
+  const source = apiData.payroll || apiData.payslip || apiData;
+  const employeeDetails = source.employeeDetails || {};
+  const workInformation = employeeDetails.workInformation || {};
+  const bankDetails = workInformation.bankDetails?.[0] || {};
+  const address = employeeDetails.address?.[0] || {};
+  const attendance = source.attendance || {};
+  const asAmount = (value) => {
+    if (typeof value === "number") return `₹${value.toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
+    return value == null || value === "" ? "₹0.00" : String(value).includes("₹") ? String(value) : `₹${value}`;
+  };
+  const listItems = (value) => {
+    if (Array.isArray(value)) {
+      return value.map((item) => ({
+        label: item.label || item.name || item.title,
+        amount: asAmount(item.amount ?? item.value ?? item.total),
+      }));
+    }
+    if (value && typeof value === "object") {
+      return Object.entries(value)
+        .filter(([, amount]) => amount !== null && amount !== undefined)
+        .map(([label, amount]) => ({
+          label: label.replace(/([A-Z])/g, " $1").replace(/^./, (letter) => letter.toUpperCase()),
+          amount: asAmount(amount),
+        }));
+    }
+    return [];
+  };
+  const payslipData = apiPayslipData ? {
+    employeeName: source.employeeName || source.employee?.name || source.name,
+    employeeId: source.employeeId || source.employee?.employeeId || source.employee?.employeeCode,
+    department: source.department?.name || source.department || source.employee?.department,
+    state: source.state || address.state,
+    dateOfJoining: source.dateOfJoining || source.date_of_joining || workInformation.joinedDate,
+    pfNo: source.pfNo || source.pfNumber || source.pf_no || bankDetails.esiAndPf?.pfNumber,
+    esiNo: source.esiNo || source.esiNumber || source.esi_no || bankDetails.esiAndPf?.esiNumber,
+    designation: source.designation?.name || source.designation || source.employee?.designation,
+    uanNumber: source.uanNumber || source.uan_number,
+    workingDays: source.workingDays || source.working_days || attendance.fullDays,
+    status: source.status,
+    processedAt: source.processedAt,
+    paidAt: source.paidAt,
+    fullDays: attendance.fullDays,
+    halfDays: attendance.halfDays,
+    absentDays: attendance.absentDays,
+    paidLeaves: attendance.paidLeaves,
+    unpaidLeaves: attendance.unpaidLeaves,
+    overtimeHours: attendance.overtimeHours,
+    location: workInformation.location || address.city,
+    monthYear: source.monthYear || source.month_year || source.payrollMonth
+      || (source.month && source.year ? `${source.month}/${source.year}` : ""),
+    netPayable: asAmount(source.netPayable ?? source.net_payable ?? source.takeHome ?? source.netTakeHome),
+    netPayableWords: source.netPayableWords || source.net_payable_words,
+    earnings: listItems(source.earnings || source.earningDetails),
+    deductions: listItems(source.deductions || source.deductionDetails),
+  } : (location.state || fallbackPayslipData);
+
   const totalEarnings = payslipData.earnings.reduce((sum, item) => {
     // Remove ₹ and commas, then parse as number
     const amount = parseFloat(item.amount.replace(/₹|,/g, ""));
@@ -61,12 +133,27 @@ const Payslip = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleDownload = (type) => {
-    // Placeholder for actual download logic
-    if (type === "sheet") {
-      alert("Downloading Payslip Sheet...");
-    } else if (type === "pdf") {
-      alert("Downloading Payslip PDF...");
+  if (loading) return <StatusMessage>Loading payslip...</StatusMessage>;
+  if (loadError) return <StatusMessage>{loadError}</StatusMessage>;
+
+  const handleDownload = async (type) => {
+    const payrollId = location.state?.payrollId;
+    if (!payrollId) return;
+
+    try {
+      const format = type === "sheet" ? "csv" : "pdf";
+      const blob = await downloadPayrollPayslip(payrollId, format);
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `payslip-${payslipData.employeeId || payrollId}.${format}`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error(`Failed to download payslip ${type}:`, error);
+      alert(`Failed to download payslip ${type === "sheet" ? "CSV" : "PDF"}.`);
     }
     setShowDropdown(false);
   };
@@ -152,6 +239,41 @@ const Payslip = () => {
           </EmployeeInfoColumn>
         </PayslipEmployeeInfo>
 
+        <PayslipAdditionalInfo>
+          <AdditionalInfoItem>
+            <InfoLabel>Payroll Status</InfoLabel>
+            <InfoValue>{payslipData.status || "-"}</InfoValue>
+          </AdditionalInfoItem>
+          <AdditionalInfoItem>
+            <InfoLabel>Full Days</InfoLabel>
+            <InfoValue>{payslipData.fullDays ?? "-"}</InfoValue>
+          </AdditionalInfoItem>
+          <AdditionalInfoItem>
+            <InfoLabel>Half Days</InfoLabel>
+            <InfoValue>{payslipData.halfDays ?? "-"}</InfoValue>
+          </AdditionalInfoItem>
+          <AdditionalInfoItem>
+            <InfoLabel>Absent Days</InfoLabel>
+            <InfoValue>{payslipData.absentDays ?? "-"}</InfoValue>
+          </AdditionalInfoItem>
+          <AdditionalInfoItem>
+            <InfoLabel>Paid Leaves</InfoLabel>
+            <InfoValue>{payslipData.paidLeaves ?? "-"}</InfoValue>
+          </AdditionalInfoItem>
+          <AdditionalInfoItem>
+            <InfoLabel>Unpaid Leaves</InfoLabel>
+            <InfoValue>{payslipData.unpaidLeaves ?? "-"}</InfoValue>
+          </AdditionalInfoItem>
+          <AdditionalInfoItem>
+            <InfoLabel>Overtime Hours</InfoLabel>
+            <InfoValue>{payslipData.overtimeHours ?? "-"}</InfoValue>
+          </AdditionalInfoItem>
+          <AdditionalInfoItem>
+            <InfoLabel>Location</InfoLabel>
+            <InfoValue>{payslipData.location || "-"}</InfoValue>
+          </AdditionalInfoItem>
+        </PayslipAdditionalInfo>
+
         <PayslipEarningsDeductions>
           <EarningsSection>
             <SectionTitle>EARNINGS</SectionTitle>
@@ -208,6 +330,12 @@ export default Payslip;
 const Container = styled.div`
   width: 100%;
   padding: 2rem;
+`;
+
+const StatusMessage = styled.div`
+  padding: 3rem;
+  text-align: center;
+  color: ${theme.colors.text || "#17313a"};
 `;
 
 const PayslipContainer = styled.div`
@@ -335,6 +463,22 @@ const PayslipEmployeeInfo = styled.div`
   grid-template-columns: repeat(4, 1fr);
   gap: 1.5rem;
   margin-bottom: 2rem;
+`;
+
+const PayslipAdditionalInfo = styled.div`
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem 1.5rem;
+  padding: 1rem 0;
+  margin-bottom: 1.5rem;
+  border-top: 1px solid #e5e7eb;
+  border-bottom: 1px solid #e5e7eb;
+`;
+
+const AdditionalInfoItem = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
 `;
 
 const EmployeeInfoColumn = styled.div`

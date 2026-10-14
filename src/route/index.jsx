@@ -215,6 +215,10 @@ const privateRoutes = [
         element: <Paysheet />,
       },
       {
+        path: "pay-hub/paySheet",
+        element: <Paysheet />,
+      },
+      {
         path: "pay-hub/stopPayroll",
         element: <StopPayroll />,
       },

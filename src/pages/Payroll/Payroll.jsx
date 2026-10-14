@@ -7,7 +7,7 @@ import TableToolbar from "../../components/TableToolbar";
 import DotIcon from "../../assets/images/Overtime/actionDot.svg";
 import Button from "../../components/Button";
 import Filter from "../../components/filter";
-import { getDepartments, getFinalizedPayrollPeriods, getPayroll, getPayrollPeriods, getShifts } from "../../services/apiServices";
+import { getDepartments, getFinalizedPayrollPeriods, getPayroll, getPayrollPeriods, getShifts, getPayrollPayslipOptions } from "../../services/apiServices";
 import { toast } from "react-toastify";
 
 const Payroll = () => {
@@ -26,8 +26,11 @@ const Payroll = () => {
   const [finalizedPeriods, setFinalizedPeriods] = useState([]);
   const [finalizedLoading, setFinalizedLoading] = useState(false);
   const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState("All, Staff, Employee");
+  const [selectedCategory, setSelectedCategory] = useState("All");
   const [selectedEmployee, setSelectedEmployee] = useState("");
+  const [dropdownUsers, setDropdownUsers] = useState([]);
+  const [dropdownUsersLoading, setDropdownUsersLoading] = useState(false);
+  const [downloadPeriod, setDownloadPeriod] = useState({ year: 2026, month: 10 });
   const [showFilter, setShowFilter] = useState(false);
   const [appliedFilters, setAppliedFilters] = useState(null);
   const [payrollData, setPayrollData] = useState([]);
@@ -76,6 +79,26 @@ const Payroll = () => {
     fetchDepartmentsAndShifts();
   }, []);
 
+  useEffect(() => {
+    if (!isDownloadModalOpen) return;
+
+    setDropdownUsersLoading(true);
+    setSelectedEmployee("");
+    getPayrollPayslipOptions({
+      year: downloadPeriod.year,
+      month: downloadPeriod.month,
+      category: selectedCategory.toLowerCase(),
+    })
+      .then((response) => setDropdownUsers(
+        Array.isArray(response) ? response : response?.data || response?.results || [],
+      ))
+      .catch(() => {
+        setDropdownUsers([]);
+        toast.error("Failed to load employee names");
+      })
+      .finally(() => setDropdownUsersLoading(false));
+  }, [isDownloadModalOpen, selectedCategory, downloadPeriod]);
+
   const fetchPayrollData = async () => {
     setLoading(true);
     try {
@@ -111,6 +134,7 @@ const Payroll = () => {
       
       // Transform API data to match table format
       const transformedData = records.map((item) => ({
+        payrollId: item.payrollId || item._id || item.id,
         employeeId: item.employeeId,
         name: item.name,
         designation: item.designation,
@@ -278,6 +302,7 @@ const Payroll = () => {
       
       // Transform API data to match table format
       const transformedData = records.map((item) => ({
+        payrollId: item.payrollId || item._id || item.id,
         employeeId: item.employeeId,
         name: item.name,
         designation: item.designation,
@@ -689,7 +714,10 @@ const Payroll = () => {
                   bg={theme.colors.white}
                   color={theme.colors.primary}
                   border={`1px solid ${theme.colors.border}`}
-                  onClick={() => setIsDownloadModalOpen(true)}
+                  onClick={() => {
+                    setDownloadPeriod({ year: item.year, month: item.month });
+                    setIsDownloadModalOpen(true);
+                  }}
                 />
                 <Button 
                   text="View Abstract" 
@@ -750,24 +778,29 @@ const Payroll = () => {
               <FormField>
                 <FieldLabel>Category</FieldLabel>
                 <FormSelect 
-                  value={selectedCategory} 
+                  value={selectedCategory}
                   onChange={(e) => setSelectedCategory(e.target.value)}
                 >
-                  <option value="All, Staff, Employee">All, Staff, Employee</option>
                   <option value="All">All</option>
                   <option value="Staff">Staff</option>
                   <option value="Employee">Employee</option>
+                  <option value="Agent">Agent</option>
+                  <option value="Contractor">Contractor</option>
                 </FormSelect>
               </FormField>
               <FormField>
                 <FieldLabel>Name</FieldLabel>
                 <FormSelect 
-                  value={selectedEmployee} 
+                  value={selectedEmployee}
                   onChange={(e) => setSelectedEmployee(e.target.value)}
                 >
                   <option value="">Select employee name</option>
-                  {payrollData.map((emp) => (
-                    <option key={emp.employeeId} value={emp.employeeId}>{emp.name}</option>
+                  {dropdownUsersLoading ? (
+                    <option value="" disabled>Loading names...</option>
+                  ) : dropdownUsers.map((user) => (
+                    <option key={user.payrollId} value={user.payrollId}>
+                      {user.name}{user.employeeId ? ` (${user.employeeId})` : ""}
+                    </option>
                   ))}
                 </FormSelect>
               </FormField>
@@ -784,14 +817,18 @@ const Payroll = () => {
             <ModalFooter>
               <ModalCloseButton onClick={() => setIsDownloadModalOpen(false)}>×</ModalCloseButton>
               <ModalViewButton onClick={() => {
+                const employee = dropdownUsers.find((user) => user.payrollId === selectedEmployee);
+                if (!employee?.payrollId) {
+                  toast.error("Please select an employee");
+                  return;
+                }
                 setIsDownloadModalOpen(false);
-                // Find the selected employee from the payrollData array
-                const employee = payrollData.find(emp => emp.employeeId === selectedEmployee);
                 // Navigate to payslip page with state
                 navigate("/admin/pay-hub/payslip", {
                   state: {
+                    payrollId: employee.payrollId,
                     employeeName: employee ? employee.name : "Sangeetha",
-                    employeeId: selectedEmployee || "EMP001",
+                    employeeId: employee?.employeeId || selectedEmployee || "EMP001",
                     department: employee ? employee.department : "IT",
                     state: "Tamil Nadu",
                     dateOfJoining: "10 Apr 2021",

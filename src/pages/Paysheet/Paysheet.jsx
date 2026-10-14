@@ -30,30 +30,45 @@ const Paysheet = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
+  const unwrap = (response) => response?.data || response;
+  const getRows = (response) => {
+    const payload = unwrap(response);
+    return payload?.results || payload?.items || payload?.paysheets || (Array.isArray(payload) ? payload : []);
+  };
+
   // Get current month and year for API
   const getCurrentMonth = () => new Date().getMonth() + 1;
   const getCurrentYear = () => new Date().getFullYear();
 
   useEffect(() => {
     fetchPaysheetData();
-  }, [currentPage]);
+  }, [currentPage, selectedMonth, selectedPayrollMonth, searchQuery, appliedFilters]);
+
+  useEffect(() => {
+    const year = selectedYear === "Last Year" ? getCurrentYear() - 1 : getCurrentYear();
+    getPaysheetOverview({ year })
+      .then((response) => setPayrollOverviewData(unwrap(response)))
+      .catch((error) => console.error("Error fetching payroll overview:", error));
+  }, [selectedYear]);
 
   const fetchPaysheetData = async () => {
     setLoading(true);
     try {
       const month = getCurrentMonth();
       const year = getCurrentYear();
+      const listParams = {
+        month,
+        year,
+        page: currentPage,
+        limit: 10,
+        ...(searchQuery ? { search: searchQuery } : {}),
+        ...(appliedFilters || {}),
+      };
 
       // Fetch quick stats
       const quickStats = await getPaysheetQuickStats({ month, year });
       if (quickStats) {
         setQuickStatsData(quickStats.quickStats);
-      }
-
-      // Fetch payroll overview
-      const payrollOverview = await getPaysheetOverview({ year });
-      if (payrollOverview) {
-        setPayrollOverviewData(payrollOverview);
       }
 
       // Fetch payroll breakdown
@@ -63,10 +78,11 @@ const Paysheet = () => {
       }
 
       // Fetch payroll list
-      const payrollList = await getPaysheets({ month, year, page: currentPage, limit: 10 });
+      const payrollList = await getPaysheets(listParams);
       if (payrollList) {
-        setPayrollListData(payrollList.results || []);
-        setTotalPages(payrollList.totalPages || 1);
+        const payload = unwrap(payrollList);
+        setPayrollListData(getRows(payrollList));
+        setTotalPages(payload.totalPages || payload.pagination?.totalPages || Math.ceil((payload.total || payload.pagination?.total || 0) / 10) || 1);
       }
     } catch (error) {
       console.error("Error fetching paysheet data:", error);
@@ -78,51 +94,24 @@ const Paysheet = () => {
 
   const handleFilterApply = (queryParams) => {
     console.log("Applied filter query params:", queryParams);
-    // Build the API URL with query parameters (per user-filters.md spec)
-    const params = { month: getCurrentMonth(), year: getCurrentYear(), ...queryParams, page: queryParams.page || 1, limit: queryParams.limit || 10 };
-    
     setAppliedFilters(queryParams);
     setShowFilter(false);
     setCurrentPage(1);
-    
-    // Fetch filtered payroll list data
-    fetchPayrollListWithFilters(params);
   };
 
-  const fetchPayrollListWithFilters = async (params) => {
-    setLoading(true);
-    try {
-      const payrollList = await getPaysheets(params);
-      console.log("Filtered payroll list data:", payrollList);
-      if (payrollList) {
-        setPayrollListData(payrollList.results || []);
-        setTotalPages(payrollList.totalPages || 1);
-      }
-    } catch (error) {
-      console.error("Error fetching filtered payroll list:", error);
-      toast.error("Failed to fetch payroll data with filters");
-      setPayrollListData([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Handle month dropdown changes - these only update UI, not API calls
   const handleMonthChange = (value) => {
     setSelectedMonth(value);
-    // No API call here - just UI update
+    setCurrentPage(1);
   };
 
-  // Handle year dropdown changes - these only update UI, not API calls
   const handleYearChange = (value) => {
     setSelectedYear(value);
-    // No API call here - just UI update
+    setCurrentPage(1);
   };
 
-  // Handle payroll month dropdown changes - these only update UI, not API calls
   const handlePayrollMonthChange = (value) => {
     setSelectedPayrollMonth(value);
-    // No API call here - just UI update
+    setCurrentPage(1);
   };
 
   const handleAddPayrollSubmit = (payrollData) => {
@@ -233,6 +222,15 @@ const Paysheet = () => {
     { month: "Jun", salary: 0, overtime: 0, incentives: 0 },
     { month: "Jul", salary: 0, overtime: 0, incentives: 0 },
   ];
+  const chartMax = Math.max(
+    ...chartMonths.map((item) =>
+      Math.max(item.salary || 0, item.overtime || 0, item.incentives || 0),
+    ),
+    1,
+  );
+  const chartAxisValues = [1, 0.75, 0.5, 0.25, 0].map((ratio) =>
+    `₹ ${Math.round((chartMax * ratio) / 1000).toLocaleString('en-IN')}K`,
+  );
 
   const totalPayThisMonth = payrollBreakdownData?.totalPayThisMonth || 0;
 
@@ -370,26 +368,25 @@ const Paysheet = () => {
           <ChartPlaceholder>
             {/* Bar chart with Y-axis */}
             <YAxisLabels>
-              <YAxisLabel>₹ 800K</YAxisLabel>
-              <YAxisLabel>₹ 600K</YAxisLabel>
-              <YAxisLabel>₹ 400K</YAxisLabel>
-              <YAxisLabel>₹ 200K</YAxisLabel>
-              <YAxisLabel>₹ 0</YAxisLabel>
+              {chartAxisValues.map((label) => <YAxisLabel key={label}>{label}</YAxisLabel>)}
             </YAxisLabels>
             <BarChartContainer>
-              {chartMonths.slice(0, 7).map((item, idx) => (
+              {chartMonths.map((item) => (
                 <BarGroup key={item.month}>
                   <BarStack>
-                    <Bar 
-                      $height={Math.min((item.incentives / 100000) * 100, 100)} 
+                    <ChartBar
+                      $tooltip={`${item.month} Incentives: ₹${(item.incentives || 0).toLocaleString('en-IN')}`}
+                      $height={((item.incentives || 0) / chartMax) * 100}
                       $color="#E0E3E6" 
                     />
-                    <Bar 
-                      $height={Math.min((item.salary / 2000000) * 100, 100)} 
+                    <ChartBar
+                      $tooltip={`${item.month} Salary: ₹${(item.salary || 0).toLocaleString('en-IN')}`}
+                      $height={((item.salary || 0) / chartMax) * 100}
                       $color="#0B7A75" 
                     />
-                    <Bar 
-                      $height={Math.min((item.overtime / 100000) * 100, 100)} 
+                    <ChartBar
+                      $tooltip={`${item.month} Overtime: ₹${(item.overtime || 0).toLocaleString('en-IN')}`}
+                      $height={((item.overtime || 0) / chartMax) * 100}
                       $color="#FDB750" 
                     />
                   </BarStack>
@@ -736,8 +733,9 @@ const BarChartContainer = styled.div`
   justify-content: space-around;
   flex: 1;
   height: 100%;
-  gap: 1rem;
+  gap: 0.25rem;
   padding: 1rem 0;
+  min-width: 0;
 `;
 
 const BarGroup = styled.div`
@@ -746,6 +744,7 @@ const BarGroup = styled.div`
   align-items: center;
   gap: 0.5rem;
   flex: 1;
+  min-width: 0;
 `;
 
 const BarStack = styled.div`
@@ -757,11 +756,28 @@ const BarStack = styled.div`
   width: 100%;
 `;
 
-const Bar = styled.div`
-  width: 20px;
+const ChartBar = styled.div`
+  position: relative;
+  width: clamp(6px, 1.2vw, 14px);
   height: ${(props) => props.$height}%;
   background: ${(props) => props.$color};
   border-radius: 4px 4px 0 0;
+
+  &:hover::after {
+    content: "${(props) => props.$tooltip}";
+    position: absolute;
+    left: 50%;
+    bottom: calc(100% + 8px);
+    transform: translateX(-50%);
+    z-index: 5;
+    white-space: nowrap;
+    padding: 6px 8px;
+    border-radius: 5px;
+    background: #1f2937;
+    color: #fff;
+    font-size: 11px;
+    pointer-events: none;
+  }
 `;
 
 const BarLabel = styled.span`

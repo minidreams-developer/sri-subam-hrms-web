@@ -14,15 +14,15 @@ import DetailsSidebar from "../../components/DetailsSidebar";
 import CardDetails from "../../components/CardDetails";
 import EditIcon from "../../assets/images/employee/editIcon.svg";
 import Filter from "../../components/filter";
-import { getDepartments, getShifts, getStoppedPayroll } from "../../services/apiServices";
+import { getDepartments, getShifts, getStoppedPayroll, getStoppedPayrollQuickStats } from "../../services/apiServices";
 import { toast } from "react-toastify";
 import {
   employeeStopPayroll,
   staffColumnStopPayroll,
-  offboardingStaffData,
 } from "../../utils/data";
 
-const fallbackStoppedPayroll = [
+const fallbackStoppedPayroll = [];
+/*
   ["Manoj Kumar", "Addition", "Resigned", "-", "Approved"],
   ["Cristofer Dias", "Addition", "Tax Issues", "-", "Stopped"],
   ["Hanna Lipshutz", "Deduction", "Advance", "-", "Stopped"],
@@ -51,6 +51,7 @@ const fallbackStoppedPayroll = [
   remarks: "Policy Issues",
   action: "•••",
 }));
+*/
 
 const formatDate = (value) => value
   ? new Date(value).toLocaleDateString("en-GB").replaceAll("/", "-")
@@ -71,6 +72,7 @@ const StopPayroll = () => {
   const [showFilter, setShowFilter] = useState(false);
   const [appliedFilters, setAppliedFilters] = useState(null);
   const [stoppedPayrollData, setStoppedPayrollData] = useState([]);
+  const [quickStatsData, setQuickStatsData] = useState({});
   const [loading, setLoading] = useState(false);
   const [departmentOptions, setDepartmentOptions] = useState([]);
   const [shiftOptions, setShiftOptions] = useState([]);
@@ -80,13 +82,25 @@ const StopPayroll = () => {
   // Fetch stopped payroll data on component mount
   useEffect(() => {
     fetchStoppedPayrollData();
+    fetchStoppedPayrollQuickStats();
     fetchDepartmentsAndShifts();
-  }, []);
+  }, [activeTab]);
+
+  const fetchStoppedPayrollQuickStats = async () => {
+    try {
+      const response = await getStoppedPayrollQuickStats();
+      setQuickStatsData(response?.data || response || {});
+    } catch (error) {
+      console.error("Error fetching stopped payroll quick stats:", error);
+    }
+  };
 
   const fetchStoppedPayrollData = async () => {
     setLoading(true);
     try {
-      const response = await getStoppedPayroll();
+      const response = await getStoppedPayroll({
+        role: activeTab === "Employee" ? "employee" : "staff",
+      });
       console.log("Stopped Payroll data:", response);
       
       let data = [];
@@ -102,42 +116,44 @@ const StopPayroll = () => {
         const empData = typeof item.employeeId === 'object' ? item.employeeId : {};
         
         return {
-          _id: item._id,
+          _id: item.payrollId || item._id,
           employee: {
-            name: empData?.name || "N/A",
-            id: empData?._id || "",
-            role: empData?.workInformation?.designation || "Employee",
-            profileImage: empData?.profilePic || null,
+            name: item.name || empData?.name || "N/A",
+            id: item.employeeId || empData?._id || "",
+            role: item.role || empData?.workInformation?.designation || "Employee",
+            profileImage: item.profilePic || empData?.profilePic || null,
           },
-          employeeId: empData?.employeeId || "N/A",
-          designation: empData?.workInformation?.designation || "N/A",
+          employeeId: item.employeeCode || empData?.employeeId || "N/A",
+          role: item.role || empData?.role || "employee",
+          shift: item.shift || empData?.shift || null,
+          designation: item.role || empData?.workInformation?.designation || "N/A",
           currentSalary: item.currentSalary || empData?.salary || "N/A",
           payCycle: item.payCycle || "Monthly",
-          department: empData?.department || "N/A",
+          department: item.department || empData?.department || "N/A",
           month: item.month,
           year: item.year,
           status: item.status,
-          stopType: item.stopDetails?.stopType || "N/A",
-          reason: item.stopDetails?.reason || "N/A",
-          effectiveFrom: item.stopDetails?.effectiveFrom,
-          resumeOn: item.stopDetails?.resumeOn,
+          stopType: item.stopType || item.stopDetails?.stopType || "N/A",
+          reason: item.reason || item.stopDetails?.reason || "N/A",
+          effectiveFrom: item.from || item.stopDetails?.effectiveFrom,
+          resumeOn: item.resumeOn || item.stopDetails?.resumeOn,
           impactMonth: item.stopDetails?.impactMonth || "N/A",
           remarks: item.stopDetails?.stopRemarks || "N/A",
-          stoppedAt: item.stopDetails?.stoppedAt,
-          resumedAt: item.stopDetails?.resumedAt,
-          exitType: item.stopDetails?.reason || "N/A",
-          lwd: formatDate(item.stopDetails?.effectiveFrom),
-          fnf: formatDate(item.stopDetails?.resumeOn),
+          stoppedAt: item.stoppedAt || item.stopDetails?.stoppedAt,
+          resumedAt: item.resumedAt || item.stopDetails?.resumedAt,
+          exitType: item.reason || item.stopDetails?.reason || "N/A",
+          lwd: formatDate(item.from || item.stopDetails?.effectiveFrom),
+          fnf: formatDate(item.resumeOn || item.stopDetails?.resumeOn),
           assets: item.amount ? `₹${Number(item.amount).toLocaleString("en-IN")}` : "₹42,853",
           action: "•••",
         };
       });
 
-      setStoppedPayrollData(transformedData.length ? transformedData : fallbackStoppedPayroll);
+      setStoppedPayrollData(transformedData);
     } catch (error) {
       console.error("Error fetching stopped payroll data:", error);
       toast.error("Failed to fetch stopped payroll data");
-      setStoppedPayrollData(fallbackStoppedPayroll);
+      setStoppedPayrollData([]);
     } finally {
       setLoading(false);
     }
@@ -200,11 +216,12 @@ const StopPayroll = () => {
     }
   };
 
+  const formatAmount = (value) => `₹${Number(value || 0).toLocaleString("en-IN")}`;
   const quickStats = [
-    { label: "Stopped Payrolls", value: stoppedPayrollData.length.toString(), percentage: "20.5 %", isPositive: true },
-    { label: "Released Payrolls", value: "20", percentage: "20.5 %", isPositive: true },
-    { label: "Pending Amount", value: "₹20,20,000", percentage: "20.5 %", isPositive: true },
-    { label: "Released Amounts", value: "₹20,20,000", percentage: "12 %", isPositive: false },
+    { label: "Stopped Payrolls", value: String(quickStatsData.stoppedPayrolls ?? 0), percentage: "", isPositive: true },
+    { label: "Released Payrolls", value: String(quickStatsData.releasedPayrolls ?? 0), percentage: "", isPositive: true },
+    { label: "Pending Amount", value: formatAmount(quickStatsData.pendingAmount), percentage: "", isPositive: true },
+    { label: "Released Amounts", value: formatAmount(quickStatsData.releasedAmount), percentage: "", isPositive: false },
   ];
 
    const handleRowClick = (row) => {
@@ -226,12 +243,12 @@ const StopPayroll = () => {
       return m1 && m2 && m3;
     });
   
-    const filteredStaffData = offboardingStaffData.filter((row) => {
+    const filteredStaffData = stoppedPayrollData.filter((row) => {
       const m1 = staffRole === "All Roles" || row.role === staffRole;
       const m2 = staffShift === "All Shifts" || row.shift === staffShift;
       const m3 =
         !staffSearch ||
-        row.staff.name.toLowerCase().includes(staffSearch.toLowerCase());
+        row.employee.name.toLowerCase().includes(staffSearch.toLowerCase());
       return m1 && m2 && m3;
     });
 
@@ -264,12 +281,12 @@ const StopPayroll = () => {
             render: (row) => (
               <EmployeeCell>
                 <EmployeeAvatar
-                  src={row.staff.profileImage || ProfileImage}
-                  alt={row.staff.name}
+                  src={row.employee.profileImage || ProfileImage}
+                  alt={row.employee.name}
                 />
                 <EmployeeInfo>
-                  <EmployeeName>{row.staff.name}</EmployeeName>
-                  <EmployeeRole>{row.staff.role}</EmployeeRole>
+                <EmployeeName>{row.employee.name}</EmployeeName>
+                <EmployeeRole>{row.employee.role}</EmployeeRole>
                 </EmployeeInfo>
               </EmployeeCell>
             ),
@@ -300,15 +317,17 @@ const StopPayroll = () => {
             <StatCard key={index}>
               <StatHeader>
                 <StatLabel>{stat.label}</StatLabel>
-                <PercentageBadge $isPositive={stat.isPositive}>
-                  {stat.percentage}
-                  <img
-                    src={stat.isPositive ? GreenArrow : RedArrow}
-                    alt="trend"
-                    width="12"
-                    height="12"
-                  />
-                </PercentageBadge>
+                {stat.percentage && (
+                  <PercentageBadge $isPositive={stat.isPositive}>
+                    {stat.percentage}
+                    <img
+                      src={stat.isPositive ? GreenArrow : RedArrow}
+                      alt="trend"
+                      width="12"
+                      height="12"
+                    />
+                  </PercentageBadge>
+                )}
               </StatHeader>
               <StatValue>{stat.value}</StatValue>
             </StatCard>
