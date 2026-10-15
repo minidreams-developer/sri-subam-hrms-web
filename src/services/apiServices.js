@@ -314,13 +314,13 @@ export const getPaysheetDetail = (payrollId) =>
 export const updatePaysheetStatus = (payrollId, payload) =>
   data(api.patch(`/v1/paysheets/${payrollId}/status`, payload));
 
-export const getAdjustments = (params) => list("/v1/adjustments", params);
+export const getAdjustments = (params) => list("/v1/payroll/adjustments", params);
 
 export const getPendingAdjustments = (params) =>
   list("/v1/adjustments/pending", params);
 
 export const getAdjustmentStats = (params) =>
-  list("/v1/adjustments/quick-stats", params);
+  list("/v1/payroll/adjustments/quick-stats", params);
 
 export const createAdjustment = (payload) =>
   data(api.post("/v1/adjustments", payload));

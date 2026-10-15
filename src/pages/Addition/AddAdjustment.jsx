@@ -107,7 +107,7 @@ const AddAdjustment = () => {
   const fetchEmployees = async () => {
     setEmployeesLoading(true);
     try {
-      const response = await getUsers({ page: 1, limit: 100 });
+      const response = await getUsers();
       let employees = [];
       if (Array.isArray(response)) {
         employees = response;

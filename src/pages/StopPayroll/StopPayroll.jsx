@@ -57,6 +57,12 @@ const formatDate = (value) => value
   ? new Date(value).toLocaleDateString("en-GB").replaceAll("/", "-")
   : "-";
 
+const getDepartmentName = (department) => {
+  if (!department) return "N/A";
+  if (typeof department === "string") return department;
+  return department.departmentName || department.name || "N/A";
+};
+
 const StopPayroll = () => {
   const navigate = useNavigate();
   const [selectedMonth, setSelectedMonth] = useState("This Month");
@@ -129,7 +135,7 @@ const StopPayroll = () => {
           designation: item.role || empData?.workInformation?.designation || "N/A",
           currentSalary: item.currentSalary || empData?.salary || "N/A",
           payCycle: item.payCycle || "Monthly",
-          department: item.department || empData?.department || "N/A",
+          department: getDepartmentName(item.department || empData?.department),
           month: item.month,
           year: item.year,
           status: item.status,

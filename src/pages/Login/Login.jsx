@@ -91,8 +91,8 @@ export const Login = () => {
 
             <Formik
               initialValues={{
-                username: "admin@example.com",
-                password: "admin1234",
+                username: "realhrms@example.com",
+                password: "real1234",
               }}
               validationSchema={validationSchema}
               onSubmit={handleLoginSubmit}

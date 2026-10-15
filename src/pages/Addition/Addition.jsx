@@ -14,13 +14,6 @@ import Filter from "../../components/filter";
 import { getAdjustmentStats } from "../../services/apiServices";
 import { toast } from "react-toastify";
 
-const fallbackStats = [
-  { label: "Total Additions Amount", value: "₹20,20,000", percentage: "20.5 %", isPositive: true },
-  { label: "Total Deductions Amount", value: "₹10,20,000", percentage: "20.5 %", isPositive: true },
-  { label: "Pending Approvals", value: "₹2,20,000", percentage: "10.5 %", isPositive: false },
-  { label: "Applied to Payroll", value: "20", percentage: "20.5 %", isPositive: true },
-];
-
 const Addition = () => {
   const navigate = useNavigate();
   const [selectedMonth, setSelectedMonth] = useState("This Month");
@@ -49,33 +42,28 @@ const Addition = () => {
       // Handle different response structures
       let stats = response?.data || response || {};
 
-      if (!Object.values(stats).some((value) => Number(value) > 0)) {
-        setQuickStats(fallbackStats);
-        return;
-      }
-      
       setQuickStats([
         { 
           label: "Total Additions Amount", 
-          value: stats.totalAdditionsAmount ? `₹${stats.totalAdditionsAmount.toLocaleString('en-IN')}` : "₹0", 
+          value: `₹${Number(stats.totalAdditionsAmount || 0).toLocaleString('en-IN')}`,
           percentage: stats.additionsPercentage ? `${stats.additionsPercentage}%` : "0%", 
           isPositive: true 
         },
         { 
           label: "Total Deductions Amount", 
-          value: stats.totalDeductionsAmount ? `₹${stats.totalDeductionsAmount.toLocaleString('en-IN')}` : "₹0", 
+          value: `₹${Number(stats.totalDeductionsAmount || 0).toLocaleString('en-IN')}`,
           percentage: stats.deductionsPercentage ? `${stats.deductionsPercentage}%` : "0%", 
           isPositive: false 
         },
         { 
           label: "Pending Approvals", 
-          value: stats.pendingApprovalsAmount ? `₹${stats.pendingApprovalsAmount.toLocaleString('en-IN')}` : "₹0", 
+          value: `₹${Number(stats.pendingApprovals || 0).toLocaleString('en-IN')}`,
           percentage: stats.pendingPercentage ? `${stats.pendingPercentage}%` : "0%", 
           isPositive: true 
         },
         { 
           label: "Applied to Payroll", 
-          value: stats.appliedToPayrollCount ? `${stats.appliedToPayrollCount}` : "0", 
+          value: `${Number(stats.appliedToPayroll || 0).toLocaleString('en-IN')}`,
           percentage: stats.appliedPercentage ? `${stats.appliedPercentage}%` : "0%", 
           isPositive: true 
         },
@@ -95,7 +83,6 @@ const Addition = () => {
         { label: "Pending Approvals", value: "₹0", percentage: "0%", isPositive: true },
         { label: "Applied to Payroll", value: "0", percentage: "0%", isPositive: true },
       ]);
-      setQuickStats(fallbackStats);
     } finally {
       _setLoadingStats(false);
     }

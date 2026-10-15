@@ -11,7 +11,7 @@ import GreenArrow from "../../assets/images/DashboardImages/green.svg";
 import RedArrow from "../../assets/images/DashboardImages/red.svg";
 import Filter from "../../components/filter";
 import AddPayroll from "./AddPayroll";
-import { getPaysheetBreakdown, getPaysheetOverview, getPaysheetQuickStats, getPaysheets } from "../../services/apiServices";
+import { getPaysheetBreakdown, getPaysheetDetail, getPaysheetOverview, getPaysheetQuickStats, getPaysheets, updatePaysheetStatus } from "../../services/apiServices";
 import { toast } from "react-toastify";
 
 const Paysheet = () => {
@@ -29,6 +29,11 @@ const Paysheet = () => {
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [openActionId, setOpenActionId] = useState(null);
+  const [modal, setModal] = useState(null);
+  const [selectedDetail, setSelectedDetail] = useState(null);
+  const [selectedStatus, setSelectedStatus] = useState("");
+  const [actionLoading, setActionLoading] = useState(false);
 
   const unwrap = (response) => response?.data || response;
   const getRows = (response) => {
@@ -119,6 +124,39 @@ const Paysheet = () => {
     toast.success("Payroll added successfully");
     setShowAddPayroll(false);
     fetchPaysheetData();
+  };
+
+  const openViewModal = async (row) => {
+    setOpenActionId(null);
+    setModal({ type: "view", row });
+    setSelectedDetail(null);
+    try {
+      const detail = await getPaysheetDetail(row.id);
+      setSelectedDetail(detail?.data || detail);
+    } catch (error) {
+      toast.error("Failed to load payroll details");
+    }
+  };
+
+  const openStatusModal = (row) => {
+    setOpenActionId(null);
+    setSelectedStatus(String(row.status || "draft").toLowerCase());
+    setModal({ type: "status", row });
+  };
+
+  const saveStatus = async () => {
+    if (!modal?.row?.id || !selectedStatus) return;
+    setActionLoading(true);
+    try {
+      await updatePaysheetStatus(modal.row.id, { status: selectedStatus });
+      toast.success("Payroll status updated");
+      setModal(null);
+      await fetchPaysheetData();
+    } catch (error) {
+      toast.error("Failed to update payroll status");
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   const quickStats = quickStatsData ? [
@@ -294,9 +332,18 @@ const Paysheet = () => {
       header: "Action",
       key: "actions",
       render: (row) => (
-        <ActionButton>
-          <img src={DotMenuIcon} alt="menu" width="20" height="20" />
-        </ActionButton>
+        <ActionCell>
+          <ActionButton type="button" aria-label="Payroll actions" onClick={() => setOpenActionId(openActionId === row.id ? null : row.id)}>
+            <img src={DotMenuIcon} alt="menu" width="20" height="20" />
+          </ActionButton>
+          {openActionId === row.id && (
+            <ActionMenu>
+              <MenuButton type="button" onClick={() => openViewModal(row)}>View</MenuButton>
+              <MenuButton type="button" onClick={() => openStatusModal(row)}>Change Status</MenuButton>
+              <MenuButton type="button" onClick={() => setOpenActionId(null)}>Close</MenuButton>
+            </ActionMenu>
+          )}
+        </ActionCell>
       ),
     },
   ];
@@ -499,6 +546,42 @@ const Paysheet = () => {
           onClose={() => setShowAddPayroll(false)}
           onSubmit={handleAddPayrollSubmit}
         />
+      )}
+
+      {modal && (
+        <ModalOverlay onClick={() => !actionLoading && setModal(null)}>
+          <SmallModal onClick={(event) => event.stopPropagation()}>
+            <ModalHeader>
+              <ModalTitle>{modal.type === "view" ? "Payroll Details" : "Change Payroll Status"}</ModalTitle>
+              <ModalClose type="button" onClick={() => !actionLoading && setModal(null)}>×</ModalClose>
+            </ModalHeader>
+            {modal.type === "view" ? (
+              <DetailGrid>
+                <DetailRow><span>Name</span><strong>{modal.row.name}</strong></DetailRow>
+                <DetailRow><span>Employee ID</span><strong>{modal.row.employeeId}</strong></DetailRow>
+                <DetailRow><span>Department</span><strong>{modal.row.department}</strong></DetailRow>
+                <DetailRow><span>Issue Date</span><strong>{modal.row.issueDate}</strong></DetailRow>
+                <DetailRow><span>Status</span><strong>{selectedDetail?.status || modal.row.status}</strong></DetailRow>
+                <DetailRow><span>Total</span><strong>{selectedDetail?.total || modal.row.total}</strong></DetailRow>
+              </DetailGrid>
+            ) : (
+              <StatusForm>
+                <label htmlFor="paysheet-status">Status</label>
+                <DropdownSelect id="paysheet-status" value={selectedStatus} onChange={(event) => setSelectedStatus(event.target.value)}>
+                  <option value="draft">Draft</option>
+                  <option value="processed">Processed</option>
+                  <option value="paid">Paid</option>
+                  <option value="stopped">Stopped</option>
+                  <option value="resumed">Resumed</option>
+                </DropdownSelect>
+                <ModalActions>
+                  <SecondaryButton type="button" onClick={() => setModal(null)}>Cancel</SecondaryButton>
+                  <PrimaryButton type="button" disabled={actionLoading} onClick={saveStatus}>{actionLoading ? "Saving..." : "Save Status"}</PrimaryButton>
+                </ModalActions>
+              </StatusForm>
+            )}
+          </SmallModal>
+        </ModalOverlay>
       )}
     </Container>
   );
@@ -1020,3 +1103,63 @@ const ActionButton = styled.button`
     opacity: 0.7;
   }
 `;
+
+const ActionCell = styled.div`
+  position: relative;
+  display: flex;
+  justify-content: center;
+`;
+
+const ActionMenu = styled.div`
+  position: absolute;
+  top: 28px;
+  right: 0;
+  z-index: 20;
+  width: 140px;
+  padding: 5px;
+  background: #fff;
+  border: 1px solid ${theme.colors.border};
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+`;
+
+const MenuButton = styled.button`
+  width: 100%;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  padding: 9px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: ${theme.colors.textColor};
+  &:hover { background: #f3f6f6; }
+`;
+
+const ModalOverlay = styled.div`
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(15, 23, 42, 0.35);
+`;
+
+const SmallModal = styled.div`
+  width: min(420px, 100%);
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.2);
+`;
+
+const ModalHeader = styled.div`display:flex; align-items:center; justify-content:space-between; margin-bottom:18px;`;
+const ModalTitle = styled.h3`margin:0; font-size:18px; color:${theme.colors.textColor};`;
+const ModalClose = styled.button`border:0; background:transparent; font-size:24px; cursor:pointer; color:#64748b;`;
+const DetailGrid = styled.div`display:grid; gap:12px;`;
+const DetailRow = styled.div`display:flex; justify-content:space-between; gap:12px; font-size:13px; color:#64748b; strong{color:${theme.colors.textColor}; text-align:right;}`;
+const StatusForm = styled.div`display:grid; gap:9px; label{font-size:13px; color:#475569;}`;
+const ModalActions = styled.div`display:flex; justify-content:flex-end; gap:10px; margin-top:14px;`;
+const SecondaryButton = styled.button`padding:9px 14px; border:1px solid ${theme.colors.border}; border-radius:7px; background:#fff; cursor:pointer;`;
+const PrimaryButton = styled.button`padding:9px 14px; border:0; border-radius:7px; background:${theme.colors.primary}; color:#fff; cursor:pointer; &:disabled{opacity:.6;}`;
