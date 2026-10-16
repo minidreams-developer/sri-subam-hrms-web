@@ -383,40 +383,23 @@ const AddAdjustment = () => {
           : formData.date;
       }
 
-      // Parse and add payroll month/year (REQUIRED by backend)
-      // Default to current month if not selected
+      // Parse payroll month/year from the user's selected payroll month.
+      // For EMI, Affect From is the payroll month when no separate payroll
+      // month was selected. Never substitute the current month.
       let payrollMonth = null;
       let payrollYear = null;
-      
-      if (formData.payrollMonth) {
-        // payrollMonth value is in format "jul2026" or similar
-        const monthStr = formData.payrollMonth.value; // e.g., "jul2026"
-        
-        // Extract month number (3-letter month code to number)
-        const months = {
-          jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6,
-          jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12
-        };
-        const monthCode = monthStr.substring(0, 3).toLowerCase();
-        const monthNum = months[monthCode];
-        const yearNum = parseInt(monthStr.substring(3));
-        
-        if (monthNum && yearNum) {
-          payrollMonth = monthNum; // Number: 1-12
-          payrollYear = yearNum;   // Number: 2026
-          console.log(`Parsed payroll month: ${monthNum}/${yearNum} from "${monthStr}"`);
-        }
-      } else {
-        // Default to current month if not selected
-        const now = new Date();
-        payrollMonth = now.getMonth() + 1; // getMonth() returns 0-11, so add 1
-        payrollYear = now.getFullYear();
-        console.log(`No payroll month selected, using current: ${payrollMonth}/${payrollYear}`);
+      const payrollOption = formData.payrollMonth || formData.affectFrom;
+      if (payrollOption?.value) {
+        const match = payrollOption.value.match(/^([a-z]+)(\d{4})$/i);
+        const months = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12 };
+        payrollMonth = months[match?.[1]?.toLowerCase()];
+        payrollYear = Number(match?.[2]);
       }
-      
-      // Always set these required fields
-      payload.payrollMonth = payrollMonth;
-      payload.payrollYear = payrollYear;
+
+      if (payrollMonth && payrollYear) {
+        payload.payrollMonth = payrollMonth;
+        payload.payrollYear = payrollYear;
+      }
 
       // For Team
       if (forWhom.value === "team") {
@@ -434,12 +417,8 @@ const AddAdjustment = () => {
         }
 
         payload.forWhom = "team";
-        // Use MongoDB _id for department and team (not the user-facing IDs)
-        payload.department = formData.department._id || formData.department.value;
-        payload.team = formData.team._id || formData.team.value;
-        // Include teamId and teamLead for reference if backend needs them
-        payload.teamId = formData.teamId || "";
-        payload.teamLead = formData.teamLead || "";
+        // Only the backend team identifier is accepted by this endpoint.
+        payload.teamId = formData.teamId;
       }
       // For Individual
       else if (forWhom.value === "individual") {
@@ -449,9 +428,8 @@ const AddAdjustment = () => {
         }
 
         payload.forWhom = "individual";
-        payload.employeeId = formData.employeeId;
-        payload.employee = formData.employee.value;
-        payload.designation = formData.designation;
+        // The API expects the selected user's MongoDB ID in employeeId.
+        payload.employeeId = formData.employee.value;
       }
 
       // Add EMI-specific fields
@@ -469,15 +447,21 @@ const AddAdjustment = () => {
           return;
         }
 
-        payload.affectFrom = formData.affectFrom.value;
-        payload.to = formData.to.value;
-        payload.totalMonths = parseInt(formData.totalMonths);
-        payload.perMonthDeduction = parseFloat(formData.perMonthDeduction);
-      }
+        const getMonthYear = (option) => {
+          const match = option.value.match(/^([a-z]+)(\d{4})$/i);
+          const months = {
+            jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6,
+            jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12,
+          };
+          return { month: months[match[1].toLowerCase()], year: Number(match[2]) };
+        };
 
-      // Add applied to payroll
-      if (formData.appliedToPayroll) {
-        payload.appliedToPayroll = formData.appliedToPayroll.value === "yes";
+        payload.emiDetails = {
+          affectFrom: getMonthYear(formData.affectFrom),
+          affectTo: getMonthYear(formData.to),
+          totalMonths: parseInt(formData.totalMonths, 10),
+          perMonthDeduction: parseFloat(formData.perMonthDeduction),
+        };
       }
 
       console.log("Sending adjustment payload:", payload);
