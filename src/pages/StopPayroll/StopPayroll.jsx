@@ -14,7 +14,12 @@ import DetailsSidebar from "../../components/DetailsSidebar";
 import CardDetails from "../../components/CardDetails";
 import EditIcon from "../../assets/images/employee/editIcon.svg";
 import Filter from "../../components/filter";
-import { getDepartments, getShifts, getStoppedPayroll, getStoppedPayrollQuickStats } from "../../services/apiServices";
+import {
+  getDepartments,
+  getShifts,
+  getStoppedPayroll,
+  getStoppedPayrollQuickStats,
+} from "../../services/apiServices";
 import { toast } from "react-toastify";
 import {
   employeeStopPayroll,
@@ -90,7 +95,7 @@ const StopPayroll = () => {
     fetchStoppedPayrollData();
     fetchStoppedPayrollQuickStats();
     fetchDepartmentsAndShifts();
-  }, [activeTab]);
+  }, [activeTab, employeeDept, employeeShift, employeeSearch]);
 
   const fetchStoppedPayrollQuickStats = async () => {
     try {
@@ -104,16 +109,29 @@ const StopPayroll = () => {
   const fetchStoppedPayrollData = async () => {
     setLoading(true);
     try {
-      const response = await getStoppedPayroll({
+      const selectedDepartment = departmentOptions.find(
+        (option) => option.value === employeeDept
+      );
+      const selectedShift = shiftOptions.find(
+        (option) => option.value === employeeShift
+      );
+      const params = {
         role: activeTab === "Employee" ? "employee" : "staff",
-      });
+      };
+
+      if (employeeSearch.trim()) params.search = employeeSearch.trim();
+      if (selectedDepartment?.id) params.departmentId = selectedDepartment.id;
+      if (selectedShift?.id) params.shiftId = selectedShift.id;
+
+      const response = await getStoppedPayroll(params);
       console.log("Stopped Payroll data:", response);
       
+      const responseBody = response?.data || response;
       let data = [];
-      if (Array.isArray(response)) {
-        data = response;
-      } else if (response?.results && Array.isArray(response.results)) {
-        data = response.results;
+      if (Array.isArray(responseBody)) {
+        data = responseBody;
+      } else if (responseBody?.results && Array.isArray(responseBody.results)) {
+        data = responseBody.results;
       }
       
       // Transform API response to match table format
@@ -125,7 +143,13 @@ const StopPayroll = () => {
           _id: item.payrollId || item._id,
           employee: {
             name: item.name || empData?.name || "N/A",
-            id: item.employeeId || empData?._id || "",
+            id:
+              (typeof item.employeeId === "object"
+                ? item.employeeId?._id || item.employeeId?.id
+                : item.employeeId) ||
+              empData?._id ||
+              empData?.id ||
+              "",
             role: item.role || empData?.workInformation?.designation || "Employee",
             profileImage: item.profilePic || empData?.profilePic || null,
           },
@@ -133,12 +157,23 @@ const StopPayroll = () => {
           role: item.role || empData?.role || "employee",
           shift: item.shift || empData?.shift || null,
           designation: item.role || empData?.workInformation?.designation || "N/A",
-          currentSalary: item.currentSalary || empData?.salary || "N/A",
+          currentSalary:
+            item.currentMonthSalary !== undefined
+              ? formatAmount(item.currentMonthSalary)
+              : "N/A",
+          currentMonthSalary: item.currentMonthSalary,
+          payableAfterStop: item.payableAfterStop ?? item.amount,
+          days: item.days?.total ?? item.days?.fullDays,
+          deductions: item.deductions,
           payCycle: item.payCycle || "Monthly",
           department: getDepartmentName(item.department || empData?.department),
           month: item.month,
           year: item.year,
-          status: item.status,
+          status: item.resumedAt
+            ? "Resumed"
+            : item.status === "processed"
+              ? "Stopped"
+              : item.status,
           stopType: item.stopType || item.stopDetails?.stopType || "N/A",
           reason: item.reason || item.stopDetails?.reason || "N/A",
           effectiveFrom: item.from || item.stopDetails?.effectiveFrom,
@@ -150,7 +185,7 @@ const StopPayroll = () => {
           exitType: item.reason || item.stopDetails?.reason || "N/A",
           lwd: formatDate(item.from || item.stopDetails?.effectiveFrom),
           fnf: formatDate(item.resumeOn || item.stopDetails?.resumeOn),
-          assets: item.amount ? `₹${Number(item.amount).toLocaleString("en-IN")}` : "₹42,853",
+          assets: formatAmount(item.amount),
           action: "•••",
         };
       });
@@ -184,6 +219,7 @@ const StopPayroll = () => {
       
       // Transform to dropdown options
       const deptOptions = deptList.map((dept) => ({
+        id: dept._id || dept.id || dept.departmentId,
         value: dept.departmentName || dept.name || "N/A",
         label: dept.departmentName || dept.name || "N/A",
       }));
@@ -208,6 +244,7 @@ const StopPayroll = () => {
       
       // Transform to dropdown options
       const shiftOpts = shiftList.map((shift) => ({
+        id: shift._id || shift.id || shift.shiftId,
         value: shift.shiftName || shift.name || "N/A",
         label: shift.shiftName || shift.name || "N/A",
       }));
@@ -237,6 +274,25 @@ const StopPayroll = () => {
 
   const handleNewEmployee = () => {
     navigate("new");
+  };
+
+  const handleEditDetails = () => {
+    if (!selectedRow) return;
+    navigate("new", {
+      state: { stopPayroll: selectedRow, editMode: true, actionType: "stop" },
+    });
+  };
+
+  const handleStatusAction = () => {
+    if (!selectedRow) return;
+    const isResumed = selectedRow.status?.toLowerCase() === "resumed";
+    navigate("new", {
+      state: {
+        stopPayroll: selectedRow,
+        editMode: true,
+        actionType: isResumed ? "stop" : "resume",
+      },
+    });
   };
 
    const filteredEmployeeData = stoppedPayrollData.filter((row) => {
@@ -277,6 +333,14 @@ const StopPayroll = () => {
           ),
         };
       }
+      if (col.accessor === "status") {
+        return {
+          ...col,
+          render: (row) => (
+            <StatusText $status={row.status}>{row.status || "N/A"}</StatusText>
+          ),
+        };
+      }
       return col;
     });
 
@@ -295,6 +359,14 @@ const StopPayroll = () => {
                 <EmployeeRole>{row.employee.role}</EmployeeRole>
                 </EmployeeInfo>
               </EmployeeCell>
+            ),
+          };
+        }
+        if (col.accessor === "status") {
+          return {
+            ...col,
+            render: (row) => (
+              <StatusText $status={row.status}>{row.status || "N/A"}</StatusText>
             ),
           };
         }
@@ -481,17 +553,21 @@ const StopPayroll = () => {
             title="Payroll Impact Preview"
             columns={2}
             items={[
-              { label: "Current Month Pay", value: "₹45,000" },
-              { label: "Payable After Stop", value: "₹15,000" },
-              { label: "Days Payable", value: "10 / 30" },
-              { label: "Deductions", value: "₹30,000" },
+              { label: "Current Month Pay", value: selectedRow?.currentMonthSalary !== undefined ? formatAmount(selectedRow.currentMonthSalary) : selectedRow?.currentSalary || "N/A" },
+              { label: "Payable After Stop", value: selectedRow?.payableAfterStop !== undefined ? formatAmount(selectedRow.payableAfterStop) : "N/A" },
+              { label: "Days Payable", value: selectedRow?.days !== undefined ? selectedRow.days : "N/A" },
+              { label: "Deductions", value: selectedRow?.deductions !== undefined ? formatAmount(selectedRow.deductions) : "N/A" },
             ]}
           />
         </Section>
 
         <ButtonRow>
-          <ResumeButton>Resume</ResumeButton>
-          <EditDetailsButton>
+          {selectedRow?.status?.toLowerCase() === "resumed" ? (
+            <ResumeButton onClick={handleStatusAction}>Stop</ResumeButton>
+          ) : (
+            <ResumeButton onClick={handleStatusAction}>Resume</ResumeButton>
+          )}
+          <EditDetailsButton onClick={handleEditDetails}>
             <img src={EditIcon} alt="edit" width="16" height="16" />
             Edit details
           </EditDetailsButton>

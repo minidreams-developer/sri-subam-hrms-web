@@ -291,6 +291,9 @@ export const getStoppedPayrollQuickStats = (params) =>
 export const stopPayroll = (employeeId, payload) =>
   data(api.post(`/v1/payroll/${employeeId}/stop`, payload));
 
+export const resumePayroll = (employeeId, payload) =>
+  data(api.post(`/v1/payroll/${employeeId}/resume`, payload));
+
 export const getPaysheetDashboard = (params) =>
   list("/v1/paysheets/dashboard", params);
 

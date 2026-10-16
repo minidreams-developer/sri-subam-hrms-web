@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import theme from "../../theme/theme";
 import InputComponent from "../../components/InputComponent";
@@ -7,15 +7,24 @@ import CalenderInput from "../../components/CalenderInput";
 import Button from "../../components/Button";
 import Select from "react-select";
 import { customSelectStyles } from "../../theme/reactSelectStyles";
-import { getUsers, stopPayroll } from "../../services/apiServices";
+import {
+  getEmployeeByEmployeeId,
+  getUsers,
+  resumePayroll,
+  stopPayroll,
+} from "../../services/apiServices";
 import { toast } from "react-toastify";
 
 const NewStopPayroll = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [employeeOptions, setEmployeeOptions] = useState([]);
+  const [employeeIdOptions, setEmployeeIdOptions] = useState([]);
   const [loadingEmployees, setLoadingEmployees] = useState(false);
+  const [loadingEmployeeDetails, setLoadingEmployeeDetails] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [formData, setFormData] = useState({
+    type: null,
     employeeId: "",
     employee: null,
     department: "",
@@ -46,8 +55,7 @@ const NewStopPayroll = () => {
   const fetchEmployees = async () => {
     setLoadingEmployees(true);
     try {
-      const response = await getUsers();
-      console.log("Employees fetched:", response);
+      const response = await getUsers({ page: 1, limit: 100 });
       
       let employees = [];
       
@@ -58,15 +66,25 @@ const NewStopPayroll = () => {
         employees = response.results;
       } else if (response?.data && Array.isArray(response.data)) {
         employees = response.data;
+      } else if (response?.users && Array.isArray(response.users)) {
+        employees = response.users;
       }
       
       // Transform employees to select options format
       const options = employees.map((emp) => ({
         value: emp.id || emp._id,
-        label: emp.name || `${emp.firstName || ""} ${emp.lastName || ""}`.trim(),
-        employeeId: emp.employeeId || emp.id,
-        department: emp.department || "N/A",
-        designation: emp.workInformation?.designation || emp.designation || "employee",
+        label:
+          emp.name ||
+          `${emp.firstName || ""} ${emp.lastName || ""}`.trim() ||
+          emp.email ||
+          "Unknown",
+        employeeId: emp.employeeId || emp.staffId || "",
+        department: emp.department?.name || emp.department || "N/A",
+        designation:
+          emp.workInformation?.designation ||
+          emp.designation?.name ||
+          emp.designation ||
+          "N/A",
         email: emp.email,
         phone: emp.phone,
         joinedDate: emp.workInformation?.joinedDate,
@@ -74,6 +92,15 @@ const NewStopPayroll = () => {
       }));
       
       setEmployeeOptions(options);
+      setEmployeeIdOptions(
+        options
+          .filter((option) => option.employeeId)
+          .map((option) => ({
+            value: option.employeeId,
+            label: option.employeeId,
+            employeeOption: option,
+          }))
+      );
     } catch (error) {
       console.error("Error fetching employees:", error);
       toast.error("Failed to fetch employees");
@@ -91,6 +118,11 @@ const NewStopPayroll = () => {
     { value: "termination", label: "Termination" },
     { value: "hr_legal", label: "HR/Legal Issues" },
     { value: "payroll_corrections", label: "Payroll Corrections" },
+  ];
+
+  const payrollTypeOptions = [
+    { value: "stop", label: "Stop Payroll" },
+    { value: "resume", label: "Resume Payroll" },
   ];
 
   const reasonOptions = [
@@ -119,6 +151,42 @@ const NewStopPayroll = () => {
     { value: "other", label: "Other" },
   ];
 
+  useEffect(() => {
+    const payroll = location.state?.stopPayroll;
+    if (!payroll) return;
+
+    const employeeId = payroll.employeeId || "";
+    setFormData((prev) => ({
+      ...prev,
+      type:
+        location.state?.actionType === "resume"
+          ? { value: "resume", label: "Resume Payroll" }
+          : { value: "stop", label: "Stop Payroll" },
+      employee: {
+        value: payroll.employee?.id || payroll.employeeId,
+        label: payroll.employee?.name || "Employee",
+        employeeId,
+      },
+      employeeId,
+      department: payroll.department || "",
+      designation: payroll.designation || "",
+      currentSalary: payroll.currentSalary || "",
+      payCycle: payroll.payCycle || "",
+      stopType: payroll.stopType
+        ? { value: payroll.stopType, label: payroll.stopType }
+        : null,
+      reason: payroll.reason
+        ? { value: payroll.reason, label: payroll.reason }
+        : null,
+      effectiveFrom: payroll.effectiveFrom || null,
+      resumeOn: payroll.resumeOn || null,
+      impactMonth: payroll.impactMonth
+        ? { value: payroll.impactMonth, label: payroll.impactMonth }
+        : null,
+      remarks: payroll.remarks === "N/A" ? "" : payroll.remarks || "",
+    }));
+  }, [location.state]);
+
   const handleChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     
@@ -139,12 +207,112 @@ const NewStopPayroll = () => {
     }
   };
 
+  const handleEmployeeSelect = async (option) => {
+    if (!option) {
+      setFormData((prev) => ({
+        ...prev,
+        employee: null,
+        employeeId: "",
+        department: "",
+        designation: "",
+        currentSalary: "",
+        payCycle: "",
+      }));
+      return;
+    }
+
+    setFormData((prev) => ({
+      ...prev,
+      employee: option,
+      employeeId: option.employeeId || "",
+    }));
+    setLoadingEmployeeDetails(true);
+
+    try {
+      const response = await getEmployeeByEmployeeId(option.employeeId);
+      const employee =
+        response?.data?.user ||
+        response?.data?.employee ||
+        response?.data ||
+        response?.user ||
+        response?.employee ||
+        response;
+      const work = employee?.workInformation || employee?.workDetails || {};
+      const salaryDetails = work.salaryDetails || employee?.salaryDetails || {};
+      const department = work.department || employee?.department;
+      const designation =
+        work.designation || employee?.designation || employee?.position || "";
+
+      setFormData((prev) => ({
+        ...prev,
+        employee: option,
+        employeeId: employee?.employeeId || option.employeeId || "",
+        department: department?.name || department?.departmentName || department || "",
+        designation: designation?.name || designation,
+        currentSalary: salaryDetails.baseSalary || employee?.salary || "",
+        payCycle: salaryDetails.payCycle || employee?.paymentCycle || "",
+      }));
+    } catch (error) {
+      console.error("Error fetching employee details:", error);
+      toast.error("Failed to fetch employee details");
+    } finally {
+      setLoadingEmployeeDetails(false);
+    }
+  };
+
+  const handleEmployeeIdSelect = (option) => {
+    if (!option) {
+      handleEmployeeSelect(null);
+      return;
+    }
+
+    handleEmployeeSelect(option.employeeOption);
+  };
+
   const handleCancel = () => {
     navigate("/admin/pay-hub/stopPayroll");
   };
 
   const handleNext = async () => {
     try {
+      if (!formData.type) {
+        toast.error("Please select a type");
+        return;
+      }
+
+      if (formData.type.value === "resume") {
+        if (!formData.employee) {
+          toast.error("Please select an employee");
+          return;
+        }
+
+        if (!formData.resumeDate) {
+          toast.error("Please select a resume date");
+          return;
+        }
+
+        const resumeDate = new Date(formData.resumeDate);
+        const employeeId = formData.employee.value || formData.employeeId;
+        const resumePayload = {
+          month: resumeDate.getMonth() + 1,
+          year: resumeDate.getFullYear(),
+          resumeReason:
+            formData.resumeReasonText?.label ||
+            formData.resumeReasonText?.value ||
+            "Verification completed",
+          adjustArrears: formData.adjustArrears?.value === "yes",
+          arrearsAmount: 0,
+          payPendingSalary: formData.payPendingSalary?.value === "yes",
+          resumeRemarks: formData.comments || "",
+        };
+
+        setSubmitting(true);
+        await resumePayroll(employeeId, resumePayload);
+        toast.success("Payroll resumed successfully");
+        navigate("/admin/pay-hub/stopPayroll");
+        return;
+      }
+
       // Validate required fields
       if (!formData.employee) {
         toast.error("Please select an employee");
@@ -232,14 +400,21 @@ const NewStopPayroll = () => {
           <SectionTitle>Employee Details</SectionTitle>
           <Row>
             <Col>
-              <InputComponent
-                label="Employee ID"
-                placeholder="Enter Employee ID"
-                value={formData.employeeId}
-                onChange={(e) => handleChange("employeeId", e.target.value)}
-                labelMargin="0 0 0.625rem 0"
-                height="50px"
-              />
+              <SelectWrapper>
+                <Label>Employee ID</Label>
+                <Select
+                  options={employeeIdOptions}
+                  value={employeeIdOptions.find(
+                    (option) => option.value === formData.employeeId
+                  ) || null}
+                  onChange={handleEmployeeIdSelect}
+                  placeholder={loadingEmployees ? "Loading..." : "Select Employee ID"}
+                  styles={customSelectStyles}
+                  isSearchable
+                  isLoading={loadingEmployees || loadingEmployeeDetails}
+                  isClearable
+                />
+              </SelectWrapper>
             </Col>
             <Col>
               <SelectWrapper>
@@ -247,11 +422,11 @@ const NewStopPayroll = () => {
                 <Select
                   options={employeeOptions}
                   value={formData.employee}
-                  onChange={(value) => handleChange("employee", value)}
-                  placeholder="Select Employee"
+                  onChange={handleEmployeeSelect}
+                  placeholder={loadingEmployeeDetails ? "Loading..." : "Select Employee"}
                   styles={customSelectStyles}
                   isSearchable
-                  isLoading={loadingEmployees}
+                  isLoading={loadingEmployees || loadingEmployeeDetails}
                   isClearable
                 />
               </SelectWrapper>
@@ -304,6 +479,21 @@ const NewStopPayroll = () => {
         </Section>
 
         <Section>
+          <SelectWrapper>
+            <Label>Type</Label>
+            <Select
+              options={payrollTypeOptions}
+              value={formData.type}
+              onChange={(value) => handleChange("type", value)}
+              placeholder="Select Type"
+              styles={customSelectStyles}
+              isSearchable={false}
+              isClearable
+            />
+          </SelectWrapper>
+        </Section>
+
+        {formData.type?.value === "stop" && <Section>
           <SectionTitle>Stop Details</SectionTitle>
           <Row>
             <Col>
@@ -380,9 +570,9 @@ const NewStopPayroll = () => {
               />
             </Col>
           </Row>
-        </Section>
+        </Section>}
 
-        <Section>
+        {formData.type?.value === "resume" && <Section>
           <SectionTitle>Resume Payroll</SectionTitle>
           <Row>
             <Col>
@@ -476,7 +666,7 @@ const NewStopPayroll = () => {
               />
             </Col>
           </Row>
-        </Section>
+        </Section>}
 
         <ButtonRow>
           <Button

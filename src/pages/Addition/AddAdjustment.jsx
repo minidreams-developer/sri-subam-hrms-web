@@ -6,8 +6,10 @@ import InputComponent from "../../components/InputComponent";
 import CalenderInput from "../../components/CalenderInput";
 import Button from "../../components/Button";
 import Select from "react-select";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 import { customSelectStyles } from "../../theme/reactSelectStyles";
-import { createAdjustment, getDepartments, getTeams, getUser, getUsers } from "../../services/apiServices";
+import { createAdjustment, getDepartments, getTeams, getUser, getUserDropdown } from "../../services/apiServices";
 import { toast } from "react-toastify";
 
 const AddAdjustment = () => {
@@ -92,6 +94,25 @@ const AddAdjustment = () => {
 
   const monthOptions = generateMonthOptions();
 
+  const monthOptionFromDate = (date) => {
+    if (!date) return null;
+    const option = monthOptions.find(
+      (item) => item.value === `${date.toLocaleString("en-US", { month: "short" }).toLowerCase()}${date.getFullYear()}`,
+    );
+    return option || {
+      value: `${date.toLocaleString("en-US", { month: "short" }).toLowerCase()}${date.getFullYear()}`,
+      label: `${date.toLocaleString("en-US", { month: "short" })} ${date.getFullYear()}`,
+    };
+  };
+
+  const dateFromMonthOption = (option) => {
+    if (!option?.value) return null;
+    const match = option.value.match(/^([a-z]+)(\d{4})$/i);
+    if (!match) return null;
+    const month = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"].indexOf(match[1].toLowerCase());
+    return month < 0 ? null : new Date(Number(match[2]), month, 1);
+  };
+
   const yesNoOptions = [
     { value: "yes", label: "Yes" },
     { value: "no", label: "No" },
@@ -107,7 +128,7 @@ const AddAdjustment = () => {
   const fetchEmployees = async () => {
     setEmployeesLoading(true);
     try {
-      const response = await getUsers();
+      const response = await getUserDropdown();
       let employees = [];
       if (Array.isArray(response)) {
         employees = response;
@@ -117,11 +138,13 @@ const AddAdjustment = () => {
         employees = response.data;
       } else if (response?.users && Array.isArray(response.users)) {
         employees = response.users;
+      } else if (response?.employees && Array.isArray(response.employees)) {
+        employees = response.employees;
       }
 
       const options = employees.map((emp) => ({
-        value: emp.id || emp._id,
-        label: emp.name || (emp.firstName && emp.lastName ? `${emp.firstName} ${emp.lastName}` : emp.email || "Unknown"),
+        value: emp.id || emp._id || emp.userId,
+        label: emp.name || emp.employeeName || (emp.firstName && emp.lastName ? `${emp.firstName} ${emp.lastName}` : emp.email || "Unknown"),
         empCode: emp.employeeId || emp.empCode || "N/A",
       }));
       setEmployeeOptions(options);
@@ -256,7 +279,37 @@ const AddAdjustment = () => {
   };
 
   const handleChange = (field, value) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    setFormData((prev) => {
+      const next = { ...prev, [field]: value };
+
+      if (field === "affectFrom" || field === "to") {
+        const from = field === "affectFrom" ? value : prev.affectFrom;
+        const to = field === "to" ? value : prev.to;
+        next.totalMonths = getMonthRangeCount(from, to);
+      }
+
+      return next;
+    });
+  };
+
+  // Month ranges are inclusive: Oct 2026 to Aug 2027 = 11 months.
+  const getMonthRangeCount = (from, to) => {
+    if (!from?.value || !to?.value) return "";
+
+    const parseMonth = (value) => {
+      const match = String(value).match(/^([a-z]+)(\d{4})$/i);
+      if (!match) return null;
+      const monthIndex = [
+        "jan", "feb", "mar", "apr", "may", "jun",
+        "jul", "aug", "sep", "oct", "nov", "dec",
+      ].indexOf(match[1].toLowerCase());
+      return monthIndex < 0 ? null : Number(match[2]) * 12 + monthIndex;
+    };
+
+    const start = parseMonth(from.value);
+    const end = parseMonth(to.value);
+    if (start === null || end === null || end < start) return "";
+    return String(end - start + 1);
   };
 
   // Handle department selection - fetch all teams (not filtered by department)
@@ -700,26 +753,24 @@ const AddAdjustment = () => {
                 <SmallCol>
                   <SelectWrapper>
                     <Label>Affect From</Label>
-                    <Select
-                      options={monthOptions}
-                      value={formData.affectFrom}
-                      onChange={(value) => handleChange("affectFrom", value)}
-                      placeholder="Jan 2026"
-                      styles={customSelectStyles}
-                      isSearchable
+                    <MonthPicker
+                      selected={dateFromMonthOption(formData.affectFrom)}
+                      onChange={(date) => handleChange("affectFrom", monthOptionFromDate(date))}
+                      placeholderText="Select month"
+                      showMonthYearPicker
+                      dateFormat="MMM yyyy"
                     />
                   </SelectWrapper>
                 </SmallCol>
                 <SmallCol>
                   <SelectWrapper>
                     <Label>To</Label>
-                    <Select
-                      options={monthOptions}
-                      value={formData.to}
-                      onChange={(value) => handleChange("to", value)}
-                      placeholder="May 2026"
-                      styles={customSelectStyles}
-                      isSearchable
+                    <MonthPicker
+                      selected={dateFromMonthOption(formData.to)}
+                      onChange={(date) => handleChange("to", monthOptionFromDate(date))}
+                      placeholderText="Select month"
+                      showMonthYearPicker
+                      dateFormat="MMM yyyy"
                     />
                   </SelectWrapper>
                 </SmallCol>
@@ -728,9 +779,8 @@ const AddAdjustment = () => {
                     label="Total Months"
                     placeholder="Enter Total Months"
                     value={formData.totalMonths}
-                    onChange={(e) =>
-                      handleChange("totalMonths", e.target.value)
-                    }
+                    readOnly
+                    disabled
                     labelMargin="0 0 0.625rem 0"
                     height="50px"
                   />
@@ -953,6 +1003,23 @@ const FullCol = styled.div`
 
 const SelectWrapper = styled.div`
   width: 100%;
+`;
+
+const MonthPicker = styled(DatePicker)`
+  width: 100%;
+  height: 45px;
+  box-sizing: border-box;
+  padding: 0 0.875rem;
+  border: 1px solid ${theme.colors.border};
+  border-radius: 0.625rem;
+  background: ${theme.colors.searchBackground};
+  color: ${theme.colors.textColor};
+  font: 500 0.875rem "Inter_18pt-Medium", sans-serif;
+  outline: none;
+
+  &:focus {
+    border-color: ${theme.colors.primary};
+  }
 `;
 
 const Label = styled.label`
