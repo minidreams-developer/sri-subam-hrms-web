@@ -34,9 +34,12 @@ const CalendarView = ({ currentYear = new Date().getFullYear(), showAttendance =
       if (Number.isNaN(date.getTime())) return;
       const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
       if (!baseData[monthKey]) baseData[monthKey] = {};
-      const category = record.category || record.attendanceCategory || "fullDay";
-      const type = typeMap[category] || category;
-      const isNonWorkingDay = ["absent", "leave", "holiday", "dayOff", "weekOff", "week_off"].includes(category);
+      const category = record.category || record.attendanceCategory || record.status || "fullDay";
+      const normalizedCategory = category === "present" ? "fullDay"
+        : category === "week-off" ? "weekOff"
+          : category;
+      const type = typeMap[normalizedCategory] || normalizedCategory;
+      const isNonWorkingDay = ["absent", "leave", "holiday", "dayOff", "weekOff", "week_off"].includes(normalizedCategory);
       const hours = record.totalWorkedHours
         ?? record.workingHours
         ?? record.totalWorkingHours
@@ -44,12 +47,12 @@ const CalendarView = ({ currentYear = new Date().getFullYear(), showAttendance =
         ?? (!isNonWorkingDay ? 0 : null);
       baseData[monthKey][date.getDate()] = {
         type,
-        label: category === "duplicate"
+        label: normalizedCategory === "duplicate"
           ? `Duplicate (${record.duplicateAttendanceCount || 2})`
-          : category === "leave" ? "Leave"
-            : category === "holiday" ? (record.label || record.name || "Holiday")
-              : category === "dayOff" ? "Day Off"
-                : hours != null ? `${hours} Hrs` : category,
+          : normalizedCategory === "leave" ? "Leave"
+            : normalizedCategory === "holiday" ? (record.holidayName || record.label || record.name || "Holiday")
+              : normalizedCategory === "dayOff" ? "Day Off"
+                : hours != null ? `${hours} Hrs` : normalizedCategory,
         hours,
         description: record.description || record.remarks,
         timingStatus: record.timingStatus,

@@ -24,6 +24,7 @@ export const Attendance = ({ employee, onEmployeeUpdated }) => {
   const [calendar, setCalendar] = useState([]);
   const [holidays, setHolidays] = useState([]);
   const [attendanceRecords, setAttendanceRecords] = useState([]);
+  const [loadedAttendanceMonths, setLoadedAttendanceMonths] = useState([]);
   const [attendanceLoading, setAttendanceLoading] = useState(false);
   const [shiftModalOpen, setShiftModalOpen] = useState(false);
   const [shiftOptions, setShiftOptions] = useState([]);
@@ -50,21 +51,20 @@ export const Attendance = ({ employee, onEmployeeUpdated }) => {
   useEffect(() => {
     const employeeId = employee?._id || employee?.id || employee?.userId;
     if (!employeeId) return;
-    const currentYear = new Date().getFullYear();
     let cancelled = false;
     setAttendanceLoading(true);
     Promise.all([
       getEmployeeAttendanceSummary(employeeId, monthRange),
-      getEmployeeAttendance(employeeId, { fromDate: `${currentYear}-01-01`, toDate: `${currentYear}-12-31`, sortBy: "date:desc", page: 1, limit: 366 }),
-      getEmployeeAttendanceCalendar(employeeId, monthRange),
+      getEmployeeAttendance(employeeId),
+      getEmployeeAttendanceCalendar(employeeId),
       getHolidays({ page: 1, limit: 100 }),
       getUser(employeeId),
     ])
       .then(([summaryResponse, recordsResponse, calendarResponse, holidaysResponse, profileResponse]) => {
         if (cancelled) return;
         const summaryData = summaryResponse?.summary || summaryResponse?.data?.summary || summaryResponse?.data || summaryResponse;
-        const records = recordsResponse?.records || recordsResponse?.attendanceRecords || recordsResponse?.attendance || recordsResponse?.data?.records || recordsResponse?.data || (Array.isArray(recordsResponse) ? recordsResponse : []);
-        const calendarRecords = calendarResponse?.calendar || calendarResponse?.records || calendarResponse?.data?.calendar || calendarResponse?.data || (Array.isArray(calendarResponse) ? calendarResponse : []);
+        const records = recordsResponse?.results || recordsResponse?.records || recordsResponse?.attendanceRecords || recordsResponse?.attendance || recordsResponse?.data?.results || recordsResponse?.data?.records || recordsResponse?.data || (Array.isArray(recordsResponse) ? recordsResponse : []);
+        const calendarRecords = calendarResponse?.days || calendarResponse?.calendar || calendarResponse?.records || calendarResponse?.data?.days || calendarResponse?.data?.calendar || calendarResponse?.data || (Array.isArray(calendarResponse) ? calendarResponse : []);
         setSummary(summaryData);
         setAttendanceRecords(Array.isArray(records) ? records : []);
         setCalendar(Array.isArray(calendarRecords) ? calendarRecords : []);
@@ -82,6 +82,19 @@ export const Attendance = ({ employee, onEmployeeUpdated }) => {
       .finally(() => !cancelled && setAttendanceLoading(false));
     return () => { cancelled = true; };
   }, [employee, monthRange, onEmployeeUpdated]);
+
+  const loadAttendanceMonth = async (monthKey) => {
+    const employeeId = employee?._id || employee?.id || employee?.userId;
+    if (!employeeId || loadedAttendanceMonths.includes(monthKey)) return;
+    try {
+      const response = await getEmployeeAttendance(employeeId);
+      const records = response?.results || response?.records || response?.attendanceRecords || response?.attendance || response?.data?.results || response?.data?.records || response?.data || (Array.isArray(response) ? response : []);
+      setAttendanceRecords((current) => [...current, ...(Array.isArray(records) ? records : [])]);
+      setLoadedAttendanceMonths((current) => [...current, monthKey]);
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to load attendance for this month");
+    }
+  };
 
   useEffect(() => {
     const employeeId = employee?._id || employee?.id || employee?.userId;
@@ -362,7 +375,7 @@ export const Attendance = ({ employee, onEmployeeUpdated }) => {
           },
           {
             label: "Absent",
-            value: attendanceLoading ? "..." : summary?.absent ?? "N/A",
+            value: attendanceLoading ? "..." : summary?.absentDays ?? summary?.absent ?? "N/A",
           },
           {
             label: "Over Time",
@@ -370,7 +383,7 @@ export const Attendance = ({ employee, onEmployeeUpdated }) => {
           },
           {
             label: "Day Off",
-            value: attendanceLoading ? "..." : summary?.dayOff ?? "N/A",
+            value: attendanceLoading ? "..." : summary?.dayOffs ?? summary?.dayOff ?? "N/A",
           },
           {
             label: "Holidays",
@@ -378,7 +391,7 @@ export const Attendance = ({ employee, onEmployeeUpdated }) => {
           },
           {
             label: "Leave Dates",
-            value: summary?.leaves ?? leaveDateText,
+            value: summary?.leaveDays ?? summary?.leaves ?? leaveDateText,
           },
         ]}
       />
@@ -404,7 +417,7 @@ export const Attendance = ({ employee, onEmployeeUpdated }) => {
         onChange={handleTabChange}
       />
       {activeTab === "List View" ? (
-        <ListView attendanceRecords={attendanceRecords} />
+        <ListView attendanceRecords={attendanceRecords} onMonthToggle={loadAttendanceMonth} loadedMonths={loadedAttendanceMonths} />
       ) : (
         <CalendarView calendarData={calendar} holidays={holidays} />
       )}

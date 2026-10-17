@@ -4,7 +4,7 @@ import theme from "../theme/theme";
 import { IoChevronDown, IoChevronUp } from "react-icons/io5";
 import { MdEdit } from "react-icons/md";
 
-const ListView = ({ attendanceRecords = [] }) => {
+const ListView = ({ attendanceRecords = [], onMonthToggle, loadedMonths = [] }) => {
   const currentYear = String(new Date().getFullYear());
   const records = Array.isArray(attendanceRecords)
     ? attendanceRecords
@@ -51,6 +51,10 @@ const ListView = ({ attendanceRecords = [] }) => {
   };
 
   const toggleMonth = (month) => {
+    const monthDate = new Date(`${month} 1`);
+    if (!Number.isNaN(monthDate.getTime())) {
+      onMonthToggle?.(`${monthDate.getFullYear()}-${String(monthDate.getMonth() + 1).padStart(2, "0")}`);
+    }
     setExpandedMonths((prev) =>
       prev.includes(month) ? prev.filter((m) => m !== month) : [...prev, month]
     );
@@ -91,6 +95,9 @@ const ListView = ({ attendanceRecords = [] }) => {
 
                   {expandedMonths.includes(month) && (
                     <MonthDetails>
+                      {!loadedMonths.includes(`${new Date(`${month} 1`).getFullYear()}-${String(new Date(`${month} 1`).getMonth() + 1).padStart(2, "0")}`) && (
+                        <EmptyState>Loading attendance...</EmptyState>
+                      )}
                       <StatsGrid>
                         <StatItem>
                           <StatLabel>Total Working Day</StatLabel>
