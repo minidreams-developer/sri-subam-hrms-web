@@ -1,10 +1,15 @@
 import styled from "styled-components";
 import theme from "../theme/theme";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import EditIcon from "../assets/images/employee/editIcon.svg";
 import CardDetails from "./CardDetails";
 import PayrollIcon from "./Frame 1000009178 - Copy.svg";
-import { updateUser } from "../services/apiServices";
+import {
+  getEmployeePayrollHistory,
+  getPayrollPreview,
+  updateSalaryDetails,
+  updateUser,
+} from "../services/apiServices";
 import { toast } from "react-toastify";
 
 const money = (value) =>
@@ -16,25 +21,61 @@ const PayrollComponent = ({ employee, onEmployeeUpdated }) => {
   const [editor, setEditor] = useState(null);
   const [form, setForm] = useState({});
   const [saving, setSaving] = useState(false);
+  const [currentSalary, setCurrentSalary] = useState({});
+  const [historyRecords, setHistoryRecords] = useState([]);
+  const [payrollLoading, setPayrollLoading] = useState(false);
   const workInformation = employee?.workInformation || {};
   const salaryDetails =
     workInformation.salaryDetails ||
     workInformation.SalaryDetails ||
     employee?.salaryDetails ||
     {};
-  const currentSalary =
-    employee?.currentMonthSalary || employee?.payrollDetails || {};
+  const employeeId = employee?.id || employee?._id;
   const commission =
     employee?.commission ||
     employee?.commissionDetails ||
     workInformation.commission ||
     {};
-  const salaryHistory =
-    employee?.salaryHistory || employee?.payrollHistory || {};
+  const salaryHistory = employee?.salaryHistory || employee?.payrollHistory || {};
   const isAgent =
     String(
       employee?.role || employee?.employeeType || employee?.type || "",
     ).toLowerCase() === "agent";
+
+  useEffect(() => {
+    if (!employeeId || isAgent) return;
+    let active = true;
+    const now = new Date();
+    setPayrollLoading(true);
+    Promise.all([
+      getPayrollPreview(employeeId, { month: now.getMonth() + 1, year: now.getFullYear() }),
+      getEmployeePayrollHistory({ employeeId, page: 1, limit: 100, sortBy: "-year,-month" }),
+    ])
+      .then(([preview, history]) => {
+        if (!active) return;
+        setCurrentSalary(preview?.data || preview?.result || preview || {});
+        const records = history?.results || history?.data?.results || history?.data || history?.result || [];
+        setHistoryRecords(Array.isArray(records) ? records : []);
+      })
+      .catch(() => {
+        if (active) {
+          setCurrentSalary({});
+          setHistoryRecords([]);
+        }
+      })
+      .finally(() => active && setPayrollLoading(false));
+    return () => { active = false; };
+  }, [employeeId, isAgent]);
+
+  const groupedHistory = useMemo(() => historyRecords.reduce((groups, record) => {
+    const year = String(record.year || new Date().getFullYear());
+    (groups[year] ||= []).push(record);
+    return groups;
+  }, {}), [historyRecords]);
+  const historyYears = useMemo(() => ({
+    ...groupedHistory,
+    [String(new Date().getFullYear())]: groupedHistory[String(new Date().getFullYear())] || [],
+  }), [groupedHistory]);
 
   const openBasicEditor = () => {
     setForm({
@@ -48,11 +89,11 @@ const PayrollComponent = ({ employee, onEmployeeUpdated }) => {
 
   const openSalaryEditor = () => {
     setForm({
-      totalSalary: currentSalary.totalSalary ?? salaryDetails.monthlyCTC ?? "",
+      totalSalary: currentSalary.grossWages ?? currentSalary.totalSalary ?? salaryDetails.monthlyCTC ?? "",
       overtimePayment: currentSalary.overtimePayment ?? "",
-      additionPayment: currentSalary.additionPayment ?? "",
-      deductions: currentSalary.deductions ?? "",
-      totalPayableAmount: currentSalary.totalPayableAmount ?? "",
+      additionPayment: currentSalary.extras ?? currentSalary.additionPayment ?? "",
+      deductions: currentSalary.totalDeductions ?? currentSalary.deductions ?? "",
+      totalPayableAmount: currentSalary.takeHome ?? currentSalary.totalPayableAmount ?? "",
     });
     setEditor("current");
   };
@@ -79,7 +120,6 @@ const PayrollComponent = ({ employee, onEmployeeUpdated }) => {
     }));
   const save = async (event) => {
     event.preventDefault();
-    const employeeId = employee?.id || employee?._id;
     if (!employeeId) return toast.error("Employee ID is missing");
     const numericForm = Object.fromEntries(
       Object.entries(form).map(([key, value]) => [
@@ -99,7 +139,14 @@ const PayrollComponent = ({ employee, onEmployeeUpdated }) => {
           : { currentMonthSalary: { ...currentSalary, ...numericForm } };
     setSaving(true);
     try {
-      const response = await updateUser(employeeId, payload);
+      const response = editor === "salaryBasic"
+        ? await (salaryDetails.id || salaryDetails._id || salaryDetails.salaryId
+            ? updateSalaryDetails(
+                salaryDetails.id || salaryDetails._id || salaryDetails.salaryId,
+                numericForm,
+              )
+            : Promise.reject(new Error("Salary ID is missing")))
+        : await updateUser(employeeId, payload);
       const updated = response?.data || response?.user || response;
       const locallyUpdatedEmployee =
         editor === "salaryBasic"
@@ -127,12 +174,61 @@ const PayrollComponent = ({ employee, onEmployeeUpdated }) => {
     }
   };
 
-  const toggleYear = (year) => {
-    setExpandedYear(expandedYear === year ? null : year);
+  const toggleYear = async (year) => {
+    const nextYear = expandedYear === year ? null : year;
+    setExpandedYear(nextYear);
+    if (!nextYear || !employeeId) return;
+    setPayrollLoading(true);
+    try {
+      const response = await getEmployeePayrollHistory({
+        employeeId,
+        year: Number(year),
+        page: 1,
+        limit: 100,
+        sortBy: "-year,-month",
+      });
+      const records = response?.results || response?.data?.results || response?.data || response?.result || [];
+      setHistoryRecords((previous) => {
+        const otherYears = previous.filter((record) => String(record.year) !== String(year));
+        return [...otherYears, ...(Array.isArray(records) ? records : [])];
+      });
+    } catch {
+      setHistoryRecords((previous) => previous.filter((record) => String(record.year) !== String(year)));
+    } finally {
+      setPayrollLoading(false);
+    }
   };
 
-  const toggleMonth = (month) => {
-    setExpandedMonth(expandedMonth === month ? null : month);
+  const toggleMonth = async (month, year) => {
+    const nextMonth = expandedMonth === month ? null : month;
+    setExpandedMonth(nextMonth);
+    if (!nextMonth || !employeeId) return;
+    const keyMatch = String(month).match(/^(\d{4})-(\d{1,2})$/);
+    const parsedYear = Number(year || keyMatch?.[1] || String(month).match(/\d{4}$/)?.[0]);
+    const monthNumber = keyMatch
+      ? Number(keyMatch[2])
+      : Number.isFinite(Number(month))
+        ? Number(month)
+        : new Date(`${String(month).replace(/\s+\d{4}$/, "")} 1, ${parsedYear}`).getMonth() + 1;
+    setPayrollLoading(true);
+    try {
+      const response = await getEmployeePayrollHistory({
+        employeeId,
+        year: parsedYear,
+        month: monthNumber,
+        page: 1,
+        limit: 1,
+      });
+      const records = response?.results || response?.data?.results || response?.data || response?.result || [];
+      if (Array.isArray(records) && records.length) {
+        setHistoryRecords((previous) => [
+          ...previous.filter((record) => !(String(record.year) === String(parsedYear) && Number(record.month) === monthNumber)),
+          ...records,
+        ]);
+      }
+    } finally {
+      setPayrollLoading(false);
+    }
   };
 
   return (
@@ -220,7 +316,9 @@ const PayrollComponent = ({ employee, onEmployeeUpdated }) => {
                 ? (currentSalary.totalCommission ??
                     currentSalary.totalSalary ??
                     commission.commission)
-                : (currentSalary.totalSalary ?? salaryDetails.monthlyCTC),
+                : (currentSalary.grossWages ??
+                    currentSalary.totalSalary ??
+                    salaryDetails.monthlyCTC),
             ),
           },
           {
@@ -236,26 +334,51 @@ const PayrollComponent = ({ employee, onEmployeeUpdated }) => {
           },
           {
             label: "Addition Payment",
-            value: money(currentSalary.additionPayment),
+            value: money(currentSalary.extras ?? currentSalary.additionPayment),
           },
           {
             label: "Deductions",
-            value: money(currentSalary.deductions),
+            value: money(currentSalary.totalDeductions ?? currentSalary.deductions),
           },
           {
             label: "Total Payable Amount",
-            value: money(currentSalary.totalPayableAmount),
+            value: money(currentSalary.takeHome ?? currentSalary.totalPayableAmount),
           },
         ]}
       />
 
       <Section>
+        {payrollLoading && <EmptyHistory>Loading salary history...</EmptyHistory>}
+        {!payrollLoading && historyRecords.length === 0 && <EmptyHistory>No salary history available.</EmptyHistory>}
+        {!payrollLoading && historyRecords.length > 0 && <>
         <SectionHeader>
           <SectionTitleWithIcon>
             <SectionTitle>Salary History</SectionTitle>
           </SectionTitleWithIcon>
         </SectionHeader>
 
+        {Object.entries(historyYears).sort(([a], [b]) => Number(b) - Number(a)).map(([year, records]) => (
+          <YearSection key={year}>
+            <YearHeader onClick={() => toggleYear(year)}><YearTitle>{year}</YearTitle><ChevronIcon expanded={expandedYear === year}>▼</ChevronIcon></YearHeader>
+            {expandedYear === year && <MonthsContainer>{Array.from({ length: Number(year) === new Date().getFullYear() ? new Date().getMonth() + 1 : 12 }, (_, index) => {
+              const month = index + 1;
+              const record = records.find((item) => Number(item.month) === month) || {};
+              const monthKey = `${year}-${month}`;
+              const label = new Date(Number(year), month - 1, 1).toLocaleString("en-US", { month: "long" });
+              return <MonthSection key={monthKey}>
+                <MonthHeader onClick={() => toggleMonth(monthKey, year)}><MonthTitle>{label} {year}</MonthTitle><MonthActions><img src={EditIcon} alt="Edit month salary" width="14" height="14" /><ChevronIcon expanded={expandedMonth === monthKey}>⌄</ChevronIcon></MonthActions></MonthHeader>
+                {expandedMonth === monthKey && <MonthDetails><DetailsGrid>
+                  <DetailItem><DetailLabel>Total Salary</DetailLabel><DetailValue>{money(record.grossWages ?? record.totalSalary)}</DetailValue></DetailItem>
+                  <DetailItem><DetailLabel>Overtime Payment</DetailLabel><DetailValue>{money(record.overtimeAmount ?? record.overtimePayment)}</DetailValue></DetailItem>
+                  <DetailItem><DetailLabel>Addition Payment</DetailLabel><DetailValue>{money(record.extras ?? record.additionPayment)}</DetailValue></DetailItem>
+                  <DetailItem><DetailLabel>Deductions</DetailLabel><DetailValue>{money(record.totalDeductions ?? record.deductions)}</DetailValue></DetailItem>
+                  <DetailItem><DetailLabel>Total Payable Amount</DetailLabel><DetailValue>{money(record.takeHome ?? record.totalPayableAmount)}</DetailValue></DetailItem>
+                </DetailsGrid></MonthDetails>}
+              </MonthSection>;
+            })}</MonthsContainer>}
+          </YearSection>
+        ))}
+        {false && <>
         {/* Year 2026 */}
         <YearSection>
           <YearHeader onClick={() => toggleYear("2026")}>
@@ -361,6 +484,8 @@ const PayrollComponent = ({ employee, onEmployeeUpdated }) => {
             <ChevronIcon expanded={expandedYear === "2024"}>▼</ChevronIcon>
           </YearHeader>
         </YearSection>
+        </>}
+        </>}
       </Section>
       {editor && (
         <ModalBackdrop
@@ -512,19 +637,16 @@ const SectionIcon = styled.img`
 `;
 
 const YearSection = styled.div`
-  margin-bottom: 0;
-  border: 1px solid ${theme.colors.border};
-  border-radius: 0.625rem;
-  overflow: hidden;
-  background: ${theme.colors.white};
+  margin-bottom: 0.5rem;
+  background: transparent;
 `;
 
 const YearHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem;
-  background: ${theme.colors.white};
+  padding: 0.75rem 0;
+  background: transparent;
   cursor: pointer;
   transition: background 0.2s ease;
 
@@ -542,15 +664,17 @@ const YearTitle = styled.h4`
 `;
 
 const MonthsContainer = styled.div`
-  background: ${theme.colors.white};
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  background: transparent;
 `;
 
 const MonthSection = styled.div`
-  border-top: 1px solid ${theme.colors.border};
-
-  &:first-child {
-    border-top: none;
-  }
+  border: 1px solid ${theme.colors.border};
+  border-radius: 0.5rem;
+  overflow: hidden;
+  background: #f8fafb;
 `;
 
 const MonthHeader = styled.div`
@@ -641,6 +765,12 @@ const DetailValue = styled.span`
   font-weight: 500;
   font-family: "Inter-Medium", sans-serif;
   color: ${theme.colors.textColor};
+`;
+
+const EmptyHistory = styled.div`
+  padding: 1rem;
+  color: ${theme.colors.secondaryTextColor};
+  font-size: 0.875rem;
 `;
 
 const ModalBackdrop = styled.div`

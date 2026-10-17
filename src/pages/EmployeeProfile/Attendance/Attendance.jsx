@@ -10,7 +10,7 @@ import PlusIcon from "../../../assets/images/DashboardImages/plus-large_svgrepo.
 import TabSwitcher from "../../../components/TabSwitcher";
 import ListView from "../../../components/ListView";
 import CalendarView from "../../../components/CalendarView";
-import { createLeaveBalance, getEmployeeAttendance, getEmployeeAttendanceCalendar, getEmployeeAttendanceSummary, getEmployeeLeaveBalances, getHolidays, getShifts, getUser, updateUser } from "../../../services/apiServices";
+import { createLeaveBalance, getEmployeeAttendanceCalendar, getEmployeeAttendanceSummary, getEmployeeLeaveBalances, getHolidays, getShifts, getUser, updateUser } from "../../../services/apiServices";
 import { toast } from "react-toastify";
 
 const leaveTypes = ["Casual Leave", "Sick Leave", "Earned Leave", "Privilege Leave", "Unpaid Leave", "Maternity Leave", "Paternity Leave", "Comp-Off", "Permission"];
@@ -23,8 +23,8 @@ export const Attendance = ({ employee, onEmployeeUpdated }) => {
   const [employeeProfile, setEmployeeProfile] = useState(null);
   const [calendar, setCalendar] = useState([]);
   const [holidays, setHolidays] = useState([]);
-  const [attendanceRecords, setAttendanceRecords] = useState([]);
   const [loadedAttendanceMonths, setLoadedAttendanceMonths] = useState([]);
+  const [monthlyAttendanceSummaries, setMonthlyAttendanceSummaries] = useState({});
   const [attendanceLoading, setAttendanceLoading] = useState(false);
   const [shiftModalOpen, setShiftModalOpen] = useState(false);
   const [shiftOptions, setShiftOptions] = useState([]);
@@ -51,22 +51,36 @@ export const Attendance = ({ employee, onEmployeeUpdated }) => {
   useEffect(() => {
     const employeeId = employee?._id || employee?.id || employee?.userId;
     if (!employeeId) return;
+    const currentMonthKey = monthRange.fromDate.slice(0, 7);
     let cancelled = false;
     setAttendanceLoading(true);
+    getEmployeeAttendanceSummary(employeeId, monthRange)
+      .then((summaryResponse) => {
+        if (cancelled) return;
+        const summaryData = summaryResponse?.summary || summaryResponse?.data?.summary || summaryResponse?.data || summaryResponse;
+        setSummary(summaryData);
+        setMonthlyAttendanceSummaries((current) => ({ ...current, [currentMonthKey]: summaryData }));
+        setLoadedAttendanceMonths([currentMonthKey]);
+      })
+      .catch((error) => {
+        if (!cancelled) toast.error(error.response?.data?.message || "Failed to load attendance");
+      })
+      .finally(() => !cancelled && setAttendanceLoading(false));
+    return () => { cancelled = true; };
+  }, [employee, monthRange, onEmployeeUpdated]);
+
+  useEffect(() => {
+    const employeeId = employee?._id || employee?.id || employee?.userId;
+    if (!employeeId) return;
+    let cancelled = false;
     Promise.all([
-      getEmployeeAttendanceSummary(employeeId, monthRange),
-      getEmployeeAttendance(employeeId),
       getEmployeeAttendanceCalendar(employeeId),
       getHolidays({ page: 1, limit: 100 }),
       getUser(employeeId),
     ])
-      .then(([summaryResponse, recordsResponse, calendarResponse, holidaysResponse, profileResponse]) => {
+      .then(([calendarResponse, holidaysResponse, profileResponse]) => {
         if (cancelled) return;
-        const summaryData = summaryResponse?.summary || summaryResponse?.data?.summary || summaryResponse?.data || summaryResponse;
-        const records = recordsResponse?.results || recordsResponse?.records || recordsResponse?.attendanceRecords || recordsResponse?.attendance || recordsResponse?.data?.results || recordsResponse?.data?.records || recordsResponse?.data || (Array.isArray(recordsResponse) ? recordsResponse : []);
         const calendarRecords = calendarResponse?.days || calendarResponse?.calendar || calendarResponse?.records || calendarResponse?.data?.days || calendarResponse?.data?.calendar || calendarResponse?.data || (Array.isArray(calendarResponse) ? calendarResponse : []);
-        setSummary(summaryData);
-        setAttendanceRecords(Array.isArray(records) ? records : []);
         setCalendar(Array.isArray(calendarRecords) ? calendarRecords : []);
         const profile = profileResponse?.user || profileResponse?.data?.user || profileResponse?.data || profileResponse;
         if (profile && typeof profile === "object") setEmployeeProfile(profile);
@@ -78,21 +92,26 @@ export const Attendance = ({ employee, onEmployeeUpdated }) => {
       })
       .catch((error) => {
         if (!cancelled) toast.error(error.response?.data?.message || "Failed to load attendance");
-      })
-      .finally(() => !cancelled && setAttendanceLoading(false));
+      });
     return () => { cancelled = true; };
-  }, [employee, monthRange, onEmployeeUpdated]);
+  }, [employee]);
 
-  const loadAttendanceMonth = async (monthKey) => {
+  const loadAttendanceMonthSummary = async (monthKey) => {
     const employeeId = employee?._id || employee?.id || employee?.userId;
     if (!employeeId || loadedAttendanceMonths.includes(monthKey)) return;
+    const [year, month] = monthKey.split("-").map(Number);
+    const pad = (value) => String(value).padStart(2, "0");
+    const range = {
+      fromDate: `${year}-${pad(month)}-01`,
+      toDate: `${year}-${pad(month)}-${pad(new Date(year, month, 0).getDate())}`,
+    };
     try {
-      const response = await getEmployeeAttendance(employeeId);
-      const records = response?.results || response?.records || response?.attendanceRecords || response?.attendance || response?.data?.results || response?.data?.records || response?.data || (Array.isArray(response) ? response : []);
-      setAttendanceRecords((current) => [...current, ...(Array.isArray(records) ? records : [])]);
+      const response = await getEmployeeAttendanceSummary(employeeId, range);
+      const summaryData = response?.summary || response?.data?.summary || response?.data || response;
+      setMonthlyAttendanceSummaries((current) => ({ ...current, [monthKey]: summaryData }));
       setLoadedAttendanceMonths((current) => [...current, monthKey]);
     } catch (error) {
-      toast.error(error.response?.data?.message || "Failed to load attendance for this month");
+      toast.error(error.response?.data?.message || "Failed to load monthly summary");
     }
   };
 
@@ -417,7 +436,7 @@ export const Attendance = ({ employee, onEmployeeUpdated }) => {
         onChange={handleTabChange}
       />
       {activeTab === "List View" ? (
-        <ListView attendanceRecords={attendanceRecords} onMonthToggle={loadAttendanceMonth} loadedMonths={loadedAttendanceMonths} />
+        <ListView monthlySummaries={monthlyAttendanceSummaries} onMonthToggle={loadAttendanceMonthSummary} loadedMonths={loadedAttendanceMonths} />
       ) : (
         <CalendarView calendarData={calendar} holidays={holidays} />
       )}

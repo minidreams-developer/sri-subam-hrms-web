@@ -4,7 +4,7 @@ import theme from "../theme/theme";
 import { IoChevronDown, IoChevronUp } from "react-icons/io5";
 import { MdEdit } from "react-icons/md";
 
-const ListView = ({ attendanceRecords = [], onMonthToggle, loadedMonths = [] }) => {
+const ListView = ({ attendanceRecords = [], monthlySummaries = {}, onMonthToggle, loadedMonths = [] }) => {
   const currentYear = String(new Date().getFullYear());
   const records = Array.isArray(attendanceRecords)
     ? attendanceRecords
@@ -21,7 +21,7 @@ const ListView = ({ attendanceRecords = [], onMonthToggle, loadedMonths = [] }) 
     new Date().toLocaleString("en-US", { month: "long", year: "numeric" }),
   ]);
 
-  const attendanceData = records.length
+  const recordAttendanceData = records.length
     ? records.reduce((years, record) => {
         const value = record.date || record.attendanceDay;
         const date = new Date(value);
@@ -43,6 +43,30 @@ const ListView = ({ attendanceRecords = [], onMonthToggle, loadedMonths = [] }) 
         return { ...years, [year]: { ...(years[year] || {}), [month]: monthData } };
       }, { [currentYear]: emptyYear })
     : { [currentYear]: emptyYear };
+  const attendanceData = Object.entries(monthlySummaries).reduce((years, [monthKey, summary]) => {
+    const [year, monthNumber] = monthKey.split("-").map(Number);
+    const month = new Date(year, monthNumber - 1, 1).toLocaleString("en-US", { month: "long", year: "numeric" });
+    const monthData = years[year]?.[month] || {
+      totalWorkingDay: 0, fullDays: 0, halfDays: 0, absent: 0,
+      overTime: 0, dayOff: 0, holidays: 0,
+    };
+    return {
+      ...years,
+      [year]: {
+        ...(years[year] || {}),
+        [month]: {
+          ...monthData,
+          totalWorkingDay: summary?.totalWorkingDays ?? summary?.totalWorkingDay ?? monthData.totalWorkingDay,
+          fullDays: summary?.fullDays ?? monthData.fullDays,
+          halfDays: summary?.halfDays ?? monthData.halfDays,
+          absent: summary?.absentDays ?? summary?.absent ?? monthData.absent,
+          overTime: summary?.overtimeHours ?? summary?.overtime ?? monthData.overTime,
+          dayOff: summary?.dayOffs ?? summary?.dayOff ?? monthData.dayOff,
+          holidays: summary?.holidays ?? monthData.holidays,
+        },
+      },
+    };
+  }, recordAttendanceData);
 
   const toggleYear = (year) => {
     setExpandedYears((prev) =>
@@ -77,7 +101,11 @@ const ListView = ({ attendanceRecords = [], onMonthToggle, loadedMonths = [] }) 
             <MonthsContainer>
               {Object.keys(attendanceData[year]).length === 0 ? (
                 <EmptyState>No attendance records for {year}</EmptyState>
-              ) : Object.keys(attendanceData[year]).map((month) => (
+              ) : Object.keys(attendanceData[year]).map((month) => {
+                const monthDate = new Date(`${month} 1`);
+                const monthKey = `${monthDate.getFullYear()}-${String(monthDate.getMonth() + 1).padStart(2, "0")}`;
+                const monthSummary = attendanceData[year][month];
+                return (
                 <MonthSection key={month}>
                   <MonthHeader onClick={() => toggleMonth(month)}>
                     <MonthTitle>{month}</MonthTitle>
@@ -95,57 +123,58 @@ const ListView = ({ attendanceRecords = [], onMonthToggle, loadedMonths = [] }) 
 
                   {expandedMonths.includes(month) && (
                     <MonthDetails>
-                      {!loadedMonths.includes(`${new Date(`${month} 1`).getFullYear()}-${String(new Date(`${month} 1`).getMonth() + 1).padStart(2, "0")}`) && (
+                      {!loadedMonths.includes(monthKey) && (
                         <EmptyState>Loading attendance...</EmptyState>
                       )}
                       <StatsGrid>
                         <StatItem>
                           <StatLabel>Total Working Day</StatLabel>
                           <StatValue>
-                            {attendanceData[year][month].totalWorkingDay}
+                            {monthSummary.totalWorkingDay}
                           </StatValue>
                         </StatItem>
                         <StatItem>
                           <StatLabel>Full Days</StatLabel>
                           <StatValue>
-                            {attendanceData[year][month].fullDays}
+                            {monthSummary.fullDays}
                           </StatValue>
                         </StatItem>
                         <StatItem>
                           <StatLabel>Half Days</StatLabel>
                           <StatValue>
-                            {attendanceData[year][month].halfDays}
+                            {monthSummary.halfDays}
                           </StatValue>
                         </StatItem>
                         <StatItem>
                           <StatLabel>Absent</StatLabel>
                           <StatValue>
-                            {attendanceData[year][month].absent}
+                            {monthSummary.absent}
                           </StatValue>
                         </StatItem>
                         <StatItem>
                           <StatLabel>Over Time</StatLabel>
                           <StatValue>
-                            {attendanceData[year][month].overTime}
+                            {monthSummary.overTime}
                           </StatValue>
                         </StatItem>
                         <StatItem>
                           <StatLabel>Day Off</StatLabel>
                           <StatValue>
-                            {attendanceData[year][month].dayOff}
+                            {monthSummary.dayOff}
                           </StatValue>
                         </StatItem>
                         <StatItem>
                           <StatLabel>Holidays</StatLabel>
                           <StatValue>
-                            {attendanceData[year][month].holidays}
+                            {monthSummary.holidays}
                           </StatValue>
                         </StatItem>
                       </StatsGrid>
                     </MonthDetails>
                   )}
                 </MonthSection>
-              ))}
+                );
+              })}
             </MonthsContainer>
           )}
         </YearSection>

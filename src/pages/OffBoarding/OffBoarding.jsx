@@ -15,9 +15,10 @@ import {
   getDesignationDropdown,
   getOffboards,
   getOffboardSummary,
+  updateOffboardStatus,
 } from "../../services/apiServices";
 import DeleteConfirmationModal from "../../components/DeleteConfirmationModal";
-import { FiCheck } from "react-icons/fi";
+import { FiCheck, FiX } from "react-icons/fi";
 import { toast } from "react-toastify";
 import Filter from "../../components/filter";
 import {
@@ -27,6 +28,11 @@ import {
 
 const isApprovedOffboardingStatus = (status) =>
   String(status || "").trim().toLowerCase() === "approved";
+
+const isPendingOffboardingStatus = (status) =>
+  !["approved", "rejected", "relieved", "completed"].includes(
+    String(status || "").trim().toLowerCase(),
+  );
 
 const toLocalDateKey = (value) => {
   if (!value) return "";
@@ -249,6 +255,20 @@ const OffBoarding = () => {
     }
   };
 
+  const handleOffboardingStatus = async (row, status) => {
+    if (!row?.id) return;
+
+    try {
+      await updateOffboardStatus(row.id, { status });
+      toast.success(`Offboarding request ${status} successfully`);
+      await fetchOffboardingRecords();
+    } catch (error) {
+      toast.error(
+        error.response?.data?.message || `Failed to ${status} offboarding request`,
+      );
+    }
+  };
+
   const handleNewOffBoarding = () => {
     navigate("/admin/peopleHub/off-boarding/createEmployeeOffBoard");
   };
@@ -357,7 +377,31 @@ const OffBoarding = () => {
         if (col.accessor === "approval") return {
           ...col,
           align: "center",
-          render: (row) => isApprovedOffboardingStatus(row.status) && isLastWorkingDateDue(row.lwd) ? (
+          render: (row) => isPendingOffboardingStatus(row.status) ? (
+            <ApprovalGroup>
+              <ApprovalButton
+                type="button"
+                $approve
+                title="Approve"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  handleOffboardingStatus(row, "approved");
+                }}
+              >
+                <FiCheck /> Approve
+              </ApprovalButton>
+              <ApprovalButton
+                type="button"
+                title="Reject"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  handleOffboardingStatus(row, "rejected");
+                }}
+              >
+                <FiX /> Reject
+              </ApprovalButton>
+            </ApprovalGroup>
+          ) : isApprovedOffboardingStatus(row.status) && isLastWorkingDateDue(row.lwd) ? (
             <ApprovalGroup>
               <ApprovalButton
                 type="button"
@@ -399,7 +443,22 @@ const OffBoarding = () => {
     if (col.accessor === "approval") return {
       ...col,
       align: "center",
-      render: (row) => isApprovedOffboardingStatus(row.status) && isLastWorkingDateDue(row.lwd) ? (
+      render: (row) => isPendingOffboardingStatus(row.status) ? (
+        <ApprovalGroup>
+          <ApprovalButton type="button" $approve title="Approve" onClick={(event) => {
+            event.stopPropagation();
+            handleOffboardingStatus(row, "approved");
+          }}>
+            <FiCheck /> Approve
+          </ApprovalButton>
+          <ApprovalButton type="button" title="Reject" onClick={(event) => {
+            event.stopPropagation();
+            handleOffboardingStatus(row, "rejected");
+          }}>
+            <FiX /> Reject
+          </ApprovalButton>
+        </ApprovalGroup>
+      ) : isApprovedOffboardingStatus(row.status) && isLastWorkingDateDue(row.lwd) ? (
         <ApprovalGroup>
           <ApprovalButton
             type="button"

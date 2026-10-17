@@ -274,6 +274,11 @@ export const deleteRoster = (id) => data(api.delete(`/v1/roster/${id}`));
 
 // Payroll, paysheets, and adjustments
 export const getPayroll = (params) => list("/v1/payroll", params);
+export const getPayrollPreview = (employeeId, params) =>
+  data(api.get(`/v1/payroll/${encodeURIComponent(employeeId)}/preview`, { params: cleanParams(params) }));
+export const getEmployeePayrollHistory = (params) => list("/v1/payroll", params);
+export const updateSalaryDetails = (salaryId, payload) =>
+  data(api.patch(`/v1/salary-details/${encodeURIComponent(salaryId)}`, payload));
 export const getPayrollPayslipOptions = (params) =>
   list("/v1/payroll/payslips/options", params);
 export const getPayrollPayslip = (payrollId) =>
