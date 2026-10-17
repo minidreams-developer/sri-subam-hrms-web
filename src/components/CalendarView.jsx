@@ -2,10 +2,8 @@ import { useState, useEffect } from "react";
 import styled from "styled-components";
 import theme from "../theme/theme";
 import { BsThreeDots } from "react-icons/bs";
-import GreenTik from "../assets/images/Team/greenTik.svg";
 import RedTik from "../assets/images/Team/redTik.svg";
 import InfoTik from "../assets/images/Team/infoTik.svg";
-import CalendarIcon from "../assets/images/Leavemanage/calendar.svg";
 
 const CalendarView = ({ currentYear = new Date().getFullYear(), showAttendance = true, holidays = [], calendarData: apiCalendarData = [] }) => {
   const [calendarData, setCalendarData] = useState({});
@@ -24,6 +22,8 @@ const CalendarView = ({ currentYear = new Date().getFullYear(), showAttendance =
       leave: "leave",
       holiday: "holiday",
       dayOff: "day-off",
+      weekOff: "week-off",
+      week_off: "week-off",
       duplicate: "duplicate",
     };
 
@@ -36,7 +36,12 @@ const CalendarView = ({ currentYear = new Date().getFullYear(), showAttendance =
       if (!baseData[monthKey]) baseData[monthKey] = {};
       const category = record.category || record.attendanceCategory || "fullDay";
       const type = typeMap[category] || category;
-      const hours = record.totalWorkedHours ?? record.hours;
+      const isNonWorkingDay = ["absent", "leave", "holiday", "dayOff", "weekOff", "week_off"].includes(category);
+      const hours = record.totalWorkedHours
+        ?? record.workingHours
+        ?? record.totalWorkingHours
+        ?? record.hours
+        ?? (!isNonWorkingDay ? 0 : null);
       baseData[monthKey][date.getDate()] = {
         type,
         label: category === "duplicate"
@@ -153,12 +158,14 @@ const CalendarView = ({ currentYear = new Date().getFullYear(), showAttendance =
                 }
 
                 const { day, data } = cell;
-                const isWeekOff = cellIndex === 3; // Thursday as week off
+                const isWeekOff = data?.type === "day-off"
+                  || data?.type === "week-off"
+                  || (cellIndex === 3 && !data); // Preserve the existing Thursday fallback.
 
                 return (
                   <DayCell 
                     key={cellIndex} 
-                    $weekOff={isWeekOff && !data}
+                    $weekOff={isWeekOff}
                     $holiday={data?.type === "holiday"}
                   >
                     <DayNumber>
@@ -169,20 +176,17 @@ const CalendarView = ({ currentYear = new Date().getFullYear(), showAttendance =
                         </DotsIcon>
                       )}
                     </DayNumber>
-                    {data && (
+                    {data && data.type !== "day-off" && data.type !== "week-off" && (
                       <>
                         <StatusBadge $type={data.type}>
-                          {data.type === "present" && (
-                            <TickIcon src={GreenTik} alt="present" />
+                          {(data.type === "present" || data.type === "holiday") && (
+                            <StatusCheck aria-hidden="true">✓</StatusCheck>
                           )}
                           {data.type === "absent" && (
                             <TickIcon src={RedTik} alt="absent" />
                           )}
                           {data.type === "half-day" && (
                             <TickIcon src={InfoTik} alt="half-day" />
-                          )}
-                          {data.type === "holiday" && (
-                            <HolidayIcon src={CalendarIcon} alt="holiday" />
                           )}
                           {" "}
                           {data.label}
@@ -332,9 +336,9 @@ const StatusBadge = styled.div`
     switch (props.$type) {
       case "present":
         return `
-          background: #d1fae5;
-          color: #065f46;
-          border: 1px solid #10b981;
+          background: #ecfdf3;
+          color: #16a34a;
+          border: 1px solid #16c784;
         `;
       case "absent":
         return `
@@ -350,9 +354,9 @@ const StatusBadge = styled.div`
         `;
       case "holiday":
         return `
-          background: #e0e7ff;
-          color: #3730a3;
-          border: 1px solid #6366f1;
+          background: #ecfdf3;
+          color: #16a34a;
+          border: 1px solid #16c784;
         `;
       case "leave":
         return `background: #fce7f3; color: #9d174d; border: 1px solid #ec4899;`;
@@ -375,10 +379,10 @@ const TickIcon = styled.img`
   height: 0.875rem;
 `;
 
-const HolidayIcon = styled.img`
-  width: 0.875rem;
-  height: 0.875rem;
-  filter: invert(32%) sepia(89%) saturate(2477%) hue-rotate(245deg) brightness(92%) contrast(91%);
+const StatusCheck = styled.span`
+  font-size: 0.875rem;
+  font-weight: 700;
+  line-height: 1;
 `;
 
 const Description = styled.p`

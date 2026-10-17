@@ -58,15 +58,26 @@ const AddLeave = () => {
     const fetchEmployees = async () => {
       try {
         setFetchingEmployees(true);
-        const response = await getUsers({ page: 1, limit: 100 });
-        const employeeList = response.results || response.data || response.users || [];
-        const formattedEmployees = employeeList.map((emp) => ({
+        const response = await getUsers({ role: "employee", page: 1, limit: 100 });
+        const employeeList = Array.isArray(response)
+          ? response
+          : response?.results || response?.data?.results || response?.data || response?.users || [];
+        const formattedEmployees = (Array.isArray(employeeList) ? employeeList : []).map((emp) => {
+          const work = emp.workInformation || emp.workDetails || {};
+          const department = work.department || work.departmentId || emp.department || emp.departmentId;
+          const designation = work.designationId || work.designation || emp.designationId || emp.designation;
+          return {
           value: emp._id || emp.id,
           label: emp.name || emp.firstName,
           employeeId: emp.employeeId,
-          department: emp.department?.name || emp.department || "",
-          designation: emp.workInformation?.designation || emp.designation || "",
-        }));
+          department: typeof department === "object"
+            ? department.departmentName || department.name || department.departmentCode || ""
+            : department || "",
+          designation: typeof designation === "object"
+            ? designation.designationName || designation.name || designation.designationCode || ""
+            : designation || "",
+          };
+        });
         setEmployees(formattedEmployees);
       } catch (error) {
         console.error("Error fetching employees:", error);
@@ -162,7 +173,7 @@ const AddLeave = () => {
       // Find and set designation from designations list
       if (employee.designation) {
         const selectedDesignation = designationOptions.find(
-          (des) => des.label.toLowerCase() === employee.designation.toLowerCase()
+          (des) => des.label.toLowerCase() === String(employee.designation).toLowerCase()
         );
         setPosition(selectedDesignation || null);
       }

@@ -35,6 +35,14 @@ const staticDropdownOptions = {
     { value: "manual", label: "Manual" },
   ],
 };
+const detailLabels = {
+  branchStatus: "Branch Status", branchNumber: "Branch Number", branchType: "Branch Type",
+  branchEffectiveFrom: "Effective From", branchPhoneNumber: "Phone Number", branchEmail: "Email",
+  branchAddress: "Address", branchCity: "City", branchDistrict: "District", branchState: "State",
+  branchPinCode: "PIN Code", branchGeoLocation: "Geo Location", branchHead: "Branch Head",
+  branchDepartments: "Departments", branchShifts: "Shifts", branchDeactivatedAt: "Deactivated At",
+  branchId: "Branch ID",
+};
 
 const listFromResponse = (response) => {
   if (Array.isArray(response)) return response;
@@ -54,10 +62,12 @@ const dateOf = (value) => {
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? "N/A" : date.toLocaleDateString("en-GB");
 };
+const listOf = (value) => Array.isArray(value) ? (value.length ? value.join(", ") : "N/A") : valueOf(value);
 const makeDetails = (employee) => {
   const work = employee?.workInformation || {};
   const bank = employee?.bankDetails?.[0] || work.bankDetails?.[0] || {};
   const esiAndPf = bank.esiAndPf || {};
+  const branch = work.branch || employee?.branch || {};
   return {
     designation: valueOf(
       work.designationId || employee?.designationId || work.designation || employee?.designation,
@@ -66,6 +76,23 @@ const makeDetails = (employee) => {
     team: valueOf(work.team || employee?.team, ["teamName", "name"]),
     department: valueOf(work.department || employee?.department, ["departmentName", "name"]),
     workBranch: valueOf(work.branch || employee?.branch, ["branchName", "name"]),
+    branchStatus: valueOf(branch.branchStatus),
+    branchNumber: valueOf(branch.branchNumber),
+    branchType: valueOf(branch.branchType),
+    branchEffectiveFrom: dateOf(branch.effectiveFromDate),
+    branchPhoneNumber: valueOf(branch.phoneNumber),
+    branchEmail: valueOf(branch.email),
+    branchAddress: valueOf(branch.address),
+    branchCity: valueOf(branch.city),
+    branchDistrict: valueOf(branch.district),
+    branchState: valueOf(branch.state),
+    branchPinCode: valueOf(branch.pinCode),
+    branchGeoLocation: valueOf(branch.geoLocation),
+    branchHead: valueOf(branch.branchHead),
+    branchDepartments: listOf(branch.departments),
+    branchShifts: listOf(branch.shifts),
+    branchDeactivatedAt: dateOf(branch.deactivatedAt),
+    branchId: valueOf(branch.id || branch._id),
     dateOfJoining: dateOf(work.joinedDate || work.dateOfJoining || employee?.dateOfJoining),
     experienceType: valueOf(work.experienceType), workExperience: valueOf(work.workExperience),
     shift: valueOf(work.shift || work.shiftId || employee?.shift, ["shiftName", "name"]),
@@ -235,7 +262,7 @@ export const WorkDetails = ({ employee, onEmployeeUpdated }) => {
 
   const items = (keys) => keys.map((key) => {
     const field = fields.find(([fieldKey]) => fieldKey === key);
-    return { label: field[1], value: details[key] || "N/A" };
+    return { label: field?.[1] || detailLabels[key] || key, value: details[key] || "N/A" };
   });
 
   return (
@@ -256,6 +283,11 @@ export const WorkDetails = ({ employee, onEmployeeUpdated }) => {
         title="Basic Information"
         columns={3}
         items={items(["designation", "team", "department", "workBranch", "dateOfJoining", "experienceType", "workExperience", "shift", "terminationDate", "exitDate", "reportingPerson", "reference", "contractAgent"])}
+      />
+      <CardDetails
+        title="Branch Details"
+        columns={3}
+        items={items(["branchStatus", "branchNumber", "branchType", "branchEffectiveFrom", "branchPhoneNumber", "branchEmail", "branchAddress", "branchCity", "branchDistrict", "branchState", "branchPinCode", "branchGeoLocation", "branchHead", "branchDepartments", "branchShifts", "branchDeactivatedAt", "branchId"])}
       />
       <CardDetails
         title="Experience Details"

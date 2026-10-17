@@ -17,50 +17,9 @@ const ListView = ({ attendanceRecords = [] }) => {
     overTime: 0, dayOff: 0, holidays: 0,
   }]));
   const [expandedYears, setExpandedYears] = useState([currentYear]);
-  const [expandedMonths, setExpandedMonths] = useState(["April 2025"]);
-
-  const sampleAttendanceData = {
-    2025: {
-      "April 2025": {
-        totalWorkingDay: 31,
-        fullDays: 26,
-        halfDays: 2,
-        absent: 2,
-        overTime: "12 Hrs",
-        dayOff: 3,
-        holidays: 0,
-      },
-      "March 2025": {
-        totalWorkingDay: 31,
-        fullDays: 28,
-        halfDays: 1,
-        absent: 1,
-        overTime: "8 Hrs",
-        dayOff: 2,
-        holidays: 1,
-      },
-      "February 2025": {
-        totalWorkingDay: 28,
-        fullDays: 25,
-        halfDays: 1,
-        absent: 0,
-        overTime: "10 Hrs",
-        dayOff: 2,
-        holidays: 0,
-      },
-    },
-    2024: {
-      "December 2024": {
-        totalWorkingDay: 31,
-        fullDays: 27,
-        halfDays: 2,
-        absent: 1,
-        overTime: "15 Hrs",
-        dayOff: 3,
-        holidays: 1,
-      },
-    },
-  };
+  const [expandedMonths, setExpandedMonths] = useState([
+    new Date().toLocaleString("en-US", { month: "long", year: "numeric" }),
+  ]);
 
   const attendanceData = records.length
     ? records.reduce((years, record) => {

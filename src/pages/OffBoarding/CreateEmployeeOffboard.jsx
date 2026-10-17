@@ -285,8 +285,9 @@ const CreateEmployeeOffboard = () => {
 
       if (employee) {
         const work = employee.workInformation || employee.workDetails || {};
-        const department = work.department || employee.department;
+        const department = work.department || work.departmentId || employee.department || employee.departmentId;
         const team = work.team || employee.team;
+        const designation = work.designationId || employee.designationId || work.designation || employee.designation || employee.position;
         const reportingPerson = work.reportingPerson || employee.reportingPerson;
         const joinedDate = work.joinedDate || employee.dateOfJoining || employee.joinedDate;
         const employmentType = work.experienceType || employee.employmentType;
@@ -319,7 +320,10 @@ const CreateEmployeeOffboard = () => {
                   department,
               }
             : null,
-          designation: work.designation || employee.designation || employee.position || "",
+          designation:
+            designation && typeof designation === "object"
+              ? designation.designationName || designation.name || designation.designationCode || ""
+              : designation || "",
           team: team
             ? {
                 value: team.id || team._id || team.teamCode || team,

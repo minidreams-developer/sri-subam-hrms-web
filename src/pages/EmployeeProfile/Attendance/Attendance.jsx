@@ -10,7 +10,7 @@ import PlusIcon from "../../../assets/images/DashboardImages/plus-large_svgrepo.
 import TabSwitcher from "../../../components/TabSwitcher";
 import ListView from "../../../components/ListView";
 import CalendarView from "../../../components/CalendarView";
-import { createLeaveBalance, getEmployeeAttendance, getEmployeeAttendanceCalendar, getEmployeeAttendanceSummary, getEmployeeLeaveBalances, getHolidays, getShifts, updateUser } from "../../../services/apiServices";
+import { createLeaveBalance, getEmployeeAttendance, getEmployeeAttendanceCalendar, getEmployeeAttendanceSummary, getEmployeeLeaveBalances, getHolidays, getShifts, getUser, updateUser } from "../../../services/apiServices";
 import { toast } from "react-toastify";
 
 const leaveTypes = ["Casual Leave", "Sick Leave", "Earned Leave", "Privilege Leave", "Unpaid Leave", "Maternity Leave", "Paternity Leave", "Comp-Off", "Permission"];
@@ -20,6 +20,7 @@ export const Attendance = ({ employee, onEmployeeUpdated }) => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("List View");
   const [summary, setSummary] = useState(null);
+  const [employeeProfile, setEmployeeProfile] = useState(null);
   const [calendar, setCalendar] = useState([]);
   const [holidays, setHolidays] = useState([]);
   const [attendanceRecords, setAttendanceRecords] = useState([]);
@@ -49,19 +50,26 @@ export const Attendance = ({ employee, onEmployeeUpdated }) => {
   useEffect(() => {
     const employeeId = employee?._id || employee?.id || employee?.userId;
     if (!employeeId) return;
+    const currentYear = new Date().getFullYear();
     let cancelled = false;
     setAttendanceLoading(true);
     Promise.all([
       getEmployeeAttendanceSummary(employeeId, monthRange),
-      getEmployeeAttendance(employeeId, { fromDate: `${new Date().getFullYear()}-01-01`, toDate: `${new Date().getFullYear()}-12-31`, sortBy: "date:desc" }),
+      getEmployeeAttendance(employeeId, { fromDate: `${currentYear}-01-01`, toDate: `${currentYear}-12-31`, sortBy: "date:desc", page: 1, limit: 366 }),
       getEmployeeAttendanceCalendar(employeeId, monthRange),
       getHolidays({ page: 1, limit: 100 }),
+      getUser(employeeId),
     ])
-      .then(([summaryResponse, recordsResponse, calendarResponse, holidaysResponse]) => {
+      .then(([summaryResponse, recordsResponse, calendarResponse, holidaysResponse, profileResponse]) => {
         if (cancelled) return;
-        setSummary(summaryResponse?.data || summaryResponse?.summary || summaryResponse);
-        setAttendanceRecords(recordsResponse?.data || recordsResponse?.records || recordsResponse || []);
-        setCalendar(calendarResponse?.data || calendarResponse?.calendar || calendarResponse || []);
+        const summaryData = summaryResponse?.summary || summaryResponse?.data?.summary || summaryResponse?.data || summaryResponse;
+        const records = recordsResponse?.records || recordsResponse?.attendanceRecords || recordsResponse?.attendance || recordsResponse?.data?.records || recordsResponse?.data || (Array.isArray(recordsResponse) ? recordsResponse : []);
+        const calendarRecords = calendarResponse?.calendar || calendarResponse?.records || calendarResponse?.data?.calendar || calendarResponse?.data || (Array.isArray(calendarResponse) ? calendarResponse : []);
+        setSummary(summaryData);
+        setAttendanceRecords(Array.isArray(records) ? records : []);
+        setCalendar(Array.isArray(calendarRecords) ? calendarRecords : []);
+        const profile = profileResponse?.user || profileResponse?.data?.user || profileResponse?.data || profileResponse;
+        if (profile && typeof profile === "object") setEmployeeProfile(profile);
         const holidayRecords = holidaysResponse?.results
           || holidaysResponse?.data?.results
           || holidaysResponse?.data
@@ -73,7 +81,7 @@ export const Attendance = ({ employee, onEmployeeUpdated }) => {
       })
       .finally(() => !cancelled && setAttendanceLoading(false));
     return () => { cancelled = true; };
-  }, [employee, monthRange]);
+  }, [employee, monthRange, onEmployeeUpdated]);
 
   useEffect(() => {
     const employeeId = employee?._id || employee?.id || employee?.userId;
@@ -85,11 +93,12 @@ export const Attendance = ({ employee, onEmployeeUpdated }) => {
       })
       .catch((error) => toast.error(error.response?.data?.message || "Failed to load leave balances"));
   }, [employee]);
-  const leaveDates = employee?.leaveDates || employee?.leaves?.map((leave) => leave.date || leave.leaveDate).filter(Boolean) || [];
+  const displayedEmployee = employeeProfile || employee;
+  const leaveDates = displayedEmployee?.leaveDates || displayedEmployee?.leaves?.map((leave) => leave.date || leave.leaveDate).filter(Boolean) || [];
   const leaveDateText = Array.isArray(leaveDates)
     ? leaveDates.join(", ") || "N/A"
     : leaveDates || "N/A";
-  const shift = employee?.workInformation?.shiftId || employee?.workInformation?.shift || employee?.shift;
+  const shift = displayedEmployee?.workInformation?.shiftId || displayedEmployee?.workInformation?.shift || displayedEmployee?.shift;
   const formatTime = (value) => {
     if (!value) return "N/A";
     const date = new Date(value);
