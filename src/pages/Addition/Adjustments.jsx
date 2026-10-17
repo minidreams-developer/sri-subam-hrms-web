@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import theme from "../../theme/theme";
 import ReusableTable from "../../components/ReusableTable";
@@ -8,13 +9,16 @@ import DetailsSidebar from "../../components/DetailsSidebar";
 import CardDetails from "../../components/CardDetails";
 import EditIcon from "../../assets/images/employee/editIcon.svg";
 import { MdDelete } from "react-icons/md";
-import { getAdjustments } from "../../services/apiServices";
+import { deleteAdjustment, getAdjustments, updateAdjustmentStatus } from "../../services/apiServices";
 import { toast } from "react-toastify";
 
 const Adjustments = ({ searchQuery, selectedMonth }) => {
+  const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedRow, setSelectedRow] = useState(null);
   const [adjustmentsData, setAdjustmentsData] = useState([]);
+  const [statusMenuId, setStatusMenuId] = useState(null);
+  const [statusModalRow, setStatusModalRow] = useState(null);
   const [_loading, _setLoading] = useState(false);
 
   // Fetch adjustments data
@@ -120,9 +124,18 @@ const Adjustments = ({ searchQuery, selectedMonth }) => {
       header: "Action",
       key: "actions",
       render: (row) => (
-        <ActionButton onClick={(e) => { e.stopPropagation(); console.log("Action clicked:", row); }}>
-          <img src={DotMenuIcon} alt="menu" width="20" height="20" />
-        </ActionButton>
+        <ActionMenuWrapper>
+          <ActionButton type="button" onClick={(e) => { e.stopPropagation(); setStatusMenuId(statusMenuId === (row._id || row.id) ? null : (row._id || row.id)); }}>
+            <img src={DotMenuIcon} alt="menu" width="20" height="20" />
+          </ActionButton>
+          {statusMenuId === (row._id || row.id) && (
+            <StatusMenu onClick={(e) => e.stopPropagation()}>
+              <StatusMenuItem type="button" onClick={() => { setStatusMenuId(null); handleView(row); }}>View</StatusMenuItem>
+              <StatusMenuItem type="button" onClick={() => { setStatusMenuId(null); handleEdit(row); }}>Edit</StatusMenuItem>
+              <StatusMenuItem type="button" onClick={() => { setStatusMenuId(null); setStatusModalRow(row); }}>Status</StatusMenuItem>
+            </StatusMenu>
+          )}
+        </ActionMenuWrapper>
       ),
     },
   ];
@@ -140,13 +153,60 @@ const Adjustments = ({ searchQuery, selectedMonth }) => {
     setSidebarOpen(true);
   };
 
-  const handleDelete = () => {
-    console.log("Delete adjustment:", selectedRow);
-    setSidebarOpen(false);
+  const handleDelete = async () => {
+    const adjustmentId = selectedRow?._id || selectedRow?.id || selectedRow?.adjustmentId;
+    if (!adjustmentId) {
+      toast.error("Adjustment ID was not found");
+      return;
+    }
+
+    if (!window.confirm("Are you sure you want to delete this adjustment?")) return;
+
+    try {
+      await deleteAdjustment(adjustmentId);
+      toast.success("Adjustment deleted successfully");
+      setSidebarOpen(false);
+      setSelectedRow(null);
+      fetchAdjustments();
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to delete adjustment");
+    }
   };
 
-  const handleEdit = () => {
-    console.log("Edit adjustment:", selectedRow);
+  const handleView = (row) => {
+    setSelectedRow(row);
+    setSidebarOpen(true);
+  };
+
+  const handleEdit = (row = selectedRow) => {
+    if (!row) return;
+    navigate("/admin/pay-hub/additionDeductions/add", {
+      state: { adjustment: row, mode: "edit" },
+    });
+  };
+
+  const handleStatusChange = async (row, status) => {
+    const adjustmentId = row?._id || row?.id || row?.adjustmentId;
+    if (!adjustmentId) {
+      toast.error("Adjustment ID was not found");
+      return;
+    }
+
+    try {
+      await updateAdjustmentStatus(adjustmentId, status);
+      toast.success(`Adjustment ${status} successfully`);
+      setStatusMenuId(null);
+      setStatusModalRow(null);
+      fetchAdjustments();
+    } catch (error) {
+      toast.error(error.response?.data?.message || `Failed to mark adjustment ${status}`);
+    }
+  };
+
+  const displayUser = (user) => {
+    if (!user) return "System";
+    if (typeof user === "string" || typeof user === "number") return String(user);
+    return user.name || user.email || user.employeeId || user.id || "System";
   };
 
   return (
@@ -175,7 +235,7 @@ const Adjustments = ({ searchQuery, selectedMonth }) => {
               { label: "Team Name", value: selectedRow?.teamId?.teamName || "N/A" },
               { label: "Team Code", value: selectedRow?.teamId?.teamCode || "N/A" },
               { label: "Department", value: selectedRow?.departmentId?.departmentName || "N/A" },
-              { label: "Team Lead ID", value: selectedRow?.teamId?.teamLead || "N/A" },
+              { label: "Team Lead ID", value: displayUser(selectedRow?.teamId?.teamLead) },
               { 
                 label: "Status", 
                 value: (
@@ -199,23 +259,36 @@ const Adjustments = ({ searchQuery, selectedMonth }) => {
               { label: "Payroll Month", value: `${new Date(2026, (selectedRow?.payrollMonth || 1) - 1, 1).toLocaleString('en-US', { month: 'short' })} ${selectedRow?.payrollYear || 2026}` },
               { label: "Amount", value: `₹${selectedRow?.amount || 0}` },
               { label: "Applied to Payroll", value: selectedRow?.appliedToPayroll ? "Yes" : "No" },
-              { label: "Created By", value: selectedRow?.createdBy || "System" },
+              { label: "Created By", value: displayUser(selectedRow?.createdBy) },
               { label: "Remarks", value: selectedRow?.remarks || "N/A" },
             ]}
           />
         </Section>
 
         <ButtonRow>
-          <DeleteButton onClick={handleDelete}>
+          <DeleteButton type="button" onClick={(event) => { event.stopPropagation(); handleDelete(); }}>
             <MdDelete size={20} />
             Delete
           </DeleteButton>
-          <EditButton onClick={handleEdit}>
+          <EditButton type="button" onClick={(event) => { event.stopPropagation(); handleEdit(); }}>
             <img src={EditIcon} alt="edit" width="16" height="16" />
             Edit details
           </EditButton>
         </ButtonRow>
       </DetailsSidebar>
+
+      {statusModalRow && (
+        <StatusModalOverlay onClick={() => setStatusModalRow(null)}>
+          <StatusModal onClick={(event) => event.stopPropagation()}>
+            <StatusModalTitle>Change Status</StatusModalTitle>
+            {["approved", "rejected", "canceled", "applied"].map((status) => (
+              <StatusModalButton type="button" key={status} onClick={() => handleStatusChange(statusModalRow, status)}>
+                {status === "approved" ? "Approve" : status === "rejected" ? "Reject" : status === "canceled" ? "Cancel" : "Apply to Payroll"}
+              </StatusModalButton>
+            ))}
+          </StatusModal>
+        </StatusModalOverlay>
+      )}
     </Container>
   );
 };
@@ -276,6 +349,79 @@ const ActionButton = styled.button`
 
   &:hover {
     opacity: 0.7;
+  }
+`;
+
+const ActionMenuWrapper = styled.div`
+  position: relative;
+  display: inline-flex;
+`;
+
+const StatusMenu = styled.div`
+  position: absolute;
+  right: 0;
+  top: 2rem;
+  z-index: 10;
+  min-width: 150px;
+  padding: 0.35rem;
+  background: white;
+  border: 1px solid ${theme.colors.border};
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+`;
+
+const StatusMenuItem = styled.button`
+  display: block;
+  width: 100%;
+  padding: 0.55rem 0.7rem;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  color: ${theme.colors.textColor};
+  cursor: pointer;
+  border-radius: 0.35rem;
+
+  &:hover {
+    background: ${theme.colors.secondaryWhite};
+  }
+`;
+
+const StatusModalOverlay = styled.div`
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.35);
+`;
+
+const StatusModal = styled.div`
+  width: min(360px, calc(100vw - 2rem));
+  padding: 1.25rem;
+  background: white;
+  border-radius: 0.75rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+`;
+
+const StatusModalTitle = styled.h3`
+  margin: 0 0 1rem;
+  color: ${theme.colors.textColor};
+`;
+
+const StatusModalButton = styled.button`
+  width: 100%;
+  margin-top: 0.5rem;
+  padding: 0.7rem;
+  border: 1px solid ${theme.colors.border};
+  border-radius: 0.5rem;
+  background: white;
+  color: ${theme.colors.textColor};
+  cursor: pointer;
+  text-align: left;
+
+  &:hover {
+    background: ${theme.colors.secondaryWhite};
   }
 `;
 

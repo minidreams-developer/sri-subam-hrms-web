@@ -11,6 +11,7 @@ import {
   generateStaffId as requestStaffId,
   generateAgentId as requestAgentId,
   getBranches,
+  getRoles,
 } from "../../../services/apiServices";
 import { stateDistrictMap, stateOptions } from "../../../utils/statesAndDistricts";
 import { toast } from "react-toastify";
@@ -22,6 +23,7 @@ const PersonalInfo = forwardRef(({ initialType = "employee", onTypeChange }, ref
       value: initialType,
       label: initialType.charAt(0).toUpperCase() + initialType.slice(1),
     },
+    roleId: "",
     employeeId: "",
     employeeName: "Test Employee",
     gender: { value: "male", label: "Male" },
@@ -64,9 +66,34 @@ const PersonalInfo = forwardRef(({ initialType = "employee", onTypeChange }, ref
   const [branchesLoading, setBranchesLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
+  const fetchRoleId = async (type) => {
+    try {
+      const response = await getRoles({ search: type, page: 1, limit: 100 }, { skipGlobalLoading: true });
+      const roleList = Array.isArray(response)
+        ? response
+        : Array.isArray(response?.results)
+          ? response.results
+          : Array.isArray(response?.data)
+            ? response.data
+            : Array.isArray(response?.data?.results)
+              ? response.data.results
+              : [];
+      const normalizedType = String(type || "").toLowerCase();
+      const role = roleList.find((item) =>
+        String(item?.name || "").toLowerCase().includes(normalizedType)
+      ) || roleList[0];
+      setFormData((prev) => ({ ...prev, roleId: role?.id || role?._id || "" }));
+    } catch (error) {
+      console.error(`Error fetching ${type} role:`, error);
+      setFormData((prev) => ({ ...prev, roleId: "" }));
+      toast.error(`Failed to fetch ${type} role`);
+    }
+  };
+
   // Generate the ID for the default type and load branches once.
   useEffect(() => {
     generateIdForType(formData.employeeType.value);
+    fetchRoleId(formData.employeeType.value);
     fetchBranches();
   }, [initialType]);
 
@@ -356,6 +383,7 @@ const PersonalInfo = forwardRef(({ initialType = "employee", onTypeChange }, ref
                   const type = v?.value || "employee";
                   onTypeChange?.(type);
                   generateIdForType(type);
+                  fetchRoleId(type);
                 }}
                 placeholder="Select Type"
                 styles={customSelectStyles}

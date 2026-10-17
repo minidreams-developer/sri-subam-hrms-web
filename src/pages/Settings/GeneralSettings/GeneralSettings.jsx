@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import SampleProfile from "../../../assets/images/employee/sampleProfile.jpg";
 import EditIcon from "../../../assets/images/employee/edit-05_svgrepo.com.svg";
@@ -9,6 +10,7 @@ import { toast } from "react-toastify";
 const GeneralSettings = () => {
   const [profileData, setProfileData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   const fetchOrganizationData = async () => {
     try {
@@ -18,47 +20,56 @@ const GeneralSettings = () => {
       if (response && response.results && Array.isArray(response.results) && response.results.length > 0) {
         const org = response.results[0];
         setProfileData({
+          id: org.id || org._id,
           companyName: org.companyName || "",
           email: org.email || "",
           mobileNumber: org.phone || "",
           gst: org.gst || "",
           pan: org.pan || "",
           tan: org.tan || "",
+          organizationLogo: org.organizationLogo || "",
           address1: org.address?.addressLine1 || "",
           address2: org.address?.addressLine2 || "",
           city: org.address?.city || "",
           state: org.address?.state || "",
           zipCode: org.address?.pincode || "",
+          country: org.address?.country || "",
         });
       } else if (Array.isArray(response) && response.length > 0) {
         const org = response[0];
         setProfileData({
+          id: org.id || org._id,
           companyName: org.companyName || "",
           email: org.email || "",
           mobileNumber: org.phone || "",
           gst: org.gst || "",
           pan: org.pan || "",
           tan: org.tan || "",
+          organizationLogo: org.organizationLogo || "",
           address1: org.address?.addressLine1 || "",
           address2: org.address?.addressLine2 || "",
           city: org.address?.city || "",
           state: org.address?.state || "",
           zipCode: org.address?.pincode || "",
+          country: org.address?.country || "",
         });
       } else if (response && typeof response === "object") {
         const org = response;
         setProfileData({
+          id: org.id || org._id,
           companyName: org.companyName || "",
           email: org.email || "",
           mobileNumber: org.phone || "",
           gst: org.gst || "",
           pan: org.pan || "",
           tan: org.tan || "",
+          organizationLogo: org.organizationLogo || "",
           address1: org.address?.addressLine1 || "",
           address2: org.address?.addressLine2 || "",
           city: org.address?.city || "",
           state: org.address?.state || "",
           zipCode: org.address?.pincode || "",
+          country: org.address?.country || "",
         });
       }
     } catch (error) {
@@ -74,7 +85,9 @@ const GeneralSettings = () => {
   }, []);
 
   const handleEditPicture = () => {
-    console.log("Edit picture clicked");
+    navigate("/admin/settings/organizationDetails", {
+      state: { organization: profileData },
+    });
   };
 
   if (loading) {
@@ -92,14 +105,16 @@ const GeneralSettings = () => {
       <Section>
         {/* Personal Information */}
         <SubSection>
-          <SectionTitle>Personal Information</SectionTitle>
+          <SectionHeader>
+            <SectionTitle>Personal Information</SectionTitle>
+            <EditPictureButton type="button" onClick={handleEditPicture}>
+              <img src={EditIcon} alt="edit" width="16" height="16" />
+              Edit
+            </EditPictureButton>
+          </SectionHeader>
           <PersonalInfoCard>
             <LeftSection>
-              <ProfileImage src={SampleProfile} alt="Profile" />
-              <EditPictureButton onClick={handleEditPicture}>
-                <img src={EditIcon} alt="edit" width="16" height="16" />
-                Edit Picture
-              </EditPictureButton>
+              <ProfileImage src={profileData?.organizationLogo || SampleProfile} alt="Organization logo" />
             </LeftSection>
             <RightSection>
               <InfoGrid>
@@ -197,6 +212,12 @@ const SectionTitle = styled.h2`
   margin: 0;
 `;
 
+const SectionHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+`;
+
 const PersonalInfoCard = styled.div`
   display: flex;
   gap: 2rem;
@@ -225,7 +246,9 @@ const ProfileImage = styled.img`
 `;
 
 const EditPictureButton = styled.button`
-  width: 100%;
+  width: auto;
+  min-width: 86px;
+  padding: 0 1rem;
   height: 44px;
   border: none;
   border-radius: 0.5rem;

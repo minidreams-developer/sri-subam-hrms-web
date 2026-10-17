@@ -76,11 +76,11 @@ const AddDepartmentModal = ({ isOpen, onClose, onSave, isEditMode = false, editi
     setIsFetchingUsers(true);
     try {
       console.log("Fetching users from GET /v1/users");
-      const response = await getUsers();
+      const response = await getUsers({ page: 1, limit: 100 });
       console.log("Users fetched:", response);
 
       // Map users to dropdown options
-      const users = response?.results || response || [];
+      const users = response?.results || response?.data || response?.users || response || [];
       const options = users.map((user) => ({
         value: user.id || user._id,
         label: user.name || user.email || "Unknown",
@@ -95,13 +95,7 @@ const AddDepartmentModal = ({ isOpen, onClose, onSave, isEditMode = false, editi
     } catch (error) {
       console.error("Error fetching department heads:", error);
       toast.error("Failed to fetch users for department head");
-      // Set fallback options
-      setDepartmentHeadOptions([
-        { value: "manoj_kumar", label: "Manoj Kumar" },
-        { value: "deepak_kumar", label: "Deepak Kumar" },
-        { value: "john_doe", label: "John Doe" },
-        { value: "jane_smith", label: "Jane Smith" },
-      ]);
+      setDepartmentHeadOptions([]);
     } finally {
       setIsFetchingUsers(false);
     }

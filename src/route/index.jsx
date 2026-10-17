@@ -271,6 +271,14 @@ const privateRoutes = [
         element: <AddSeriesPage />,
       },
       {
+        path: "settings/seriesConfiguration/edit/:seriesId",
+        element: <AddSeriesPage mode="edit" />,
+      },
+      {
+        path: "settings/seriesConfiguration/view/:seriesId",
+        element: <AddSeriesPage mode="view" />,
+      },
+      {
         path: "contractors/overview",
         element: <ContractorOverview />,
       },

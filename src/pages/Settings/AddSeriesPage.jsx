@@ -1,10 +1,12 @@
 import { useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
 import styled from "styled-components";
 import AddNewSeries from "../../components/addnewseries";
 
-const AddSeriesPage = () => {
+const AddSeriesPage = ({ mode = "add" }) => {
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleClose = () => {
     navigate("/admin/settings/seriesConfiguration");
@@ -18,7 +20,12 @@ const AddSeriesPage = () => {
 
   return (
     <PageWrapper>
-      <AddNewSeries onClose={handleClose} onSave={handleSave} />
+      <AddNewSeries
+        onClose={handleClose}
+        onSave={handleSave}
+        initialData={location.state?.series}
+        mode={mode}
+      />
     </PageWrapper>
   );
 };

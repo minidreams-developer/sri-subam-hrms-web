@@ -3,7 +3,7 @@ import styled from "styled-components";
 import TableToolbar from "../../../components/TableToolbar";
 import ReusableTable from "../../../components/ReusableTable";
 import PlusIcon from "../../../assets/images/DashboardImages/plus-large_svgrepo.com.svg";
-import { createDesignation, generateDesignationId, getDesignation, getDesignations, updateDesignation } from "../../../services/apiServices";
+import { createDesignation, deleteDesignation, generateDesignationId, getDesignation, getDesignations, updateDesignation } from "../../../services/apiServices";
 import { toast } from "react-toastify";
 import InputComponent from "../../../components/InputComponent";
 import Button from "../../../components/Button";
@@ -62,15 +62,31 @@ const Designations = () => {
     }
   };
 
+  const remove = async (row) => {
+    if (!window.confirm(`Delete ${row.designationName}?`)) return;
+    try {
+      await deleteDesignation(row.id);
+      toast.success("Designation deleted successfully");
+      load(page, search);
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to delete designation");
+    }
+  };
+
   const columns = [
     { key: "no", label: "No" }, { key: "designationName", label: "Designation" },
     { key: "designationCode", label: "Code" }, { key: "description", label: "Description" },
-    { key: "status", label: "Status", render: (row) => <Status $active={row.isActive}>{row.status}</Status> },
-    { key: "actions", label: "Action", render: (row) => <ActionButton type="button" $active={row.isActive} onClick={(event) => { event.stopPropagation(); toggleStatus(row); }}>{row.isActive ? "Deactivate" : "Activate"}</ActionButton> },
+    { key: "status", label: "Status", render: (row) => (
+      <StatusToggle type="button" $active={row.isActive} onClick={(event) => { event.stopPropagation(); toggleStatus(row); }}>
+        <ToggleKnob $active={row.isActive} />
+        {row.status}
+      </StatusToggle>
+    ) },
+    { key: "actions", label: "Action", useDefaultActionMenu: true, align: "right" },
   ];
   return <Container>
     <TableToolbar searchPosition="left" searchPlaceholder="Search Designation" searchValue={search} onSearchChange={(value) => { setPage(1); setSearch(value); }} showFilter={false} actionText="New Designation" actionIcon={<img src={PlusIcon} alt="add" width="16" height="16" />} onActionClick={() => setModal({})} />
-    <ReusableTable columns={columns} data={rows} isLoading={loading} server totalPages={totalPages} currentPage={page} onPageChange={setPage} rowsPerPage={10} alwaysShowPagination onEdit={edit} />
+    <ReusableTable columns={columns} data={rows} isLoading={loading} server totalPages={totalPages} currentPage={page} onPageChange={setPage} rowsPerPage={10} alwaysShowPagination onView={edit} onEdit={edit} onDelete={remove} />
     {modal && <DesignationModal initial={modal} onClose={() => setModal(null)} onSave={save} />}
   </Container>;
 };
@@ -111,5 +127,6 @@ const FieldLabel = styled.label`display:block; margin-bottom:.625rem; font-size:
 const Description = styled.textarea`width:100%; min-height:90px; box-sizing:border-box; padding:.75rem 1rem; border:1px solid #e7e7e7; border-radius:.625rem; resize:vertical; font:400 .875rem Inter,sans-serif; outline:none; &:focus{border:2px solid #066c78;}`;
 const Actions = styled.div`display:flex; justify-content:flex-end; gap:10px; margin-top:20px;`;
 const Status = styled.span`color:${({ $active }) => $active ? "#16805c" : "#b42318"}; font-weight:600;`;
-const ActionButton = styled.button`border:0; border-radius:6px; padding:8px 12px; cursor:pointer; color:#fff; background:${({ $active }) => $active ? "#b42318" : "#16805c"};`;
+const StatusToggle = styled.button`display:inline-flex; align-items:center; gap:.4rem; border:0; background:transparent; color:${({ $active }) => $active ? "#16805c" : "#b42318"}; font:inherit; font-weight:600; cursor:pointer; padding:.25rem 0;`;
+const ToggleKnob = styled.span`width:28px; height:16px; border-radius:999px; background:${({ $active }) => $active ? "#16805c" : "#9ca3af"}; position:relative; &::after{content:""; position:absolute; top:2px; left:${({ $active }) => $active ? "14px" : "2px"}; width:12px; height:12px; border-radius:50%; background:#fff; transition:left .2s ease;}`;
 export default Designations;

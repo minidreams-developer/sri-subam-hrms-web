@@ -4,7 +4,7 @@ import styled from "styled-components";
 import TableToolbar from "../../../components/TableToolbar";
 import ReusableTable from "../../../components/ReusableTable";
 import PlusIcon from "../../../assets/images/DashboardImages/plus-large_svgrepo.com.svg";
-import { deleteRole, getRoles } from "../../../services/apiServices";
+import { deleteRole, getRoles, updateRole } from "../../../services/apiServices";
 import { toast } from "react-toastify";
 import theme from "../../../theme/theme";
 
@@ -54,14 +54,24 @@ const Roles = () => {
       header: "Status",
       key: "isActive",
       render: (row) => (
-        <StatusBadge $status={row.isActive ? "Active" : "Inactive"}>
+        <StatusToggle
+          type="button"
+          $active={row.isActive !== false}
+          onClick={(event) => {
+            event.stopPropagation();
+            handleToggleRole(row);
+          }}
+        >
+          <ToggleKnob $active={row.isActive !== false} />
           {row.isActive ? "Active" : "Inactive"}
-        </StatusBadge>
+        </StatusToggle>
       ),
     },
     {
       header: "Action",
       key: "actions",
+      useDefaultActionMenu: true,
+      align: "right",
     },
   ];
 
@@ -95,6 +105,25 @@ const Roles = () => {
       toast.success("Role deleted successfully");
     } catch (error) {
       toast.error(error.response?.data?.message || "Failed to delete role");
+    }
+  };
+
+  const handleToggleRole = async (role) => {
+    const roleId = role.id || role._id;
+    if (!roleId) {
+      toast.error("Role ID is missing");
+      return;
+    }
+
+    const isActive = role.isActive === false;
+    try {
+      await updateRole(roleId, { isActive });
+      setRolesData((current) => current.map((item) =>
+        (item.id || item._id) === roleId ? { ...item, isActive } : item,
+      ));
+      toast.success(`Role ${isActive ? "activated" : "deactivated"} successfully`);
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to update role status");
     }
   };
 
@@ -159,6 +188,39 @@ const StatusBadge = styled.span`
   font-weight: 500;
   color: ${(props) => (props.$status === "Active" ? "#10B981" : "#EF4444")};
   background: transparent;
+`;
+
+const StatusToggle = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border: none;
+  background: transparent;
+  color: ${({ $active }) => ($active ? "#10B981" : "#EF4444")};
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 0.25rem 0;
+`;
+
+const ToggleKnob = styled.span`
+  width: 28px;
+  height: 16px;
+  border-radius: 999px;
+  background: ${({ $active }) => ($active ? "#10B981" : "#9CA3AF")};
+  position: relative;
+
+  &::after {
+    content: "";
+    position: absolute;
+    top: 2px;
+    left: ${({ $active }) => ($active ? "14px" : "2px")};
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: white;
+    transition: left 0.2s ease;
+  }
 `;
 
 const LoadingText = styled.div`

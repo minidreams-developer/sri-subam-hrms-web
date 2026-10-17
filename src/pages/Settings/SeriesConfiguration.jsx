@@ -48,9 +48,22 @@ const SeriesConfiguration = () => {
     navigate("/admin/settings/seriesConfiguration/add");
   };
 
-  const handleActionClick = (row) => {
-    // TODO: Implement edit/delete functionality
-    console.log("Action clicked for:", row);
+  const handleActionClick = (row, action) => {
+    const seriesId = row._id || row.id || row.seriesId;
+    if (!seriesId) {
+      toast.error("Series ID is missing");
+      return;
+    }
+
+    if (action === "view") {
+      navigate(`/admin/settings/seriesConfiguration/view/${seriesId}`, {
+        state: { series: row },
+      });
+    } else if (action === "edit") {
+      navigate(`/admin/settings/seriesConfiguration/edit/${seriesId}`, {
+        state: { series: row },
+      });
+    }
   };
 
   const filteredData = seriesList.filter((item) =>

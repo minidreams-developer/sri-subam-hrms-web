@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import ReusableTable from "../../../components/ReusableTable";
-import { deleteLeaveRequest, getLeaveRequests } from "../../../services/apiServices";
+import { deleteLeaveRequest, getLeaveRequests, updateLeaveRequestStatus } from "../../../services/apiServices";
 import TableToolbar from "../../../components/TableToolbar";
 import PlusIcon from "../../../assets/images/DashboardImages/plus-large_svgrepo.com.svg";
 import { toast } from "react-toastify";
@@ -15,7 +15,22 @@ const Permissions = () => {
     { header: "Total Hrs", accessor: "type" },
     { header: "From", accessor: "from" },
     { header: "To", accessor: "to" },
-    { header: "Status", accessor: "status" }, { header: "Action", accessor: "actions" },
+    { header: "Status", accessor: "status" },
+    {
+      header: "Approval",
+      key: "approvalActions",
+      render: (row) => String(row.status).toLowerCase() !== "pending" ? (
+        <span style={{ color: String(row.status).toLowerCase() === "approved" ? "#087c86" : "#dc2626", fontWeight: 600, fontSize: "0.75rem", textTransform: "capitalize" }}>
+          {row.status}
+        </span>
+      ) : (
+        <div style={{ display: "flex", gap: "0.4rem", alignItems: "center" }}>
+          <button type="button" style={{ background: "#fee2e2", color: "#dc2626", border: "none", borderRadius: "0.375rem", padding: "0.45rem 0.65rem", fontSize: "0.625rem", fontWeight: 600, cursor: "pointer" }} onClick={(event) => { event.stopPropagation(); handlePermissionStatus(row, "rejected"); }}>Reject</button>
+          <button type="button" style={{ background: "#087c86", color: "#fff", border: "none", borderRadius: "0.375rem", padding: "0.45rem 0.65rem", fontSize: "0.625rem", fontWeight: 600, cursor: "pointer" }} onClick={(event) => { event.stopPropagation(); handlePermissionStatus(row, "approved"); }}>Approve</button>
+        </div>
+      ),
+    },
+    { header: "Action", key: "actions", accessor: "actions", useDefaultActionMenu: true },
   ];
 
   const [permissionData, setPermissionData] = useState([]);
@@ -78,6 +93,16 @@ const Permissions = () => {
     navigate("/admin/time-hub/leaveAttendance/add-LeaveOrPermissions?type=permission");
   };
 
+  const handlePermissionStatus = async (row, status) => {
+    try {
+      await updateLeaveRequestStatus(row.id, status);
+      setPermissionData((items) => items.map((item) => item.id === row.id ? { ...item, status } : item));
+      toast.success(`Permission ${status}`);
+    } catch (error) {
+      toast.error(error.response?.data?.message || `Failed to ${status} permission`);
+    }
+  };
+
   const filtered = permissionData.filter((row) => {
     const m1 =
       leaveType === "All Types" ||
@@ -120,10 +145,11 @@ const Permissions = () => {
         totalResults={totalResults}
         currentPage={currentPage}
         totalPages={totalPages}
+        server
         onPageChange={setCurrentPage}
         onPageSizeChange={setPageSize}
         alwaysShowPagination
-        loading={loading}
+        isLoading={loading}
         onView={(row) => navigate("/admin/time-hub/leaveAttendance/edit-Leave", { state: { leave: row.raw, leaveId: row.id, returnTo: "/admin/time-hub/leaveAttendance", returnTab: "Permissions", readOnly: true } })}
         onEdit={(row) => navigate("/admin/time-hub/leaveAttendance/edit-Leave", { state: { leave: row.raw, leaveId: row.id, returnTo: "/admin/time-hub/leaveAttendance", returnTab: "Permissions" } })}
         onDelete={async (row) => { if (!window.confirm("Delete this permission?")) return; try { await deleteLeaveRequest(row.id); setPermissionData((items) => items.filter((item) => item.id !== row.id)); toast.success("Permission deleted"); } catch (error) { toast.error(error.response?.data?.message || "Failed to delete permission"); } }}

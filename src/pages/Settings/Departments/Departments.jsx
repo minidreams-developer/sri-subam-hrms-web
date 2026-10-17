@@ -4,9 +4,7 @@ import TableToolbar from "../../../components/TableToolbar";
 import ReusableTable from "../../../components/ReusableTable";
 import AddDepartmentModal from "../../../components/AddDepartmentModal";
 import PlusIcon from "../../../assets/images/DashboardImages/plus-large_svgrepo.com.svg";
-import EditIcon from "../../../assets/images/employee/editIcon.svg";
-import DeleteIcon from "../../../assets/images/employee/Cross.svg";
-import { deleteDepartment, getDepartments } from "../../../services/apiServices";
+import { deleteDepartment, getDepartments, updateDepartment } from "../../../services/apiServices";
 import { toast } from "react-toastify";
 
 const Departments = () => {
@@ -60,7 +58,8 @@ const Departments = () => {
           deptId: dept.departmentCode,
           department: dept.departmentName,
           head: headName,
-          status: "Active",
+          status: dept.isActive === false ? "Inactive" : "Active",
+          isActive: dept.isActive !== false,
           description: dept.departmentDescription,
           rawDept: dept, // Keep raw data for debugging
         };
@@ -101,28 +100,25 @@ const Departments = () => {
     {
       header: "Status",
       key: "status",
-      render: (row) => <StatusBadge $status={row.status}>{row.status}</StatusBadge>,
+      render: (row) => (
+        <StatusToggle
+          type="button"
+          role="switch"
+          aria-checked={row.isActive}
+          $active={row.isActive}
+          onClick={() => handleToggleStatus(row)}
+          title={`Set ${row.isActive ? "Inactive" : "Active"}`}
+        >
+          <ToggleKnob $active={row.isActive} />
+          {row.isActive ? "Active" : "Inactive"}
+        </StatusToggle>
+      ),
     },
     {
       header: "Action",
       key: "actions",
-      render: (row) => (
-        <ActionIcons>
-          <IconButton 
-            onClick={(e) => handleEditDepartment(e, row.id)}
-            title="Edit"
-          >
-            <img src={EditIcon} alt="edit" width="18" height="18" />
-          </IconButton>
-          <IconButton 
-            onClick={(e) => handleDeleteDepartment(e, row.id)}
-            title="Delete"
-            $delete
-          >
-            <img src={DeleteIcon} alt="delete" width="18" height="18" />
-          </IconButton>
-        </ActionIcons>
-      ),
+      useDefaultActionMenu: true,
+      align: "right",
     },
   ];
 
@@ -132,15 +128,15 @@ const Departments = () => {
     setIsModalOpen(true);
   };
 
-  const handleEditDepartment = (e, departmentId) => {
-    e.stopPropagation();
+  const handleEditDepartment = (row) => {
+    const departmentId = row.id;
     setEditingDepartmentId(departmentId);
     setIsEditMode(true);
     setIsModalOpen(true);
   };
 
-  const handleDeleteDepartment = async (e, departmentId) => {
-    e.stopPropagation();
+  const handleDeleteDepartment = async (row) => {
+    const departmentId = row.id;
     // Confirmation dialog before delete
     if (window.confirm("Are you sure you want to delete this department?")) {
       try {
@@ -154,6 +150,18 @@ const Departments = () => {
         toast.error(errorMessage);
         console.error("Delete department error:", error);
       }
+    }
+  };
+
+  const handleToggleStatus = async (row) => {
+    const nextIsActive = !row.isActive;
+    try {
+      await updateDepartment(row.id, { isActive: nextIsActive });
+      toast.success(`Department ${nextIsActive ? "activated" : "deactivated"} successfully!`);
+      fetchDepartments(currentPage, searchQuery);
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to update department status");
+      console.error("Department status update error:", error);
     }
   };
 
@@ -198,6 +206,8 @@ const Departments = () => {
             totalPages={totalPages}
             currentPage={currentPage}
             onPageChange={handlePageChange}
+            onEdit={handleEditDepartment}
+            onDelete={handleDeleteDepartment}
             rowsPerPage={itemsPerPage}
             alwaysShowPagination={true}
           />
@@ -250,36 +260,35 @@ const StatusBadge = styled.span`
   background: transparent;
 `;
 
-const ActionIcons = styled.div`
-  display: flex;
+const StatusToggle = styled.button`
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  gap: 0.75rem;
-  padding: 0.5rem;
+  gap: 0.4rem;
+  border: none;
+  background: transparent;
+  color: ${({ $active }) => ($active ? "#10B981" : "#EF4444")};
+  font: inherit;
+  cursor: pointer;
+  padding: 0.25rem 0;
 `;
 
-const IconButton = styled.button`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  padding: 0;
-  background: ${({ $delete }) => $delete ? "#fee2e2" : "#edf6f9"};
-  border: 1px solid ${({ $delete }) => $delete ? "#fecaca" : "#d1e7ed"};
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.2s;
+const ToggleKnob = styled.span`
+  width: 28px;
+  height: 16px;
+  border-radius: 999px;
+  background: ${({ $active }) => ($active ? "#10B981" : "#9CA3AF")};
+  position: relative;
 
-  &:hover {
-    background: ${({ $delete }) => $delete ? "#fecaca" : "#d1e7ed"};
-    transform: scale(1.05);
-  }
-
-  img {
-    width: 18px;
-    height: 18px;
-    object-fit: contain;
+  &::after {
+    content: "";
+    position: absolute;
+    top: 2px;
+    left: ${({ $active }) => ($active ? "14px" : "2px")};
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: white;
+    transition: left 0.2s ease;
   }
 `;
 

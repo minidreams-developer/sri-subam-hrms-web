@@ -13,6 +13,7 @@ import { getStoredAuthUser } from "../../helpers/auth_helper";
 import theme from "../../theme/theme";
 import megaphoneIcon from "../../assets/images/dashboardImages/megaphone_svgrepo.com.svg";
 import uploadIcon from "../../assets/images/Common/upload.svg";
+import { uploadMedia } from "../../helpers/uploadMedia";
 
 const Announcement = () => {
   const { setHeaderTitle, setHeaderBackAction } = useOutletContext();
@@ -35,6 +36,7 @@ const Announcement = () => {
   });
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const [isDragging, setIsDragging] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [failedImages, setFailedImages] = useState({});
 
   const closeForm = () => {
@@ -115,7 +117,7 @@ const Announcement = () => {
             ? announcement.images.map(img => ({
                 _id: img._id,
                 imgName: img.imgName,
-                imgUrl: img.imgUrl
+                imgUrl: img.imgUrl || img.imageUrl || img.url
               }))
             : [];
           
@@ -166,28 +168,37 @@ const Announcement = () => {
     fetchAnnouncements();
   }, [filter]);
 
+  const uploadAnnouncementFiles = async (files) => {
+    if (!files.length) return;
+    setIsUploading(true);
+    try {
+      const newFiles = await Promise.all(files.map(async (file) => {
+        const uploaded = await uploadMedia(file);
+        return {
+          id: Date.now() + Math.random(),
+          name: file.name,
+          type: file.type,
+          imgUrl: uploaded.url,
+        };
+      }));
+      setUploadedFiles((current) => [...current, ...newFiles]);
+      toast.success("Image uploaded successfully");
+    } catch (error) {
+      toast.error(error.response?.data?.message || error.message || "Failed to upload image");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const handleFileSelect = (e) => {
-    const files = Array.from(e.target.files);
-    const newFiles = files.map(file => ({
-      id: Date.now() + Math.random(),
-      file,
-      name: file.name,
-      type: file.type
-    }));
-    setUploadedFiles([...uploadedFiles, ...newFiles]);
+    uploadAnnouncementFiles(Array.from(e.target.files));
+    e.target.value = "";
   };
 
   const handleDrop = (e) => {
     e.preventDefault();
     setIsDragging(false);
-    const files = Array.from(e.dataTransfer.files);
-    const newFiles = files.map(file => ({
-      id: Date.now() + Math.random(),
-      file,
-      name: file.name,
-      type: file.type
-    }));
-    setUploadedFiles([...uploadedFiles, ...newFiles]);
+    uploadAnnouncementFiles(Array.from(e.dataTransfer.files));
   };
 
   const handleDragOver = (e) => {
@@ -217,15 +228,10 @@ const Announcement = () => {
     setIsSubmitting(true);
 
     try {
-      // Blob URLs only live in the current browser session. Persist the file
-      // contents so announcements still render after a refresh.
-      const images = await Promise.all(
-        uploadedFiles.map(async (file, index) => ({
-          ...(file._id ? { _id: file._id } : {}),
+      const images = uploadedFiles.map((file, index) => ({
           imgName: file.name?.split('.')[0] || `image-${index}`,
-          imgUrl: file.file ? await fileToDataUrl(file.file) : file.imgUrl,
-        })),
-      );
+          imgUrl: file.imgUrl,
+        }));
 
       // Build payload according to API spec
       const payload = {
@@ -279,7 +285,7 @@ const Announcement = () => {
                 ? announcement.images.map(img => ({
                     _id: img._id,
                     imgName: img.imgName,
-                    imgUrl: img.imgUrl
+                    imgUrl: img.imgUrl || img.imageUrl || img.url
                   }))
                 : []
             };
@@ -406,6 +412,9 @@ const Announcement = () => {
               <UploadedFilesList>
                 {uploadedFiles.map(file => (
                   <UploadedFile key={file.id}>
+                    {file.imgUrl && (
+                      <UploadedImagePreview src={file.imgUrl} alt={file.name} />
+                    )}
                     <FileName>{file.name}</FileName>
                     <RemoveButton onClick={() => removeFile(file.id)}>×</RemoveButton>
                   </UploadedFile>
@@ -448,8 +457,8 @@ const Announcement = () => {
               <CancelButton type="button" onClick={closeForm} disabled={isSubmitting}>
                 Cancel
               </CancelButton>
-              <PublishButton type="button" onClick={handlePublish} disabled={isSubmitting}>
-                {isSubmitting ? (editingAnnouncement ? "Updating..." : "Publishing...") : (editingAnnouncement ? "Update" : "Publish")}
+              <PublishButton type="button" onClick={handlePublish} disabled={isSubmitting || isUploading}>
+                {isUploading ? "Uploading..." : isSubmitting ? (editingAnnouncement ? "Updating..." : "Publishing...") : (editingAnnouncement ? "Update" : "Publish")}
               </PublishButton>
             </ButtonGroup>
           </Footer>
@@ -1069,6 +1078,15 @@ const UploadedFile = styled.div`
   background: ${theme.colors.bgColor};
   border: 1px solid ${theme.colors.border};
   border-radius: 6px;
+`;
+
+const UploadedImagePreview = styled.img`
+  width: 56px;
+  height: 56px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid ${theme.colors.border};
+  margin-right: 0.75rem;
 `;
 
 const SchedulePanel = styled.div`

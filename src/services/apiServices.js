@@ -25,6 +25,12 @@ export const deleteRole = (id) => data(api.delete(`/v1/roles/${id}`));
 
 // Users, employees, staff, and agents
 export const getUsers = (params, config) => list("/v1/users", params, config);
+export const exportUsers = (params, config) =>
+  data(api.get("/v1/users/export", {
+    ...config,
+    params: cleanParams(params),
+    responseType: "blob",
+  }));
 export const getUserDropdown = (params, config) =>
   list("/v1/users/dropdown", params, config);
 
@@ -328,6 +334,15 @@ export const getAdjustmentStats = (params) =>
 export const createAdjustment = (payload) =>
   data(api.post("/v1/adjustments", payload));
 
+export const deleteAdjustment = (adjustmentId) =>
+  data(api.delete(`/v1/payroll/adjustments/${encodeURIComponent(adjustmentId)}`));
+
+export const updateAdjustment = (adjustmentId, payload) =>
+  data(api.patch(`/v1/payroll/adjustments/${encodeURIComponent(adjustmentId)}`, payload));
+
+export const updateAdjustmentStatus = (adjustmentId, status) =>
+  data(api.patch(`/v1/payroll/adjustments/${encodeURIComponent(adjustmentId)}/status`, { status }));
+
 // Offboarding, leaderboard, dashboard, and settings
 export const getOffboards = (params) => list("/v1/off-board", params);
 export const getOffboardSummary = (params) =>
@@ -362,6 +377,9 @@ export const getOrganizations = (params) => list("/v1/organizations", params);
 export const createOrganization = (payload) =>
   data(api.post("/v1/organizations", payload));
 
+export const updateOrganization = (id, payload) =>
+  data(api.patch(`/v1/organizations/${id}`, payload));
+
 export const getDaySettings = (params) => list("/v1/day-settings", params);
 
 export const createDaySettings = (payload) =>
@@ -375,6 +393,9 @@ export const getSeriesConfigurations = (params) =>
 
 export const createSeriesConfiguration = (payload) =>
   data(api.post("/v1/seriesConfiguration", payload));
+
+export const updateSeriesConfiguration = (id, payload) =>
+  data(api.patch(`/v1/seriesConfiguration/${id}`, payload));
 
 // Assets, announcements, and contractors
 export const getEmployeeAssets = (employeeId, params) =>

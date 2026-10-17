@@ -152,10 +152,11 @@ const StaffLeaves = () => {
         totalResults={totalResults}
         currentPage={currentPage}
         totalPages={totalPages}
+        server
         onPageChange={setCurrentPage}
         onPageSizeChange={setPageSize}
         alwaysShowPagination
-        loading={loading}
+        isLoading={loading}
         onView={(row) => navigate("/admin/time-hub/leaveAttendance/edit-Leave", { state: { leave: row.raw, leaveId: row.id, returnTo: "/admin/time-hub/leaveAttendance", returnTab: "Staffs Leaves", readOnly: true } })}
         onEdit={(row) => navigate("/admin/time-hub/leaveAttendance/edit-Leave", { state: { leave: row.raw, leaveId: row.id, returnTo: "/admin/time-hub/leaveAttendance", returnTab: "Staffs Leaves" } })}
         onDelete={async (row) => { if (!window.confirm("Delete this leave request?")) return; try { await deleteLeaveRequest(row.id); setStaffLeaveData((items) => items.filter((item) => item.id !== row.id)); toast.success("Leave request deleted"); } catch (error) { toast.error(error.response?.data?.message || "Failed to delete leave request"); } }}

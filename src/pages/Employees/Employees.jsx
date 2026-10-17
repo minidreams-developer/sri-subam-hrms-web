@@ -9,7 +9,7 @@ import TableToolbar from "../../components/TableToolbar";
 import PlusIcon from "../../assets/images/DashboardImages/plus-large_svgrepo.com.svg";
 import TabSwitcher from "../../components/TabSwitcher";
 import Filter from "../../components/filter";
-import { deleteUser, getDepartments, getDesignationDropdown, getShifts, getUserCount, getUsers } from "../../services/apiServices";
+import { deleteUser, exportUsers, getDepartments, getDesignationDropdown, getShifts, getUserCount, getUsers } from "../../services/apiServices";
 import { toast } from "react-toastify";
 import DeleteConfirmationModal from "../../components/DeleteConfirmationModal";
 import { employeeTableColumns, staffTableColumns } from "../../utils/data";
@@ -57,6 +57,7 @@ const Employees = () => {
   const [employeeToDelete, setEmployeeToDelete] = useState(null);
   const [staffToDelete, setStaffToDelete] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   // Handle navigation state from Create Employee/Staff pages
   useEffect(() => {
@@ -424,6 +425,42 @@ const Employees = () => {
     });
   };
 
+  const handleExport = async () => {
+    const role = activeTab === "Employee" ? "employee" : "staff";
+    const query = {
+      role,
+      sortBy,
+    };
+
+    if (activeTab === "Employee") {
+      if (employeeSearch.trim()) query.search = employeeSearch.trim();
+      if (employeeDept !== "All Department") query.departmentId = employeeDept;
+      if (employeeShift !== "All Shifts") query.shiftId = employeeShift;
+    } else {
+      if (staffSearch.trim()) query.search = staffSearch.trim();
+      if (staffRole !== "All Roles") query.designationId = staffRole;
+      if (staffShift !== "All Shifts") query.shiftId = staffShift;
+    }
+
+    setIsExporting(true);
+    try {
+      const blob = await exportUsers(query);
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `users-${role}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success("User export downloaded");
+    } catch (error) {
+      toast.error(error.response?.data?.message || error.message || "Failed to export users");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   const handleFilterOpen = () => {
     setShowFilter(true);
   };
@@ -531,12 +568,14 @@ const Employees = () => {
             />
           </FilterSelect>
           <Button
-            text="Export Data"
+            text={isExporting ? "Exporting..." : "Export Data"}
             bg={theme.colors.white}
             color={theme.colors.primary}
             border={`1px solid ${theme.colors.primary}`}
             width="9.625rem"
             radius="0.625rem"
+            onClick={handleExport}
+            disabled={isExporting}
           />
         </Controls>
       </Top>

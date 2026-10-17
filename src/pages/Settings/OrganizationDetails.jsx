@@ -1,14 +1,19 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import theme from "../../theme/theme";
 import InputComponent from "../../components/InputComponent";
 import Button from "../../components/Button";
 import UploadIconSvg from "../../assets/images/Common/upload.svg";
 import { toast } from "react-toastify";
-import { createOrganization } from "../../services/apiServices";
+import { createOrganization, updateOrganization } from "../../services/apiServices";
 import { uploadMedia } from "../../helpers/uploadMedia";
 
 const OrganizationDetails = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const organization = location.state?.organization;
+  const organizationId = organization?.id;
   const [formData, setFormData] = useState({
     companyName: "",
     gst: "",
@@ -28,6 +33,25 @@ const OrganizationDetails = () => {
   const [logoUrl, setLogoUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [logoUploading, setLogoUploading] = useState(false);
+
+  useEffect(() => {
+    if (!organization) return;
+    setFormData({
+      companyName: organization.companyName || "",
+      gst: organization.gst || "",
+      pan: organization.pan || "",
+      tan: organization.tan || "",
+      email: organization.email || "",
+      mobileNumber: organization.mobileNumber || "",
+      address1: organization.address1 || "",
+      address2: organization.address2 || "",
+      city: organization.city || "",
+      state: organization.state || "",
+      pinCode: organization.zipCode || "",
+      country: organization.country || "",
+    });
+    setLogoUrl(organization.organizationLogo || "");
+  }, [organization]);
 
   const handleChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -57,7 +81,7 @@ const OrganizationDetails = () => {
   };
 
   const handleCancel = () => {
-    console.log("Cancel clicked");
+    navigate(-1);
   };
 
   const handleSave = async () => {
@@ -67,8 +91,12 @@ const OrganizationDetails = () => {
       // Prepare payload according to API specs
       const payload = {
         companyName: formData.companyName,
-        ...(logoUrl ? { logo: logoUrl } : {}),
+        organizationLogo: logoUrl,
+        gst: formData.gst,
+        pan: formData.pan,
+        tan: formData.tan,
         email: formData.email,
+        phone: formData.mobileNumber,
         address: {
           addressLine1: formData.address1,
           addressLine2: formData.address2,
@@ -79,17 +107,12 @@ const OrganizationDetails = () => {
         },
       };
 
-      // Remove any undefined values
-      Object.keys(payload.address).forEach(
-        (key) => !payload.address[key] && delete payload.address[key]
-      );
-      Object.keys(payload).forEach(
-        (key) => !payload[key] && key !== "address" && delete payload[key]
-      );
-
-      const response = await createOrganization(payload);
+      const response = organizationId
+        ? await updateOrganization(organizationId, payload)
+        : await createOrganization(payload);
       toast.success("Organization details saved successfully!");
       console.log("API response:", response);
+      navigate("/admin/settings/generalSettings");
     } catch (error) {
       console.error("Error saving organization details:", error);
       toast.error(
@@ -112,8 +135,12 @@ const OrganizationDetails = () => {
             <FullWidthField>
               <Label>Organization Logo</Label>
               <UploadArea onClick={() => document.getElementById("logoUpload").click()}>
-                <img src={UploadIconSvg} alt="upload" width="32" height="32" />
-                <UploadText>{logoUploading ? "Uploading..." : "Upload Image"}</UploadText>
+                {logoUrl ? (
+                  <LogoPreview src={logoUrl} alt="Organization logo" />
+                ) : (
+                  <img src={UploadIconSvg} alt="upload" width="32" height="32" />
+                )}
+                <UploadText>{logoUploading ? "Uploading..." : logoUrl ? "Change Image" : "Upload Image"}</UploadText>
                 <input
                   id="logoUpload"
                   type="file"
@@ -386,6 +413,13 @@ const UploadText = styled.span`
   font-size: 0.875rem;
   font-family: "Inter-Medium", sans-serif;
   color: ${theme.colors.primary};
+`;
+
+const LogoPreview = styled.img`
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+  border-radius: 0.375rem;
 `;
 
 const FileName = styled.span`

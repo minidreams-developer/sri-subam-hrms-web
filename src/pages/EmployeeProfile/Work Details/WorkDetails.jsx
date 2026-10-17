@@ -9,6 +9,7 @@ import { toast } from "react-toastify";
 
 const fields = [
   ["designation", "Designation"], ["team", "Team"], ["department", "Department"],
+  ["workBranch", "Branch"],
   ["dateOfJoining", "Date Of Joining"], ["experienceType", "Experience Type"], ["workExperience", "Work Experience"],
   ["shift", "Shift"], ["terminationDate", "Termination Date"], ["exitDate", "Exit Date"],
   ["reportingPerson", "Reporting Person"], ["reference", "Reference"], ["contractAgent", "Contract Agent"],
@@ -17,7 +18,7 @@ const fields = [
   ["location", "Location"], ["attendancePermission", "Attendance Permission"],
   ["accountHolderName", "Acc Holder Name"], ["bank", "Bank"], ["accountNumber", "Acc Number"],
   ["ifscCode", "IFSC Code"], ["branch", "Branch"], ["esiNumber", "ESI Number"],
-  ["pfNumber", "PF Number"], ["email", "Email"], ["password", "Password"],
+  ["pfNumber", "PF Number"], ["email", "Email"],
 ];
 
 const staticDropdownOptions = {
@@ -64,6 +65,7 @@ const makeDetails = (employee) => {
     ),
     team: valueOf(work.team || employee?.team, ["teamName", "name"]),
     department: valueOf(work.department || employee?.department, ["departmentName", "name"]),
+    workBranch: valueOf(work.branch || employee?.branch, ["branchName", "name"]),
     dateOfJoining: dateOf(work.joinedDate || work.dateOfJoining || employee?.dateOfJoining),
     experienceType: valueOf(work.experienceType), workExperience: valueOf(work.workExperience),
     shift: valueOf(work.shift || work.shiftId || employee?.shift, ["shiftName", "name"]),
@@ -75,7 +77,7 @@ const makeDetails = (employee) => {
     attendancePermission: valueOf(work.attendancePermission || work.AttendanceType), accountHolderName: valueOf(bank.accountHolderName),
     bank: valueOf(bank.bankName || bank.bank), accountNumber: valueOf(bank.accountNumber), ifscCode: valueOf(bank.ifscCode),
     branch: valueOf(bank.branch), esiNumber: valueOf(esiAndPf.esiNumber), pfNumber: valueOf(esiAndPf.pfNumber),
-    email: valueOf(employee?.email), password: "N/A",
+    email: valueOf(employee?.email),
   };
 };
 
@@ -185,6 +187,7 @@ export const WorkDetails = ({ employee, onEmployeeUpdated }) => {
       ),
       team: objectIdOrValue(draft.team, work.team || employee?.team, ["teamName", "name"]),
       department: objectIdOrValue(draft.department, work.department || employee?.department, ["departmentName", "name"]),
+      branch: objectIdOrValue(draft.workBranch, work.branch || employee?.branch, ["branchName", "name"]),
       joinedDate: apiDate(draft.dateOfJoining), experienceType: apiValue(draft.experienceType),
       workExperience: apiValue(draft.workExperience),
       shiftId: objectIdOrValue(draft.shift, work.shiftId || work.shift || employee?.shift, ["shiftName", "name"]),
@@ -252,7 +255,7 @@ export const WorkDetails = ({ employee, onEmployeeUpdated }) => {
       <CardDetails
         title="Basic Information"
         columns={3}
-        items={items(["designation", "team", "department", "dateOfJoining", "experienceType", "workExperience", "shift", "terminationDate", "exitDate", "reportingPerson", "reference", "contractAgent"])}
+        items={items(["designation", "team", "department", "workBranch", "dateOfJoining", "experienceType", "workExperience", "shift", "terminationDate", "exitDate", "reportingPerson", "reference", "contractAgent"])}
       />
       <CardDetails
         title="Experience Details"
@@ -277,7 +280,7 @@ export const WorkDetails = ({ employee, onEmployeeUpdated }) => {
       <CardDetails
         title="Login Details"
         columns={3}
-        items={items(["email", "password"])}
+        items={items(["email"])}
       />
       {editing && (
         <Backdrop onMouseDown={() => setEditing(false)}>

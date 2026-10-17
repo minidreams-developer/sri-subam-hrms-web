@@ -7,11 +7,10 @@ import ReusableTable from "../../components/ReusableTable";
 import DetailsSidebar from "../../components/DetailsSidebar";
 import CardDetails from "../../components/CardDetails";
 import EditIcon from "../../assets/images/employee/editIcon.svg";
-import DeleteIcon from "../../assets/images/employee/Cross.svg";
 import styled from "styled-components";
 import theme from "../../theme/theme";
 import { useNavigate } from "react-router-dom";
-import { deleteShift, getShift, getShifts } from "../../services/apiServices";
+import { deleteShift, getShift, getShifts, updateShift } from "../../services/apiServices";
 import { toast } from "react-toastify";
 
 const ShiftManagement = () => {
@@ -94,9 +93,9 @@ const ShiftManagement = () => {
         endTime: extractTime(shift.timings?.[0]?.endTime || shift.endTime) || "-",
         workingHours: shift.totalShiftDuration || "-",
         shifttype: shift.shiftType || "-",
-        status: shift.isShiftActive ? "Active" : "Inactive",
+        isShiftActive: shift.isShiftActive !== false,
+        status: shift.isShiftActive !== false ? "Active" : "Inactive",
         type: shift.shiftType,
-        action: <ActionCell row={{id: shift.id || shift._id}} />,
         // Keep the raw shift fields while preserving the table's normalized values above.
       }));
       
@@ -123,8 +122,20 @@ const ShiftManagement = () => {
     { header: "End Time", accessor: "endTime" },
     { header: "Working Hours", accessor: "workingHours" },
     { header: "Shift Type", accessor: "shifttype" },
-    { header: "Status", accessor: "status" },
-    { header: "Action", accessor: "action" },
+    { header: "Status", accessor: "status", render: (row) => (
+      <StatusToggle
+        type="button"
+        $active={row.isShiftActive}
+        onClick={(event) => {
+          event.stopPropagation();
+          handleToggleStatus(row);
+        }}
+      >
+        <ToggleKnob $active={row.isShiftActive} />
+        {row.isShiftActive ? "Active" : "Inactive"}
+      </StatusToggle>
+    ) },
+    { header: "Action", accessor: "action", useDefaultActionMenu: true, align: "right" },
   ];
 
   const handleRowClick = (row) => {
@@ -133,8 +144,8 @@ const ShiftManagement = () => {
     fetchShiftDetails(row.id);
   };
 
-  const handleEditShift = (e, shiftId) => {
-    e.stopPropagation();
+  const handleEditShift = (row) => {
+    const shiftId = row.id;
     // Navigate to edit shift page with ID using absolute path
     navigate(`/admin/time-hub/shiftManagement/addNewShift?id=${shiftId}`);
   };
@@ -156,23 +167,16 @@ const ShiftManagement = () => {
     }
   };
 
-  const ActionCell = ({ row }) => (
-    <ActionIcons>
-      <IconButton 
-        onClick={(e) => handleEditShift(e, row.id)}
-        title="Edit"
-      >
-        <img src={EditIcon} alt="edit" width="18" height="18" />
-      </IconButton>
-      <IconButton 
-        onClick={(e) => handleDeleteShift(e, row.id)}
-        title="Delete"
-        $delete
-      >
-        <img src={DeleteIcon} alt="delete" width="18" height="18" />
-      </IconButton>
-    </ActionIcons>
-  );
+  const handleToggleStatus = async (row) => {
+    const isShiftActive = !row.isShiftActive;
+    try {
+      await updateShift(row.id, { isShiftActive });
+      toast.success(`Shift ${isShiftActive ? "activated" : "deactivated"} successfully`);
+      fetchShifts(currentPage, pageSize, sortBy);
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to update shift status");
+    }
+  };
 
   const handlePageChange = (newPage) => {
     setCurrentPage(newPage);
@@ -253,6 +257,7 @@ const ShiftManagement = () => {
           alwaysShowPagination
           actionType="default"
           onRowClick={handleRowClick}
+          onEdit={handleEditShift}
           onDelete={(row) => handleDeleteShift(null, row.id)}
         />
       )}
@@ -417,7 +422,7 @@ const ShiftManagement = () => {
             </Section>
 
             <Footer>
-              <EditButton type="button" onClick={(event) => handleEditShift(event, shiftDetails?.id || shiftDetails?._id || selectedShift?.id)}>
+              <EditButton type="button" onClick={() => handleEditShift({ id: shiftDetails?.id || shiftDetails?._id || selectedShift?.id })}>
                 <img src={EditIcon} alt="edit" width="16" height="16" />
                 Edit details
               </EditButton>
@@ -442,6 +447,38 @@ const StatusText = styled.span`
     return theme.colors.textColor;
   }};
   font-weight: 600;
+`;
+
+const StatusToggle = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border: none;
+  background: transparent;
+  color: ${({ $active }) => ($active ? "#10B981" : "#EF4444")};
+  font: inherit;
+  cursor: pointer;
+  padding: 0.25rem 0;
+`;
+
+const ToggleKnob = styled.span`
+  width: 28px;
+  height: 16px;
+  border-radius: 999px;
+  background: ${({ $active }) => ($active ? "#10B981" : "#9CA3AF")};
+  position: relative;
+
+  &::after {
+    content: "";
+    position: absolute;
+    top: 2px;
+    left: ${({ $active }) => ($active ? "14px" : "2px")};
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: white;
+    transition: left 0.2s ease;
+  }
 `;
 
 const CardWrapper = styled.div`

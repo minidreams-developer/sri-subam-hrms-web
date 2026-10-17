@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import theme from "../../theme/theme";
 import InputComponent from "../../components/InputComponent";
@@ -9,11 +9,14 @@ import Select from "react-select";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { customSelectStyles } from "../../theme/reactSelectStyles";
-import { createAdjustment, getDepartments, getTeams, getUser, getUserDropdown } from "../../services/apiServices";
+import { createAdjustment, getDepartments, getTeams, getUser, getUserDropdown, updateAdjustment } from "../../services/apiServices";
 import { toast } from "react-toastify";
 
 const AddAdjustment = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const editAdjustment = location.state?.adjustment;
+  const isEditMode = location.state?.mode === "edit";
   const [forWhom, setForWhom] = useState(null);
   const [departmentOptions, setDepartmentOptions] = useState([]);
   const [teamOptions, setTeamOptions] = useState([]);
@@ -117,6 +120,51 @@ const AddAdjustment = () => {
     { value: "yes", label: "Yes" },
     { value: "no", label: "No" },
   ];
+
+  // Populate the form when the page is opened from the adjustment details
+  // sidebar in edit mode.
+  useEffect(() => {
+    const adjustment = location.state?.adjustment;
+    if (!adjustment) return;
+
+    const employee = adjustment.employeeId && typeof adjustment.employeeId === "object"
+      ? adjustment.employeeId
+      : null;
+    const team = adjustment.teamId && typeof adjustment.teamId === "object"
+      ? adjustment.teamId
+      : null;
+    const department = adjustment.departmentId && typeof adjustment.departmentId === "object"
+      ? adjustment.departmentId
+      : null;
+    const monthOption = (month, year) => {
+      if (!month || !year) return null;
+      const value = `${["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"][Number(month) - 1]}${year}`;
+      return monthOptions.find((option) => option.value === value) || { value, label: `${value.slice(0, 3).replace(/^./, (char) => char.toUpperCase())} ${year}` };
+    };
+
+    setForWhom(forWhomOptions.find((option) => option.value === adjustment.forWhom) || null);
+    setFormData((current) => ({
+      ...current,
+      department: department ? { value: department._id || department.id, _id: department._id, label: department.departmentName || department.name } : null,
+      team: team ? { value: team._id || team.id, _id: team._id, label: team.teamName || team.name, teamId: team.teamId || team.teamCode || "", teamLead: team.teamLead || "" } : null,
+      teamId: team?.teamId || team?.teamCode || "",
+      teamLead: typeof team?.teamLead === "string" ? team.teamLead : team?.teamLead?.name || "",
+      employee: employee ? { value: employee._id || employee.id, label: employee.name || employee.email, empCode: employee.employeeId || "N/A" } : null,
+      employeeId: employee?.employeeId || "",
+      designation: employee?.workInformation?.designation || "",
+      type: typeOptions.find((option) => option.value === adjustment.type) || null,
+      component: componentOptions.find((option) => option.value === adjustment.component) || null,
+      date: adjustment.date ? new Date(adjustment.date) : null,
+      amount: adjustment.amount ?? "",
+      affectFrom: monthOption(adjustment.emiDetails?.affectFrom?.month, adjustment.emiDetails?.affectFrom?.year),
+      to: monthOption(adjustment.emiDetails?.affectTo?.month, adjustment.emiDetails?.affectTo?.year),
+      totalMonths: adjustment.emiDetails?.totalMonths ?? "",
+      perMonthDeduction: adjustment.emiDetails?.perMonthDeduction ?? "",
+      payrollMonth: monthOption(adjustment.payrollMonth, adjustment.payrollYear),
+      appliedToPayroll: adjustment.appliedToPayroll ? yesNoOptions[0] : yesNoOptions[1],
+      remarks: adjustment.remarks || "",
+    }));
+  }, [location.state, employeeOptions, teamOptions, departmentOptions]);
 
   // Fetch departments on component mount
   useEffect(() => {
@@ -416,9 +464,9 @@ const AddAdjustment = () => {
           return;
         }
 
-        payload.forWhom = "team";
+        if (!isEditMode) payload.forWhom = "team";
         // Only the backend team identifier is accepted by this endpoint.
-        payload.teamId = formData.teamId;
+        if (!isEditMode) payload.teamId = formData.team.value || formData.team._id;
       }
       // For Individual
       else if (forWhom.value === "individual") {
@@ -427,9 +475,9 @@ const AddAdjustment = () => {
           return;
         }
 
-        payload.forWhom = "individual";
+        if (!isEditMode) payload.forWhom = "individual";
         // The API expects the selected user's MongoDB ID in employeeId.
-        payload.employeeId = formData.employee.value;
+        if (!isEditMode) payload.employeeId = formData.employee.value;
       }
 
       // Add EMI-specific fields
@@ -467,10 +515,17 @@ const AddAdjustment = () => {
       console.log("Sending adjustment payload:", payload);
 
       // Make API call
-      const response = await createAdjustment(payload);
+      const adjustmentId = editAdjustment?._id || editAdjustment?.id || editAdjustment?.adjustmentId;
+      if (isEditMode && !adjustmentId) {
+        toast.error("Adjustment ID was not found");
+        return;
+      }
+      const response = isEditMode && adjustmentId
+        ? await updateAdjustment(adjustmentId, payload)
+        : await createAdjustment(payload);
       
       console.log("API Response:", response);
-      toast.success("Adjustment created successfully!");
+      toast.success(isEditMode ? "Adjustment updated successfully!" : "Adjustment created successfully!");
       
       // Navigate back to list
       navigate("/admin/pay-hub/additionDeductions");
@@ -497,6 +552,7 @@ const AddAdjustment = () => {
                   placeholder="Team"
                   styles={customSelectStyles}
                   isSearchable
+                  isDisabled={isEditMode}
                 />
               </SelectWrapper>
             </Col>
@@ -577,6 +633,7 @@ const AddAdjustment = () => {
                   placeholder="Enter Employee ID"
                   value={formData.employeeId}
                   onChange={(e) => handleChange("employeeId", e.target.value)}
+                  disabled={isEditMode}
                   labelMargin="0 0 0.625rem 0"
                   height="50px"
                 />
@@ -592,6 +649,7 @@ const AddAdjustment = () => {
                     styles={customSelectStyles}
                     isSearchable
                     isLoading={employeesLoading || isFetchingEmployeeDetails}
+                    isDisabled={isEditMode}
                   />
                 </SelectWrapper>
               </Col>

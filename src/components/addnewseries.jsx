@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import styled from "styled-components";
 import theme from "../theme/theme";
-import { createSeriesConfiguration } from "../services/apiServices";
+import { createSeriesConfiguration, updateSeriesConfiguration } from "../services/apiServices";
 import { toast } from "react-toastify";
 
-const AddNewSeries = ({ onClose, onSave }) => {
+const AddNewSeries = ({ onClose, onSave, initialData, mode = "add" }) => {
   const [formData, setFormData] = useState({
     seriesName: "",
     voucherType: "",
@@ -16,6 +16,24 @@ const AddNewSeries = ({ onClose, onSave }) => {
 
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
+
+  const isViewMode = mode === "view";
+
+  useEffect(() => {
+    if (!initialData) return;
+    setFormData({
+      seriesName: initialData.seriesName || "",
+      voucherType: initialData.voucherType || "",
+      prefix: initialData.prefix || "",
+      suffix: initialData.suffix || "",
+      startingNo: initialData.startingNo === null || initialData.startingNo === undefined
+        ? ""
+        : String(initialData.startingNo),
+      lengthOfZero: initialData.lengthOfZero === null || initialData.lengthOfZero === undefined
+        ? ""
+        : String(initialData.lengthOfZero),
+    });
+  }, [initialData]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -46,6 +64,7 @@ const AddNewSeries = ({ onClose, onSave }) => {
   };
 
   const handleSave = async () => {
+    if (isViewMode) return;
     const newErrors = validateForm();
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -68,9 +87,12 @@ const AddNewSeries = ({ onClose, onSave }) => {
       // Remove undefined values
       Object.keys(payload).forEach(key => payload[key] === undefined && delete payload[key]);
 
-      const response = await createSeriesConfiguration(payload);
+      const seriesId = initialData?._id || initialData?.id || initialData?.seriesId;
+      const response = mode === "edit"
+        ? await updateSeriesConfiguration(seriesId, payload)
+        : await createSeriesConfiguration(payload);
       
-      toast.success("Series added successfully!");
+      toast.success(mode === "edit" ? "Series updated successfully!" : "Series added successfully!");
       onSave(response);
       
       // Reset form
@@ -108,7 +130,7 @@ const AddNewSeries = ({ onClose, onSave }) => {
 
   return (
     <Container>
-      <PageTitle>Auto Numbering Info</PageTitle>
+      <PageTitle>{isViewMode ? "View Series" : mode === "edit" ? "Edit Series" : "Auto Numbering Info"}</PageTitle>
       <ContentArea>
         <FormGrid>
           <FormGroup>
@@ -122,6 +144,7 @@ const AddNewSeries = ({ onClose, onSave }) => {
               placeholder="Series Name"
               value={formData.seriesName}
               onChange={handleChange}
+              readOnly={isViewMode}
               $hasError={!!errors.seriesName}
             />
             {errors.seriesName && (
@@ -137,6 +160,7 @@ const AddNewSeries = ({ onClose, onSave }) => {
               placeholder="Enter Name"
               value={formData.voucherType}
               onChange={handleChange}
+              readOnly={isViewMode}
             />
           </FormGroup>
 
@@ -151,6 +175,7 @@ const AddNewSeries = ({ onClose, onSave }) => {
               placeholder="Prefix"
               value={formData.prefix}
               onChange={handleChange}
+              readOnly={isViewMode}
               $hasError={!!errors.prefix}
             />
             {errors.prefix && <ErrorText>{errors.prefix}</ErrorText>}
@@ -164,6 +189,7 @@ const AddNewSeries = ({ onClose, onSave }) => {
               placeholder="Suffix"
               value={formData.suffix}
               onChange={handleChange}
+              readOnly={isViewMode}
             />
           </FormGroup>
 
@@ -178,6 +204,7 @@ const AddNewSeries = ({ onClose, onSave }) => {
               placeholder="Starting no"
               value={formData.startingNo}
               onChange={handleChange}
+              readOnly={isViewMode}
               $hasError={!!errors.startingNo}
             />
             {errors.startingNo && (
@@ -193,6 +220,7 @@ const AddNewSeries = ({ onClose, onSave }) => {
               placeholder="Length of Zero"
               value={formData.lengthOfZero}
               onChange={handleChange}
+              readOnly={isViewMode}
             />
           </FormGroup>
         </FormGrid>
@@ -200,9 +228,11 @@ const AddNewSeries = ({ onClose, onSave }) => {
 
       <ButtonGroup>
         <CancelButton onClick={handleCancel} disabled={isLoading}>Cancel</CancelButton>
-        <SaveButton onClick={handleSave} disabled={isLoading}>
-          {isLoading ? "Saving..." : "Save"}
-        </SaveButton>
+        {!isViewMode && (
+          <SaveButton onClick={handleSave} disabled={isLoading}>
+            {isLoading ? "Saving..." : "Save"}
+          </SaveButton>
+        )}
       </ButtonGroup>
     </Container>
   );
