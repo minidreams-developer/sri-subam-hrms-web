@@ -320,6 +320,8 @@ const OffBoarding = () => {
       profileImage: record.userId?.profileImage || ProfileImage,
     },
     department:
+      record.userId?.workInformation?.department?.departmentName ||
+      record.userId?.workInformation?.department?.name ||
       record.userId?.department?.departmentName ||
       record.userId?.department?.name ||
       record.department?.name ||

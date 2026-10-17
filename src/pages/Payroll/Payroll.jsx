@@ -7,7 +7,7 @@ import TableToolbar from "../../components/TableToolbar";
 import DotIcon from "../../assets/images/Overtime/actionDot.svg";
 import Button from "../../components/Button";
 import Filter from "../../components/filter";
-import { getDepartments, getFinalizedPayrollPeriods, getPayroll, getPayrollPeriods, getShifts, getPayrollPayslipOptions } from "../../services/apiServices";
+import { exportPayrollAbstract, getDepartments, getFinalizedPayrollPeriods, getPayroll, getPayrollPeriods, getShifts, getPayrollPayslipOptions } from "../../services/apiServices";
 import { toast } from "react-toastify";
 
 const Payroll = () => {
@@ -43,6 +43,7 @@ const Payroll = () => {
   const [shiftOptions, setShiftOptions] = useState([]);
   const [loadingDepts, setLoadingDepts] = useState(false);
   const [loadingShifts, setLoadingShifts] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   // Fetch payroll data on component mount or page change
   useEffect(() => {
@@ -115,6 +116,7 @@ const Payroll = () => {
         role: roleByTab[activeInnerTab] || "employee",
         ...(departmentId ? { departmentId } : {}),
         ...(shiftId ? { shiftId } : {}),
+        ...(search ? { search } : {}),
         ...(selectedPeriod ? { month: selectedPeriod.month, year: selectedPeriod.year } : {}),
       });
       console.log("Payroll data fetched:", response);
@@ -170,6 +172,45 @@ const Payroll = () => {
       setPayrollData([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleAbstractExport = async () => {
+    if (!selectedPeriod) {
+      toast.error("Select a payroll period first");
+      return;
+    }
+
+    setIsExporting(true);
+    try {
+      const roleByTab = {
+        Employees: "employee",
+        Staff: "staff",
+        Staffs: "staff",
+        Contractors: "contractor",
+        Agents: "agent",
+      };
+      const blob = await exportPayrollAbstract({
+        year: selectedPeriod.year,
+        month: selectedPeriod.month,
+        type: roleByTab[activeInnerTab] || "employee",
+        ...(departmentId ? { departmentId } : {}),
+        ...(appliedFilters?.designation ? { designation: appliedFilters.designation } : {}),
+        ...(search ? { search } : {}),
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `payroll-abstract-${roleByTab[activeInnerTab] || "employee"}-${selectedPeriod.year}-${String(selectedPeriod.month).padStart(2, "0")}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Error exporting payroll abstract:", error);
+      toast.error("Failed to export payroll abstract");
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -756,7 +797,9 @@ const Payroll = () => {
           Finalized Payroll
         </TopTab>
         {activeTopTab === "Abstract" && (
-          <ExportButton type="button" onClick={() => window.print()}>Export Data</ExportButton>
+          <ExportButton type="button" onClick={handleAbstractExport} disabled={isExporting}>
+            {isExporting ? "Exporting..." : "Export Data"}
+          </ExportButton>
         )}
       </TopTabsContainer>
       {renderTopTabContent()}

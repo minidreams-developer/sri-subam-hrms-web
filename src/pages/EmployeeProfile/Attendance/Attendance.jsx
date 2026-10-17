@@ -53,6 +53,9 @@ export const Attendance = ({ employee, onEmployeeUpdated }) => {
     if (!employeeId) return;
     const currentMonthKey = monthRange.fromDate.slice(0, 7);
     let cancelled = false;
+    setSummary(null);
+    setMonthlyAttendanceSummaries({});
+    setLoadedAttendanceMonths([]);
     setAttendanceLoading(true);
     getEmployeeAttendanceSummary(employeeId, monthRange)
       .then((summaryResponse) => {

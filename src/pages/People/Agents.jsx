@@ -8,7 +8,7 @@ import DropdownComponent from "../../components/DropdownComponent";
 import PlusIcon from "../../assets/images/DashboardImages/plus-large_svgrepo.com.svg";
 import Filter from "../../components/filter";
 import ReusableTable from "../../components/ReusableTable";
-import { deleteUser, getUserCount, getUsers } from "../../services/apiServices";
+import { deleteUser, exportUsers, getUserCount, getUsers } from "../../services/apiServices";
 import { toast } from "react-toastify";
 import DeleteConfirmationModal from "../../components/DeleteConfirmationModal";
 
@@ -47,7 +47,8 @@ const getAgentStatus = (isActive) => {
 
 const Agents = () => {
   const navigate = useNavigate();
-  const [selectedFilter, setSelectedFilter] = useState("All");
+  const [selectedStatsFilter, setSelectedStatsFilter] = useState("All");
+  const [selectedTableFilter, setSelectedTableFilter] = useState("All");
   const [selectedRange, setSelectedRange] = useState("Last 7 days");
   const [agentSearch, setAgentSearch] = useState("");
   const [showFilter, setShowFilter] = useState(false);
@@ -73,19 +74,19 @@ const Agents = () => {
       fetchAgents(currentPage, pageSize, sortBy);
     }, agentSearch.trim() ? 350 : 0);
     return () => window.clearTimeout(timeoutId);
-  }, [currentPage, pageSize, sortBy, agentSearch]);
+  }, [currentPage, pageSize, sortBy, agentSearch, selectedTableFilter]);
 
   useEffect(() => {
     fetchAgentStats();
-  }, [selectedFilter, selectedRange]);
+  }, [selectedStatsFilter, selectedRange]);
 
   const fetchAgentStats = async () => {
     const requestId = ++statsRequestId.current;
     setAgentsStats((items) => items.map((item) => ({ ...item, value: null })));
     try {
       const query = new URLSearchParams({ role: "agent" });
-      if (selectedFilter !== "All") {
-        query.set("status", selectedFilter.toLowerCase().replace("-", ""));
+      if (selectedStatsFilter !== "All") {
+        query.set("status", selectedStatsFilter.toLowerCase().replace("-", ""));
       }
       const rangeDays = { "Last 7 days": 7, "Last 30 days": 30, "Last 90 days": 90 }[selectedRange];
       if (rangeDays) {
@@ -131,6 +132,12 @@ const Agents = () => {
         sortBy: sort,
       });
       if (agentSearch.trim()) query.set("search", agentSearch.trim());
+      if (selectedTableFilter !== "All") {
+        query.set(
+          "status",
+          selectedTableFilter === "In-Active" ? "inactive" : selectedTableFilter.toLowerCase(),
+        );
+      }
       const response = await getUsers(Object.fromEntries(query));
       console.log("=== Full Response ===", response);
       console.log("Response type:", typeof response);
@@ -258,6 +265,30 @@ const Agents = () => {
     setShowFilter(false);
   };
 
+  const handleExport = async () => {
+    try {
+      const params = { role: "agent" };
+      if (agentSearch.trim()) params.search = agentSearch.trim();
+      if (selectedTableFilter !== "All") {
+        params.status = selectedTableFilter === "In-Active" ? "Inactive" : selectedTableFilter;
+      }
+      const file = await exportUsers(params);
+      const blob = file instanceof Blob
+        ? file
+        : new Blob([file], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "agents-export.csv";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to export agents");
+    }
+  };
+
   const filteredAgentsData = agentsData;
 
   return (
@@ -278,9 +309,11 @@ const Agents = () => {
         <Controls>
           <FilterSelect>
             <DropdownComponent
-              options={["All", "Active", "In-Active", "Relieved"]}
-              value={selectedFilter}
-              onChange={setSelectedFilter}
+              options={["All", "Active", "In-Active"]}
+              value={selectedStatsFilter}
+              onChange={(value) => {
+                setSelectedStatsFilter(value);
+              }}
               placeholder="Select status"
             />
           </FilterSelect>
@@ -299,6 +332,7 @@ const Agents = () => {
             border={`1px solid ${theme.colors.primary}`}
             width="9.625rem"
             radius="0.625rem"
+            onClick={handleExport}
           />
         </Controls>
       </Top>
@@ -315,19 +349,32 @@ const Agents = () => {
         ))}
       </StatsGrid>
 
-      <TableToolbar
-        searchPlaceholder="Search Agents"
-        searchValue={agentSearch}
-        onSearchChange={(value) => {
-          setAgentSearch(value);
-          setCurrentPage(1);
-        }}
-        filterText="Filter"
-        onFilterClick={handleFilterOpen}
-        actionText="New Agent"
-        actionIcon={<img src={PlusIcon} alt="add" width="16" height="16" />}
-        onActionClick={() => navigate("/admin/peopleHub/employees/create", { state: { from: "onboarding", employeeType: "agent" } })}
-      />
+      <TableToolbarRow>
+        <TableFilterSelect>
+          <DropdownComponent
+            options={["All", "Active", "In-Active"]}
+            value={selectedTableFilter}
+            onChange={(value) => {
+              setSelectedTableFilter(value);
+              setCurrentPage(1);
+            }}
+            placeholder="Filter by status"
+          />
+        </TableFilterSelect>
+        <TableToolbar
+          searchPlaceholder="Search Agents"
+          searchValue={agentSearch}
+          onSearchChange={(value) => {
+            setAgentSearch(value);
+            setCurrentPage(1);
+          }}
+          filterText="Filter"
+          onFilterClick={handleFilterOpen}
+          actionText="New Agent"
+          actionIcon={<img src={PlusIcon} alt="add" width="16" height="16" />}
+          onActionClick={() => navigate("/admin/peopleHub/employees/create", { state: { from: "onboarding", employeeType: "agent" } })}
+        />
+      </TableToolbarRow>
 
       <ReusableTable
         columns={agentsTableColumns}
@@ -431,6 +478,25 @@ const Controls = styled.div`
 
 const FilterSelect = styled.div`
   width: 12rem;
+`;
+
+const TableToolbarRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  > div:last-child {
+    flex: 1;
+  }
+`;
+
+const TableFilterSelect = styled.div`
+  width: min(24vw, 18rem);
+  flex: 0 0 min(24vw, 18rem);
+
+  @media (max-width: 900px) {
+    width: 12rem;
+    flex-basis: 12rem;
+  }
 `;
 
 export default Agents;

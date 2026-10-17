@@ -274,6 +274,12 @@ export const deleteRoster = (id) => data(api.delete(`/v1/roster/${id}`));
 
 // Payroll, paysheets, and adjustments
 export const getPayroll = (params) => list("/v1/payroll", params);
+export const exportPayrollAbstract = (params, config = {}) =>
+  data(api.get("/v1/payroll/abstract/export", {
+    ...config,
+    params: cleanParams(params),
+    responseType: "blob",
+  }));
 export const getPayrollPreview = (employeeId, params) =>
   data(api.get(`/v1/payroll/${encodeURIComponent(employeeId)}/preview`, { params: cleanParams(params) }));
 export const getEmployeePayrollHistory = (params) => list("/v1/payroll", params);
