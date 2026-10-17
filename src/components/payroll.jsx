@@ -15,9 +15,21 @@ import { toast } from "react-toastify";
 const money = (value) =>
   value === "" || value == null ? "N/A" : Number(value).toLocaleString("en-IN");
 
+const payrollRecords = (response, fallback = {}) => {
+  const records = response?.results || response?.data?.results || response?.data || response?.result || [];
+  if (!Array.isArray(records)) return [];
+  return records.map((record) => ({
+    ...record,
+    month: Number(record.month || response?.month || fallback.month),
+    year: Number(record.year || response?.year || fallback.year),
+  }));
+};
+
 const PayrollComponent = ({ employee, onEmployeeUpdated }) => {
   const [expandedYear, setExpandedYear] = useState("2026");
-  const [expandedMonth, setExpandedMonth] = useState("February 2026");
+  const [expandedMonth, setExpandedMonth] = useState(
+    `${new Date().getFullYear()}-${new Date().getMonth() + 1}`,
+  );
   const [editor, setEditor] = useState(null);
   const [form, setForm] = useState({});
   const [saving, setSaving] = useState(false);
@@ -54,8 +66,7 @@ const PayrollComponent = ({ employee, onEmployeeUpdated }) => {
       .then(([preview, history]) => {
         if (!active) return;
         setCurrentSalary(preview?.data || preview?.result || preview || {});
-        const records = history?.results || history?.data?.results || history?.data || history?.result || [];
-        setHistoryRecords(Array.isArray(records) ? records : []);
+        setHistoryRecords(payrollRecords(history));
       })
       .catch(() => {
         if (active) {
@@ -187,7 +198,7 @@ const PayrollComponent = ({ employee, onEmployeeUpdated }) => {
         limit: 100,
         sortBy: "-year,-month",
       });
-      const records = response?.results || response?.data?.results || response?.data || response?.result || [];
+      const records = payrollRecords(response, { year: Number(year) });
       setHistoryRecords((previous) => {
         const otherYears = previous.filter((record) => String(record.year) !== String(year));
         return [...otherYears, ...(Array.isArray(records) ? records : [])];
@@ -219,7 +230,7 @@ const PayrollComponent = ({ employee, onEmployeeUpdated }) => {
         page: 1,
         limit: 1,
       });
-      const records = response?.results || response?.data?.results || response?.data || response?.result || [];
+      const records = payrollRecords(response, { year: parsedYear, month: monthNumber });
       if (Array.isArray(records) && records.length) {
         setHistoryRecords((previous) => [
           ...previous.filter((record) => !(String(record.year) === String(parsedYear) && Number(record.month) === monthNumber)),
@@ -361,7 +372,8 @@ const PayrollComponent = ({ employee, onEmployeeUpdated }) => {
           <YearSection key={year}>
             <YearHeader onClick={() => toggleYear(year)}><YearTitle>{year}</YearTitle><ChevronIcon expanded={expandedYear === year}>▼</ChevronIcon></YearHeader>
             {expandedYear === year && <MonthsContainer>{Array.from({ length: Number(year) === new Date().getFullYear() ? new Date().getMonth() + 1 : 12 }, (_, index) => {
-              const month = index + 1;
+              const monthCount = Number(year) === new Date().getFullYear() ? new Date().getMonth() + 1 : 12;
+              const month = monthCount - index;
               const record = records.find((item) => Number(item.month) === month) || {};
               const monthKey = `${year}-${month}`;
               const label = new Date(Number(year), month - 1, 1).toLocaleString("en-US", { month: "long" });
