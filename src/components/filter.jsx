@@ -2,9 +2,10 @@ import { useState, useEffect } from "react";
 import styled from "styled-components";
 import theme from "../theme/theme";
 import { IoClose, IoSearch } from "react-icons/io5";
+import { getDepartments, getDesignationDropdown, getShifts } from "../services/apiServices";
 
 const Filter = ({ onClose, onApply }) => {
-  const [filters, setFilters] = useState({
+  const emptyFilters = {
     departmentId: [],
     designation: [],
     joinedFrom: "",
@@ -12,35 +13,36 @@ const Filter = ({ onClose, onApply }) => {
     status: [],
     shiftId: [],
     sortBy: "",
-  });
+  };
+  const [filters, setFilters] = useState(emptyFilters);
+  const [departmentsData, setDepartmentsData] = useState([]);
+  const [designationsData, setDesignationsData] = useState([]);
+  const [shiftsData, setShiftsData] = useState([]);
 
   const [searchDept, setSearchDept] = useState("");
   const [expandedSection, setExpandedSection] = useState("department");
   
-  // Hardcoded filter options - NO API calls
-  // Using placeholder MongoDB ObjectIds - will be replaced with real IDs from backend
-  const departmentsData = [
-    { id: "664f1b2c8e4a2b001c8ddef1", departmentName: "IT" },
-    { id: "664f1b2c8e4a2b001c8ddef2", departmentName: "HR" },
-    { id: "664f1b2c8e4a2b001c8ddef3", departmentName: "Sales" },
-    { id: "664f1b2c8e4a2b001c8ddef4", departmentName: "Marketing" },
-    { id: "664f1b2c8e4a2b001c8ddef5", departmentName: "Finance" },
-  ];
-
-  const designationsData = [
-    "Manager",
-    "Developer",
-    "Designer",
-    "Analyst",
-    "Executive",
-    "Coordinator",
-  ];
-
-  const shiftsData = [
-    { id: "664f1b2c8e4a2b001c8d0099", shiftName: "Morning Shift" },
-    { id: "664f1b2c8e4a2b001c8d009a", shiftName: "Afternoon Shift" },
-    { id: "664f1b2c8e4a2b001c8d009b", shiftName: "Night Shift" },
-  ];
+  useEffect(() => {
+    let active = true;
+    Promise.all([
+      getDepartments({ page: 1, limit: 100 }),
+      getDesignationDropdown(),
+      getShifts({ page: 1, limit: 100 }),
+    ]).then(([departments, designations, shifts]) => {
+      if (!active) return;
+      const list = (value) => Array.isArray(value) ? value : value?.results || value?.data || value?.items || [];
+      setDepartmentsData(list(departments));
+      setDesignationsData(list(designations));
+      setShiftsData(list(shifts));
+    }).catch(() => {
+      if (active) {
+        setDepartmentsData([]);
+        setDesignationsData([]);
+        setShiftsData([]);
+      }
+    });
+    return () => { active = false; };
+  }, []);
 
   const statuses = [
     { label: "Active", value: "active" },
@@ -101,16 +103,9 @@ const Filter = ({ onClose, onApply }) => {
   };
 
   const handleClearAll = () => {
-    setFilters({
-      departmentId: [],
-      designation: [],
-      joinedFrom: "",
-      joinedTo: "",
-      status: [],
-      shiftId: [],
-      sortBy: "",
-    });
+    setFilters(emptyFilters);
     setSearchDept("");
+    onApply?.({ page: 1, limit: 10, clearAll: true });
   };
 
   const handleApply = () => {
@@ -119,21 +114,24 @@ const Filter = ({ onClose, onApply }) => {
       const queryParams = {};
 
       // Department filter - pass ObjectId
-      if (filters.departmentId && filters.departmentId.length > 0) {
+      if (filters.departmentId?.length > 0) {
         queryParams.departmentId = filters.departmentId[0];
+        queryParams.departmentIds = filters.departmentId.join(",");
       }
 
       // Designation filter - pass as string
-      if (filters.designation && filters.designation.length > 0) {
+      if (filters.designation?.length > 0) {
         queryParams.designation = filters.designation[0];
+        queryParams.designationId = filters.designation[0];
+        queryParams.designationIds = filters.designation.join(",");
       }
 
       // Date range filters - pass as ISO date strings (YYYY-MM-DD)
       if (filters.joinedFrom) {
-        queryParams.joinedFrom = filters.joinedFrom;
+        queryParams.fromDate = filters.joinedFrom;
       }
       if (filters.joinedTo) {
-        queryParams.joinedTo = filters.joinedTo;
+        queryParams.toDate = filters.joinedTo;
       }
 
       // Status filter - pass as string (active, inactive, relieved)
@@ -142,8 +140,9 @@ const Filter = ({ onClose, onApply }) => {
       }
 
       // Shift filter - pass ObjectId
-      if (filters.shiftId && filters.shiftId.length > 0) {
+      if (filters.shiftId?.length > 0) {
         queryParams.shiftId = filters.shiftId[0];
+        queryParams.shiftIds = filters.shiftId.join(",");
       }
 
       // Sort filter - pass as field:direction format
@@ -244,16 +243,20 @@ const Filter = ({ onClose, onApply }) => {
               <FilterSection>
                 <SectionTitle>Select Designation</SectionTitle>
                 <OptionsList>
-                  {designationsData.map((designation) => (
-                    <OptionItem key={designation}>
+                  {designationsData.map((designation) => {
+                    const designationId = designation.id || designation._id || designation.value;
+                    const designationName = designation.name || designation.designationName || designation.label || designation.value || designation;
+                    return (
+                    <OptionItem key={designationId}>
                       <Checkbox
                         type="checkbox"
-                        checked={filters.designation.includes(designation)}
-                        onChange={() => handleDesignationChange(designation)}
+                        checked={filters.designation.includes(designationId)}
+                        onChange={() => handleDesignationChange(designationId)}
                       />
-                      <OptionLabel>{designation}</OptionLabel>
+                      <OptionLabel>{designationName}</OptionLabel>
                     </OptionItem>
-                  ))}
+                    );
+                  })}
                 </OptionsList>
               </FilterSection>
             )}

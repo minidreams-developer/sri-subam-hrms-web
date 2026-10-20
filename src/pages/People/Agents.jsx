@@ -52,6 +52,7 @@ const Agents = () => {
   const [selectedRange, setSelectedRange] = useState("Last 7 days");
   const [agentSearch, setAgentSearch] = useState("");
   const [showFilter, setShowFilter] = useState(false);
+  const [appliedFilters, setAppliedFilters] = useState({});
   const [agentsData, setAgentsData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
@@ -74,7 +75,7 @@ const Agents = () => {
       fetchAgents(currentPage, pageSize, sortBy);
     }, agentSearch.trim() ? 350 : 0);
     return () => window.clearTimeout(timeoutId);
-  }, [currentPage, pageSize, sortBy, agentSearch, selectedTableFilter]);
+  }, [currentPage, pageSize, sortBy, agentSearch, selectedTableFilter, appliedFilters]);
 
   useEffect(() => {
     fetchAgentStats();
@@ -138,6 +139,11 @@ const Agents = () => {
           selectedTableFilter === "In-Active" ? "inactive" : selectedTableFilter.toLowerCase(),
         );
       }
+      Object.entries(appliedFilters).forEach(([key, value]) => {
+        if (key !== "clearAll" && value !== undefined && value !== "") {
+          query.set(key, String(value));
+        }
+      });
       const response = await getUsers(Object.fromEntries(query));
       console.log("=== Full Response ===", response);
       console.log("Response type:", typeof response);
@@ -262,6 +268,8 @@ const Agents = () => {
 
   const handleFilterApply = (filters) => {
     console.log("Applied filters:", filters);
+    setAppliedFilters(filters?.clearAll ? {} : filters || {});
+    setCurrentPage(1);
     setShowFilter(false);
   };
 
