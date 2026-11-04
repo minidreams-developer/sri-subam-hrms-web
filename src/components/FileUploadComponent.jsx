@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import styled from "styled-components";
 import theme from "../theme/theme";
 import EyeIcon from "../assets/images/employee/eye.svg";
-import CrossIcon from "../assets/images/employee/cross.svg";
+import CrossIcon from "../assets/images/employee/Cross.svg";
 import DocIcon from "../assets/images/employee/document.svg";
 
 const FileUploadComponent = ({
