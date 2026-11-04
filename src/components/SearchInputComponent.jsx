@@ -1,6 +1,6 @@
 import React from "react";
 import styled from "styled-components";
-import SearchIcon from "../assets/images/dashboardImages/search-alt_svgrepo.com.svg";
+import SearchIcon from "../assets/images/DashboardImages/search-alt_svgrepo.com.svg";
 import theme from "../theme/theme";
 
 const SearchInputComponent = ({
