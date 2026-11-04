@@ -11,7 +11,7 @@ import CalenderInput from "../../components/CalenderInput";
 import TimeInputComponent from "../../components/TimeInputComponent";
 import { getStoredAuthUser } from "../../helpers/auth_helper";
 import theme from "../../theme/theme";
-import megaphoneIcon from "../../assets/images/dashboardImages/megaphone_svgrepo.com.svg";
+import megaphoneIcon from "../../assets/images/DashboardImages/megaphone_svgrepo.com.svg";
 import uploadIcon from "../../assets/images/Common/upload.svg";
 import { uploadMedia } from "../../helpers/uploadMedia";
 

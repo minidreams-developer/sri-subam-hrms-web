@@ -50,7 +50,6 @@ const AccessDeniedPage = ({ moduleKey }) => {
       additionDeductions: 'Additions & Deductions',
       generalSettings: 'General Settings',
       organizationDetails: 'Organization Details',
-      departments: 'Departments',
       manageAttendance: 'Designations',
       roles: 'Roles & Permissions',
       daySettings: 'Day Settings',
